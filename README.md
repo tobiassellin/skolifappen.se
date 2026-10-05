@@ -197,7 +197,7 @@
 
     <!-- FOOTER -->
     <footer>
-        <p>&copy; 2026 Skol IF Appen. Utvecklad av Tobias Sellin.</p>
+        <p>&copy; 2026 Skol IF Appen. Utvecklad av Tobias, idrott- och matematiklärare.</p>
     </footer>
 
 </body>
