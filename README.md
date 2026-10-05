@@ -88,19 +88,23 @@
             transform: translateY(-2px);
         }
 
-        /* Sektion för funktioner (Cards) */
+        /* Sektion för funktioner (Cards) - NY DESIGN FÖR SAMMA RAD */
+        .features-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
         .features {
             display: flex;
             justify-content: center;
-            gap: 30px;
+            gap: 20px;
             padding: 60px 5%;
-            flex-wrap: wrap;
+            flex-wrap: nowrap; /* Tvingar dem att stanna på samma rad på dator */
         }
         .card {
             background: white;
             border-radius: 12px;
             padding: 30px;
-            width: 300px;
+            flex: 1; /* Gör så att korten delar jämnt på utrymmet i bredd */
             box-shadow: 0 4px 10px rgba(0,0,0,0.05);
             text-align: center;
             transition: transform 0.3s;
@@ -143,7 +147,7 @@
                 font-size: 2.2rem;
             }
             .features {
-                flex-direction: column;
+                flex-direction: column; /* Ändrar tillbaka till kolumn på mobiler */
                 align-items: center;
             }
             .card {
@@ -175,29 +179,31 @@
     </header>
 
     <!-- FUNKTIONER -->
-    <section class="features">
-        <div class="card" id="kassa">
-            <div class="card-icon">☕</div>
-            <h3>Skol IF Kassa</h3>
-            <p>Håll enkelt koll på elevsaldon, Swish-insättningar och kioskköp. Exportera en komplett och prydlig redovisning till Excel med ett enda knapptryck.</p>
-        </div>
+    <div class="features-container">
+        <section class="features">
+            <div class="card" id="kassa">
+                <div class="card-icon">☕</div>
+                <h3>Skol IF Kassa</h3>
+                <p>Håll enkelt koll på elevsaldon, Swish-insättningar och kioskköp. Exportera en komplett och prydlig redovisning till Excel med ett enda knapptryck.</p>
+            </div>
 
-        <div class="card" id="redskapsboden">
-            <div class="card-icon">📦</div>
-            <h3>Redskapsboden</h3>
-            <p>Ett smidigt digitalt system för att låna ut material. Se exakt vem som har lånat vilken utrustning, så inget tappas bort under rasterna.</p>
-        </div>
+            <div class="card" id="redskapsboden">
+                <div class="card-icon">📦</div>
+                <h3>Redskapsboden</h3>
+                <p>Ett smidigt digitalt system för att låna ut material. Se exakt vem som har lånat vilken utrustning, så inget tappas bort under rasterna.</p>
+            </div>
 
-        <div class="card" id="turnering">
-            <div class="card-icon">🏆</div>
-            <h3>Skapa Turnering</h3>
-            <p>Generera kompletta spelscheman på sekunder. Registrera resultat direkt i appen och låt systemet automatiskt sköta tabeller och slutspelsträd.</p>
-        </div>
-    </section>
+            <div class="card" id="turnering">
+                <div class="card-icon">🏆</div>
+                <h3>Skapa Turnering</h3>
+                <p>Generera kompletta spelscheman på sekunder. Registrera resultat direkt i appen och låt systemet automatiskt sköta tabeller och slutspelsträd.</p>
+            </div>
+        </section>
+    </div>
 
     <!-- FOOTER -->
     <footer>
-        <p>&copy; 2026 Skol IF Appen. Utvecklad av Tobias, idrott- och matematiklärare.</p>
+        <p>&copy; 2026 Skol IF Appen. Utvecklad av Tobias, idrotts- och matematiklärare.</p>
     </footer>
 
 </body>
