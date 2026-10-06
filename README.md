@@ -102,7 +102,6 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
     <script>
-        // BYT UT DETTA MOT DIN EGEN FIREBASE-CONFIG (Läs steg 2!)
         const firebaseConfig = {
             apiKey: "AIzaSyCmHoypbgqWYxgAVI98_gCwTJqXVUdG3hg",
             authDomain: "skol-if.firebaseapp.com",
@@ -112,7 +111,7 @@
             appId: "1:593631856247:web:874d4a87142b44bc336872",
             measurementId: "G-6JP01V6CYC"
         };
-        // Starta molnet
+
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
@@ -126,15 +125,14 @@
             }
 
             resultatDiv.style.display = "block";
-            resultatDiv.innerHTML = "<p style='text-align:center; color:gray;'>Söker efter kassa...</p>";
+            resultatDiv.innerHTML = "<p style='text-align:center; color:gray;'>Söker efter kassan...</p>";
 
-            // Lyssna på Firebase i realtid!
-            db.collection("skolif_kassa").document(kod).onSnapshot((doc) => {
+            // ÄNDRAT FRÅN .document() TILL .doc() HÄR NEDAN:
+            db.collection("skolif_kassa").doc(kod).onSnapshot((doc) => {
                 if (doc.exists) {
                     const data = doc.data();
                     const elever = JSON.parse(data.elever);
                     
-                    // Sortera ut de som har saldo (>0 kr)
                     const eleverMedSaldo = elever.filter(e => e.saldo > 0).sort((a, b) => b.saldo - a.saldo);
 
                     let html = "<h4 style='color: #2E7D32; border-bottom: 2px solid #4CAF50; padding-bottom: 5px; margin-bottom: 10px;'>Innestående Saldon</h4>";
