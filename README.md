@@ -1,165 +1,47 @@
-
+<!DOCTYPE html>
 <html lang="sv">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Skol IF Appen - Det digitala verktyget för idrottslärare</title>
-    <!-- Hämtar ett modernt typsnitt från Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;800&display=swap" rel="stylesheet">
     
     <style>
-        /* Grundläggande inställningar */
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Poppins', sans-serif;
-        }
-        body {
-            background-color: #F8F9FA;
-            color: #333;
-            line-height: 1.6;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif; }
+        body { background-color: #F8F9FA; color: #333; line-height: 1.6; }
+        nav { background-color: #4CAF50; padding: 1rem 5%; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1); flex-wrap: wrap; }
+        .logo { color: white; font-size: 1.5rem; font-weight: 800; text-decoration: none; letter-spacing: 1px; }
+        .nav-links { display: flex; gap: 20px; }
+        .nav-links a { color: white; text-decoration: none; font-weight: 600; transition: color 0.3s; font-size: 1rem; }
+        .nav-links a:hover { color: #C8E6C9; }
+        .hero { text-align: center; padding: 100px 20px; background-color: #ffffff; border-bottom: 1px solid #eee; }
+        .hero h1 { font-size: 3rem; color: #2E7D32; margin-bottom: 20px; }
+        .hero p { font-size: 1.2rem; color: #666; max-width: 600px; margin: 0 auto 30px auto; }
+        .cta-button { display: inline-block; background-color: #4CAF50; color: white; padding: 15px 30px; border-radius: 30px; text-decoration: none; font-weight: bold; font-size: 1.1rem; border: none; cursor: pointer; transition: transform 0.2s, background-color 0.2s; box-shadow: 0 4px 15px rgba(76, 175, 80, 0.4); }
+        .cta-button:hover { background-color: #388E3C; transform: translateY(-2px); }
+        .features-container { max-width: 1200px; margin: 0 auto; }
+        .features { display: flex; justify-content: center; gap: 20px; padding: 60px 5%; flex-wrap: nowrap; align-items: flex-start; }
+        .card { background: white; border-radius: 12px; padding: 30px; flex: 1; box-shadow: 0 4px 10px rgba(0,0,0,0.05); text-align: center; transition: transform 0.3s; }
+        .card:hover { transform: translateY(-5px); box-shadow: 0 8px 20px rgba(0,0,0,0.1); }
+        .card-icon { font-size: 3rem; margin-bottom: 15px; }
+        .card h3 { color: #2E7D32; margin-bottom: 15px; font-size: 1.3rem; }
+        .card p { font-size: 0.95rem; color: #555; margin-bottom: 15px; }
+        footer { background-color: #333; color: white; text-align: center; padding: 20px; margin-top: 40px; font-size: 0.9rem; }
+        
+        /* Input-fältet för koden */
+        .kod-input { padding: 12px; width: 100%; max-width: 200px; border: 2px solid #ddd; border-radius: 8px; text-transform: uppercase; text-align: center; font-size: 1.2rem; font-weight: bold; margin-bottom: 15px; outline: none; }
+        .kod-input:focus { border-color: #4CAF50; }
 
-        /* Navigationsmeny högst upp */
-        nav {
-            background-color: #4CAF50; /* Appens gröna färg */
-            padding: 1rem 5%;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            flex-wrap: wrap;
-        }
-        .logo {
-            color: white;
-            font-size: 1.5rem;
-            font-weight: 800;
-            text-decoration: none;
-            letter-spacing: 1px;
-        }
-        .nav-links {
-            display: flex;
-            gap: 20px;
-        }
-        .nav-links a {
-            color: white;
-            text-decoration: none;
-            font-weight: 600;
-            transition: color 0.3s;
-            font-size: 1rem;
-        }
-        .nav-links a:hover {
-            color: #C8E6C9;
-        }
-
-        /* Välkomstsektionen (Hero) */
-        .hero {
-            text-align: center;
-            padding: 100px 20px;
-            background-color: #ffffff;
-            border-bottom: 1px solid #eee;
-        }
-        .hero h1 {
-            font-size: 3rem;
-            color: #2E7D32;
-            margin-bottom: 20px;
-        }
-        .hero p {
-            font-size: 1.2rem;
-            color: #666;
-            max-width: 600px;
-            margin: 0 auto 30px auto;
-        }
-        .cta-button {
-            display: inline-block;
-            background-color: #4CAF50;
-            color: white;
-            padding: 15px 30px;
-            border-radius: 30px;
-            text-decoration: none;
-            font-weight: bold;
-            font-size: 1.1rem;
-            transition: transform 0.2s, background-color 0.2s;
-            box-shadow: 0 4px 15px rgba(76, 175, 80, 0.4);
-        }
-        .cta-button:hover {
-            background-color: #388E3C;
-            transform: translateY(-2px);
-        }
-
-        /* Sektion för funktioner (Cards) - NY DESIGN FÖR SAMMA RAD */
-        .features-container {
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-        .features {
-            display: flex;
-            justify-content: center;
-            gap: 20px;
-            padding: 60px 5%;
-            flex-wrap: nowrap; /* Tvingar dem att stanna på samma rad på dator */
-        }
-        .card {
-            background: white;
-            border-radius: 12px;
-            padding: 30px;
-            flex: 1; /* Gör så att korten delar jämnt på utrymmet i bredd */
-            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
-            text-align: center;
-            transition: transform 0.3s;
-        }
-        .card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 8px 20px rgba(0,0,0,0.1);
-        }
-        .card-icon {
-            font-size: 3rem;
-            margin-bottom: 15px;
-        }
-        .card h3 {
-            color: #2E7D32;
-            margin-bottom: 15px;
-            font-size: 1.3rem;
-        }
-        .card p {
-            font-size: 0.95rem;
-            color: #555;
-        }
-
-        /* Sidfot (Footer) */
-        footer {
-            background-color: #333;
-            color: white;
-            text-align: center;
-            padding: 20px;
-            margin-top: 40px;
-            font-size: 0.9rem;
-        }
-
-        /* Mobilanpassning */
         @media (max-width: 768px) {
-            nav {
-                flex-direction: column;
-                gap: 15px;
-            }
-            .hero h1 {
-                font-size: 2.2rem;
-            }
-            .features {
-                flex-direction: column; /* Ändrar tillbaka till kolumn på mobiler */
-                align-items: center;
-            }
-            .card {
-                width: 100%;
-                max-width: 350px;
-            }
+            nav { flex-direction: column; gap: 15px; }
+            .hero h1 { font-size: 2.2rem; }
+            .features { flex-direction: column; align-items: center; }
+            .card { width: 100%; max-width: 350px; }
         }
     </style>
 </head>
 <body>
 
-    <!-- NAVIGERING -->
     <nav>
         <a href="#" class="logo">Skol IF Appen</a>
         <div class="nav-links">
@@ -169,30 +51,38 @@
         </div>
     </nav>
 
-    <!-- HERO SEKTION -->
     <header class="hero">
         <h1>Förenkla vardagen för din Skol-IF</h1>
         <p>Det kompletta digitala verktyget för idrottslärare och Skol-IF-ledare. Samla kioskkassan, utlåning och spelscheman på ett och samma ställe.</p>
-        <a href="https://play.google.com/store/apps/details?id=com.sellin.tabatatimer" target="_blank" class="cta-button">
-            Ladda ner på Google Play
-        </a>
+        <a href="https://play.google.com/store/apps/details?id=com.sellin.tabatatimer" target="_blank" class="cta-button">Ladda ner på Google Play</a>
     </header>
 
-    <!-- FUNKTIONER -->
     <div class="features-container">
         <section class="features">
+            <!-- KASSA KORTET -->
             <div class="card" id="kassa">
                 <div class="card-icon">☕</div>
                 <h3>Skol IF Kassa</h3>
-                <p>Håll enkelt koll på elevsaldon, Swish-insättningar och kioskköp. Exportera en komplett och prydlig redovisning till Excel med ett enda knapptryck.</p>
+                <p>Koppla appen till webben! Ange din 5-siffriga kod från appen för att se live-saldon på datorn.</p>
+                
+                <div>
+                    <input type="text" id="kassaInput" class="kod-input" placeholder="T.EX. A8X2B" maxlength="5">
+                    <br>
+                    <button onclick="hamtaKassa()" class="cta-button" style="width: 100%; max-width: 200px;">Koppla upp</button>
+                </div>
+
+                <!-- Här ritas resultatet (eleverna) ut -->
+                <div id="kassaResultat" style="margin-top: 25px; text-align: left; display: none;"></div>
             </div>
 
+            <!-- REDSKAPSBODEN KORTET -->
             <div class="card" id="redskapsboden">
                 <div class="card-icon">📦</div>
                 <h3>Redskapsboden</h3>
                 <p>Ett smidigt digitalt system för att låna ut material. Se exakt vem som har lånat vilken utrustning, så inget tappas bort under rasterna.</p>
             </div>
 
+            <!-- TURNERING KORTET -->
             <div class="card" id="turnering">
                 <div class="card-icon">🏆</div>
                 <h3>Skapa Turnering</h3>
@@ -201,10 +91,82 @@
         </section>
     </div>
 
-    <!-- FOOTER -->
     <footer>
         <p>&copy; 2026 Skol IF Appen. Utvecklad av Tobias, idrotts- och matematiklärare.</p>
     </footer>
 
+    <!-- ========================================== -->
+    <!-- FIREBASE OCH JAVASCRIPT FÖR ATT HÄMTA DATA -->
+    <!-- ========================================== -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+
+    <script>
+        // BYT UT DETTA MOT DIN EGEN FIREBASE-CONFIG (Läs steg 2!)
+        const firebaseConfig = {
+            apiKey: "AIzaSyCmHoypbgqWYxgAVI98_gCwTJqXVUdG3hg",
+            authDomain: "skol-if.firebaseapp.com",
+            projectId: "skol-if",
+            storageBucket: "skol-if.firebasestorage.app",
+            messagingSenderId: "593631856247",
+            appId: "1:593631856247:web:874d4a87142b44bc336872",
+            measurementId: "G-6JP01V6CYC"
+        };
+        // Starta molnet
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        function hamtaKassa() {
+            const kod = document.getElementById("kassaInput").value.toUpperCase().trim();
+            const resultatDiv = document.getElementById("kassaResultat");
+
+            if (kod.length !== 5) {
+                alert("Koden måste vara exakt 5 bokstäver/siffror!");
+                return;
+            }
+
+            resultatDiv.style.display = "block";
+            resultatDiv.innerHTML = "<p style='text-align:center; color:gray;'>Söker efter kassa...</p>";
+
+            // Lyssna på Firebase i realtid!
+            db.collection("skolif_kassa").document(kod).onSnapshot((doc) => {
+                if (doc.exists) {
+                    const data = doc.data();
+                    const elever = JSON.parse(data.elever);
+                    
+                    // Sortera ut de som har saldo (>0 kr)
+                    const eleverMedSaldo = elever.filter(e => e.saldo > 0).sort((a, b) => b.saldo - a.saldo);
+
+                    let html = "<h4 style='color: #2E7D32; border-bottom: 2px solid #4CAF50; padding-bottom: 5px; margin-bottom: 10px;'>Innestående Saldon</h4>";
+                    
+                    if (eleverMedSaldo.length === 0) {
+                        html += "<p style='font-size: 0.9rem; color: gray;'>Inga elever har innestående pengar.</p>";
+                    } else {
+                        html += "<ul style='list-style: none; padding: 0;'>";
+                        let totalt = 0;
+                        eleverMedSaldo.forEach(elev => {
+                            totalt += elev.saldo;
+                            html += `<li style="display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid #eee; font-size: 0.95rem;">
+                                <span><b>${elev.namn}</b> (${elev.klass})</span> 
+                                <span style="color: #2E7D32; font-weight: bold;">${elev.saldo} kr</span>
+                            </li>`;
+                        });
+                        html += `<li style="display: flex; justify-content: space-between; padding: 10px 0; margin-top: 5px; border-top: 2px solid #333; font-weight: 900; font-size: 1.1rem;">
+                            <span>TOTALT SKULD:</span> 
+                            <span style="color: #C62828;">${totalt} kr</span>
+                        </li>`;
+                        html += "</ul>";
+                    }
+
+                    resultatDiv.innerHTML = html;
+                } else {
+                    resultatDiv.innerHTML = `<p style="color: red; font-weight: bold; text-align:center;">Hittade ingen kassa med kod: ${kod}</p>`;
+                }
+            }, (error) => {
+                console.error(error);
+                resultatDiv.innerHTML = "<p style='color: red; text-align:center;'>Något gick fel vid anslutning.</p>";
+            });
+        }
+    </script>
 </body>
 </html>
