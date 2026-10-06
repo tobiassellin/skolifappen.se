@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Skol-IF Kassa - Kioskvy</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;800&display=swap" rel="stylesheet">
+    
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif; }
+        body { background-color: #F8F9FA; color: #333; line-height: 1.6; }
+
+        /* Toppmeny */
+        nav { background-color: #4CAF50; padding: 1rem 5%; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .logo { color: white; font-size: 1.5rem; font-weight: 800; text-decoration: none; }
+        .back-btn { color: white; text-decoration: none; font-weight: 600; background: rgba(255,255,255,0.2); padding: 8px 15px; border-radius: 8px; transition: background 0.2s; }
+        .back-btn:hover { background: rgba(255,255,255,0.3); }
+
+        /* Huvudinnehåll */
+        .container { max-width: 900px; margin: 30px auto; padding: 0 20px; }
+        
+        /* Kod-inloggning */
+        .login-box { background: white; padding: 40px; border-radius: 12px; text-align: center; box-shadow: 0 4px 10px rgba(0,0,0,0.05); max-width: 400px; margin: 80px auto; }
+        .login-box h2 { color: #2E7D32; margin-bottom: 15px; }
+        .kod-input { padding: 12px; width: 100%; border: 2px solid #ddd; border-radius: 8px; text-transform: uppercase; text-align: center; font-size: 1.5rem; font-weight: bold; margin-bottom: 20px; outline: none; letter-spacing: 2px; }
+        .kod-input:focus { border-color: #4CAF50; }
+        .cta-button { background-color: #4CAF50; color: white; padding: 12px 25px; border-radius: 8px; border: none; font-weight: bold; font-size: 1rem; cursor: pointer; width: 100%; transition: background 0.2s; }
+        .cta-button:hover { background-color: #388E3C; }
+
+        /* Kiosk-dashboard */
+        #kioskView { display: none; }
+        .search-box { width: 100%; padding: 14px 20px; font-size: 1rem; border: 2px solid #ddd; border-radius: 12px; margin-bottom: 20px; outline: none; background: white; }
+        .search-box:focus { border-color: #4CAF50; }
+        
+        .elev-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 15px; }
+        .elev-card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); display: flex; justify-content: space-between; align-items: center; border-left: 5px solid #4CAF50; }
+        .elev-card.negativ { border-left-color: #C62828; }
+        .elev-namn { font-weight: bold; font-size: 1.1rem; color: #333; }
+        .elev-klass { font-size: 0.85rem; color: #666; background: #E8F5E9; padding: 2px 6px; border-radius: 4px; display: inline-block; margin-top: 4px; }
+        .elev-saldo { font-weight: 800; font-size: 1.2rem; }
+        .elev-saldo.positiv { color: #2E7D32; }
+        .elev-saldo.negativ { color: #C62828; }
+    </style>
+</head>
+<body>
+
+    <nav>
+        <a href="index.html" class="logo">Skol IF Kassa ☕</a>
+        <a href="index.html" class="back-btn">← Till startsidan</a>
+    </nav>
+
+    <div class="container">
+        
+        <!-- STEG 1: ANGE KOD -->
+        <div id="loginView" class="login-box">
+            <h2>Koppla till Kassan</h2>
+            <p style="color: #666; font-size: 0.9rem; margin-bottom: 20px;">Ange den 5-siffriga koden från appen för att öppna kassan.</p>
+            <input type="text" id="kassaKodInput" class="kod-input" placeholder="T.EX. A8X2B" maxlength="5">
+            <button onclick="anslutKassa()" class="cta-button">Öppna Kassa</button>
+        </div>
+
+        <!-- STEG 2: SJÄLVA KIOSKVYN -->
+        <div id="kioskView">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
+                <h2 style="color: #2E7D32;">Elever & Saldon</h2>
+                <span id="anslutenKodText" style="font-size: 0.9rem; background: #e0e0e0; padding: 4px 10px; border-radius: 6px; font-weight: bold;"></span>
+            </div>
+
+            <input type="text" id="sokElev" class="search-box" placeholder="Sök på elev eller klass..." oninput="filtreraElever()">
+            
+            <div id="elevLista" class="elev-grid">
+                <!-- Elever fylls i här automatiskt via Firebase -->
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Firebase SDK v8 -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyCmHoypbgqWYxgAVI98_gCwTJqXVUdG3hg",
+            authDomain: "skol-if.firebaseapp.com",
+            projectId: "skol-if",
+            storageBucket: "skol-if.firebasestorage.app",
+            messagingSenderId: "593631856247",
+            appId: "1:593631856247:web:874d4a87142b44bc336872",
+            measurementId: "G-6JP01V6CYC"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        let allaEleverCache = [];
+
+        function anslutKassa() {
+            const kod = document.getElementById("kassaKodInput").value.toUpperCase().trim();
+            if (kod.length !== 5) {
+                alert("Koden måste vara exakt 5 tecken!");
+                return;
+            }
+
+            document.getElementById("loginView").style.display = "none";
+            document.getElementById("kioskView").style.display = "block";
+            document.getElementById("anslutenKodText").innerText = "Kod: " + kod;
+
+            // Starta live-lyssnare mot Firebase
+            db.collection("skolif_kassa").doc(kod).onSnapshot((doc) => {
+                if (doc.exists) {
+                    const data = doc.data();
+                    allaEleverCache = JSON.parse(data.elever);
+                    visaElever(allaEleverCache);
+                } else {
+                    alert("Hittade ingen kassa med den koden.");
+                    location.reload();
+                }
+            }, (error) => {
+                console.error(error);
+                alert("Kunde inte ansluta till databasen.");
+            });
+        }
+
+        function visaElever(elever) {
+            const listaDiv = document.getElementById("elevLista");
+            if (elever.length === 0) {
+                listaDiv.innerHTML = "<p style='color:gray;'>Inga elever hittades.</p>";
+                return;
+            }
+
+            // Sortera alfabetiskt på namn
+            const sorterade = elever.sort((a, b) => a.namn.localeCompare(b.namn));
+
+            let html = "";
+            sorterade.forEach(elev => {
+                const isNeg = elev.saldo < 0;
+                html += `
+                    <div class="elev-card ${isNeg ? 'negativ' : ''}">
+                        <div>
+                            <div class="elev-namn">${elev.namn}</div>
+                            <div class="elev-klass">Klass: ${elev.klass}</div>
+                        </div>
+                        <div class="elev-saldo ${isNeg ? 'negativ' : 'positiv'}">
+                            ${elev.saldo} kr
+                        </div>
+                    </div>
+                `;
+            });
+            listaDiv.innerHTML = html;
+        }
+
+        function filtreraElever() {
+            const query = document.getElementById("sokElev").value.toLowerCase();
+            const filtrerade = allaEleverCache.filter(e => 
+                e.namn.toLowerCase().includes(query) || e.klass.toLowerCase().includes(query)
+            );
+            visaElever(filtrerade);
+        }
+    </script>
+</body>
+</html>
