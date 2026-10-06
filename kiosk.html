@@ -42,7 +42,7 @@
         .stat-info .stat-value { font-size: 1.4rem; font-weight: 800; color: #222; margin-top: 2px; }
 
         /* Sektion för kioskvaror */
-        .section-title { color: #1E3A24; font-weight: 700; font-size: 1.2rem; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; }
+        .section-title { color: #1E3A24; font-weight: 700; font-size: 1.2rem; margin-bottom: 15px; }
         .varor-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; margin-bottom: 30px; }
         .vara-card { background: white; padding: 14px; border-radius: 12px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.03); border: 1px solid #E8F5E9; }
         .vara-emoji { font-size: 1.8rem; margin-bottom: 4px; }
@@ -55,7 +55,6 @@
         .filter-chip:hover { border-color: #4CAF50; color: #2E7D32; }
         .filter-chip.active { background: #4CAF50; color: white; border-color: #4CAF50; box-shadow: 0 2px 6px rgba(76, 175, 80, 0.3); }
 
-        /* Sökfält och rubrik */
         .header-section { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 15px; }
         .badge { background: #E8F5E9; color: #2E7D32; padding: 6px 14px; border-radius: 20px; font-weight: 700; font-size: 0.85rem; border: 1px solid #C8E6C9; }
         
@@ -64,8 +63,8 @@
         
         /* Elevgrid och kort */
         .elev-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
-        .elev-card { background: white; padding: 18px 22px; border-radius: 14px; box-shadow: 0 4px 12px rgba(0,0,0,0.03); display: flex; justify-content: space-between; align-items: center; border-left: 5px solid #4CAF50; transition: transform 0.2s, box-shadow 0.2s; }
-        .elev-card:hover { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(0,0,0,0.06); }
+        .elev-card { background: white; padding: 18px 22px; border-radius: 14px; box-shadow: 0 4px 12px rgba(0,0,0,0.03); display: flex; justify-content: space-between; align-items: center; border-left: 5px solid #4CAF50; transition: transform 0.2s, box-shadow 0.2s; cursor: pointer; }
+        .elev-card:hover { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(0,0,0,0.08); background: #FAFAFA; }
         .elev-card.negativ { border-left-color: #C62828; background: #FFFDFD; }
         
         .elev-namn { font-weight: 700; font-size: 1.05rem; color: #222; }
@@ -75,6 +74,39 @@
         .elev-saldo { font-weight: 800; font-size: 1.25rem; text-align: right; }
         .elev-saldo.positiv { color: #2E7D32; }
         .elev-saldo.negativ { color: #C62828; }
+
+        /* MODAL / KASSAFÖNSTER FÖR ELEV */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; z-index: 1000; padding: 20px; }
+        .modal-content { background: white; width: 100%; max-width: 500px; border-radius: 20px; padding: 30px; box-shadow: 0 15px 35px rgba(0,0,0,0.2); animation: scaleUp 0.2s ease; max-height: 90vh; overflow-y: auto; }
+        @keyframes scaleUp { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid #F0F4F1; padding-bottom: 12px; }
+        .modal-title h3 { font-size: 1.4rem; color: #1E3A24; font-weight: 800; }
+        .modal-title p { font-size: 0.9rem; color: #666; }
+        .close-btn { background: #eee; border: none; width: 32px; height: 32px; border-radius: 50%; font-weight: bold; cursor: pointer; font-size: 1rem; color: #555; }
+        .close-btn:hover { background: #ddd; }
+
+        .modal-saldo-box { background: #E8F5E9; padding: 15px; border-radius: 12px; text-align: center; margin-bottom: 20px; }
+        .modal-saldo-box span { font-size: 0.85rem; color: #2E7D32; text-transform: uppercase; font-weight: 700; display: block; }
+        .modal-saldo-box h2 { font-size: 2rem; font-weight: 900; color: #2E7D32; margin-top: 2px; }
+        .modal-saldo-box.negativ { background: #FFEBEE; }
+        .modal-saldo-box.negativ span, .modal-saldo-box.negativ h2 { color: #C62828; }
+
+        .modal-section-title { font-size: 1rem; font-weight: 700; color: #333; margin-bottom: 10px; }
+        .modal-varor-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px; }
+        .modal-vara-btn { background: #F8F9FA; border: 2px solid #E0E0E0; border-radius: 12px; padding: 12px 8px; text-align: center; cursor: pointer; transition: all 0.2s; }
+        .modal-vara-btn:hover { border-color: #4CAF50; background: #E8F5E9; transform: translateY(-2px); }
+        .modal-vara-emoji { font-size: 1.5rem; }
+        .modal-vara-namn { font-size: 0.8rem; font-weight: 600; color: #333; margin-top: 2px; }
+        .modal-vara-pris { font-size: 0.8rem; color: #2E7D32; font-weight: 700; }
+
+        .custom-action-box { display: flex; gap: 10px; margin-top: 15px; }
+        .custom-input { flex: 1; padding: 12px; border: 2px solid #E0E0E0; border-radius: 10px; font-size: 1rem; outline: none; }
+        .custom-input:focus { border-color: #4CAF50; }
+        .btn-kop { background: #C62828; color: white; border: none; padding: 0 20px; border-radius: 10px; font-weight: 700; cursor: pointer; }
+        .btn-kop:hover { background: #B71C1C; }
+        .btn-insattning { background: #2E7D32; color: white; border: none; padding: 0 20px; border-radius: 10px; font-weight: 700; cursor: pointer; }
+        .btn-insattning:hover { background: #1B5E20; }
     </style>
 </head>
 <body>
@@ -102,7 +134,7 @@
             <div class="header-section">
                 <div>
                     <h2>Kassavy & Saldon</h2>
-                    <p style="color: #666; font-size: 0.9rem;">Realtidsuppdatering direkt från appen</p>
+                    <p style="color: #666; font-size: 0.9rem;">Klicka på en elev för att registrera köp eller insättning</p>
                 </div>
                 <div id="anslutenKodText" class="badge">Kod: -----</div>
             </div>
@@ -134,24 +166,46 @@
 
             <!-- KIOSKVAROR PANEL -->
             <div class="section-title">🍫 Aktuella kioskvaror</div>
-            <div id="varorLista" class="varor-grid">
-                <!-- Varor fylls i dynamiskt -->
-            </div>
+            <div id="varorLista" class="varor-grid"></div>
 
             <!-- SÖKFÄLT -->
             <input type="text" id="sokElev" class="search-box" placeholder="🔍 Sök på elevnamn..." oninput="filtreraOchVisa()">
 
             <!-- KLASS-FILTER CHIPS -->
-            <div id="klassFilterContainer" class="filter-container">
-                <!-- Filterknappar fylls i dynamiskt -->
-            </div>
+            <div id="klassFilterContainer" class="filter-container"></div>
             
             <!-- ELEVLISTA -->
-            <div id="elevLista" class="elev-grid">
-                <!-- Elever fylls i dynamiskt -->
-            </div>
+            <div id="elevLista" class="elev-grid"></div>
         </div>
 
+    </div>
+
+    <!-- MODAL FÖR KÖP / INSÄTTNING -->
+    <div id="elevModal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">
+                    <h3 id="modalElevNamn">Namn</h3>
+                    <p id="modalElevKlass">Klass</p>
+                </div>
+                <button class="close-btn" onclick="stangModal()">✕</button>
+            </div>
+
+            <div id="modalSaldoBox" class="modal-saldo-box">
+                <span>Nuvarande saldo</span>
+                <h2 id="modalElevSaldo">0 kr</h2>
+            </div>
+
+            <div class="modal-section-title">Kioskvaror (Klicka för direktköp)</div>
+            <div id="modalVarorGrid" class="modal-varor-grid"></div>
+
+            <div class="modal-section-title" style="margin-top: 20px;">Annat belopp / Swish</div>
+            <div class="custom-action-box">
+                <input type="number" id="customBeloppInput" class="custom-input" placeholder="Belopp (kr)">
+                <button onclick="gorKopCustom()" class="btn-kop">Köp</button>
+                <button onclick="gorInsattningCustom()" class="btn-insattning">Insättning</button>
+            </div>
+        </div>
     </div>
 
     <!-- Firebase SDK v8 -->
@@ -172,9 +226,11 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
+        let aktivKod = "";
         let allaEleverCache = [];
         let allaVarorCache = [];
         let aktivtKlassFilter = "Alla";
+        let aktivElevId = null;
 
         function anslutKassa() {
             const kod = document.getElementById("kassaKodInput").value.toUpperCase().trim();
@@ -182,6 +238,7 @@
                 alert("Koden måste vara exakt 5 tecken!");
                 return;
             }
+            aktivKod = kod;
 
             document.getElementById("loginView").style.display = "none";
             document.getElementById("kioskView").style.display = "block";
@@ -197,6 +254,12 @@
                     visaVaror(allaVarorCache);
                     skapaKlassFilterChips(allaEleverCache);
                     filtreraOchVisa();
+
+                    // Om modalen är öppen, uppdatera dess värden live också
+                    if (aktivElevId !== null) {
+                        const uppdateradElev = allaEleverCache.find(e => e.id === aktivElevId);
+                        if (uppdateradElev) oppnaElevModal(uppdateradElev, true);
+                    }
                 } else {
                     alert("Hittade ingen kassa med den koden.");
                     location.reload();
@@ -255,7 +318,7 @@
 
         function bytKlassFilter(klass) {
             aktivtKlassFilter = klass;
-            skapaKlassFilterChips(allaEleverCache); // Uppdatera vilka knappar som är markerade
+            skapaKlassFilterChips(allaEleverCache);
             filtreraOchVisa();
         }
 
@@ -279,8 +342,9 @@
             let html = "";
             sorterade.forEach(elev => {
                 const isNeg = elev.saldo < 0;
+                // Anropar oppnaElevModal när man klickar på ett elevkort
                 html += `
-                    <div class="elev-card ${isNeg ? 'negativ' : ''}">
+                    <div class="elev-card ${isNeg ? 'negativ' : ''}" onclick='oppnaElevModalObj(${JSON.stringify(elev)})'>
                         <div>
                             <div class="elev-namn">${elev.namn}</div>
                             <div class="elev-klass">Klass ${elev.klass}</div>
@@ -292,6 +356,99 @@
                 `;
             });
             listaDiv.innerHTML = html;
+        }
+
+        // --- MODAL OCH KOPPLINGSHANTERING ---
+        function oppnaElevModalObj(elev) {
+            aktivElevId = elev.id;
+            oppnaElevModal(elev, false);
+            document.getElementById("elevModal").style.display = "flex";
+        }
+
+        function oppnaElevModal(elev, endastUppdatering) {
+            document.getElementById("modalElevNamn").innerText = elev.namn;
+            document.getElementById("modalElevKlass").innerText = "Klass " + elev.klass;
+            document.getElementById("modalElevSaldo").innerText = elev.saldo + " kr";
+
+            const saldoBox = document.getElementById("modalSaldoBox");
+            if (elev.saldo < 0) {
+                saldoBox.classList.add("negativ");
+            } else {
+                saldoBox.classList.remove("negativ");
+            }
+
+            if (!endastUppdatering) {
+                document.getElementById("customBeloppInput").value = "";
+                // Fyll i varor i modalen
+                const modalVarorDiv = document.getElementById("modalVarorGrid");
+                if (allaVarorCache.length === 0) {
+                    modalVarorDiv.innerHTML = "<p style='grid-column: 1/-1; color:gray; font-size:0.85rem;'>Inga varor skapade.</p>";
+                } else {
+                    let varorHtml = "";
+                    allaVarorCache.forEach(vara => {
+                        varorHtml += `
+                            <div class="modal-vara-btn" onclick="genomforKopVara(${elev.id}, ${vara.pris}, '${vara.emoji || '🍬'} ${vara.namn}')">
+                                <div class="modal-vara-emoji">${vara.emoji || '🍬'}</div>
+                                <div class="modal-vara-namn">${vara.namn}</div>
+                                <div class="modal-vara-pris">${vara.pris} kr</div>
+                            </div>
+                        `;
+                    });
+                    modalVarorDiv.innerHTML = varorHtml;
+                }
+            }
+        }
+
+        function stangModal() {
+            aktivElevId = null;
+            document.getElementById("elevModal").style.display = "none";
+        }
+
+        // Synka ändringar till Firebase
+        function sparaTillFirebase() {
+            const dataToUpdate = {
+                elever: JSON.stringify(allaEleverCache)
+            };
+            db.collection("skolif_kassa").doc(aktivKod).update(dataToUpdate).catch(err => {
+                console.error("Kunde inte spara till molnet:", err);
+                alert("Kunde inte synka ändringen.");
+            });
+        }
+
+        function genomforKopVara(elevId, pris, beskrivning) {
+            const elev = allaEleverCache.find(e => e.id === elevId);
+            if (!elev) return;
+
+            elev.saldo -= pris;
+            sparaTillFirebase();
+        }
+
+        function gorKopCustom() {
+            const belopp = parseInt(document.getElementById("customBeloppInput").value);
+            if (!belopp || belopp <= 0) {
+                alert("Ange ett giltigt belopp!");
+                return;
+            }
+            const elev = allaEleverCache.find(e => e.id === aktivElevId);
+            if (!elev) return;
+
+            elev.saldo -= belopp;
+            document.getElementById("customBeloppInput").value = "";
+            sparaTillFirebase();
+        }
+
+        function gorInsattningCustom() {
+            const belopp = parseInt(document.getElementById("customBeloppInput").value);
+            if (!belopp || belopp <= 0) {
+                alert("Ange ett giltigt belopp!");
+                return;
+            }
+            const elev = allaEleverCache.find(e => e.id === aktivElevId);
+            if (!elev) return;
+
+            elev.saldo += belopp;
+            document.getElementById("customBeloppInput").value = "";
+            sparaTillFirebase();
         }
     </script>
 </body>
