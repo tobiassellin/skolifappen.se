@@ -99,6 +99,8 @@
     <!-- ========================================== -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <!-- LÄGG TILL FIREBASE AUTH -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
 
     <script>
         const firebaseConfig = {
@@ -114,55 +116,18 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
-        function hamtaKassa() {
-            const kod = document.getElementById("kassaInput").value.toUpperCase().trim();
-            const resultatDiv = document.getElementById("kassaResultat");
-
-            if (kod.length !== 5) {
-                alert("Koden måste vara exakt 5 bokstäver/siffror!");
-                return;
-            }
-
-            resultatDiv.style.display = "block";
-            resultatDiv.innerHTML = "<p style='text-align:center; color:gray;'>Söker efter kassan...</p>";
-
-            // ÄNDRAT FRÅN .document() TILL .doc() HÄR NEDAN:
-            db.collection("skolif_kassa").doc(kod).onSnapshot((doc) => {
-                if (doc.exists) {
-                    const data = doc.data();
-                    const elever = JSON.parse(data.elever);
-                    
-                    const eleverMedSaldo = elever.filter(e => e.saldo > 0).sort((a, b) => b.saldo - a.saldo);
-
-                    let html = "<h4 style='color: #2E7D32; border-bottom: 2px solid #4CAF50; padding-bottom: 5px; margin-bottom: 10px;'>Innestående Saldon</h4>";
-                    
-                    if (eleverMedSaldo.length === 0) {
-                        html += "<p style='font-size: 0.9rem; color: gray;'>Inga elever har innestående pengar.</p>";
-                    } else {
-                        html += "<ul style='list-style: none; padding: 0;'>";
-                        let totalt = 0;
-                        eleverMedSaldo.forEach(elev => {
-                            totalt += elev.saldo;
-                            html += `<li style="display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid #eee; font-size: 0.95rem;">
-                                <span><b>${elev.namn}</b> (${elev.klass})</span> 
-                                <span style="color: #2E7D32; font-weight: bold;">${elev.saldo} kr</span>
-                            </li>`;
-                        });
-                        html += `<li style="display: flex; justify-content: space-between; padding: 10px 0; margin-top: 5px; border-top: 2px solid #333; font-weight: 900; font-size: 1.1rem;">
-                            <span>TOTALT SKULD:</span> 
-                            <span style="color: #C62828;">${totalt} kr</span>
-                        </li>`;
-                        html += "</ul>";
-                    }
-
-                    resultatDiv.innerHTML = html;
-                } else {
-                    resultatDiv.innerHTML = `<p style="color: red; font-weight: bold; text-align:center;">Hittade ingen kassa med kod: ${kod}</p>`;
-                }
-            }, (error) => {
-                console.error(error);
-                resultatDiv.innerHTML = "<p style='color: red; text-align:center;'>Något gick fel vid anslutning.</p>";
-            });
+        // NY FUNKTION: Logga in med Google
+        function loggaInMedGoogle() {
+            const provider = new firebase.auth.GoogleAuthProvider();
+            firebase.auth().signInWithPopup(provider)
+                .then((result) => {
+                    // Inloggningen lyckades! Skicka användaren vidare till kiosken.
+                    window.location.href = "kiosk.html";
+                })
+                .catch((error) => {
+                    console.error("Fel vid inloggning:", error);
+                    alert("Det gick inte att logga in. Kontrollera popup-blockerare.");
+                });
         }
     </script>
 </body>
