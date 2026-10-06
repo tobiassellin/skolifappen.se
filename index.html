@@ -63,13 +63,12 @@
             <div class="card" id="kassa">
                 <div class="card-icon">☕</div>
                 <h3>Skol IF Kassa</h3>
-                <p>Koppla appen till webben! Ange din 5-siffriga kod från appen för att se live-saldon på datorn.</p>
+                <p>Logga in med samma Google-konto som i appen för att synka och öppna live-kassan.</p>
                 
-                <div>
-                    <input type="text" id="kassaInput" class="kod-input" placeholder="T.EX. A8X2B" maxlength="5">
-                    <br>
-                    <button onclick="hamtaKassa()" class="cta-button" style="width: 100%; max-width: 200px;">Koppla upp</button>
+                <div style="margin-top: 20px;">
+                    <button onclick="loggaInMedGoogle()" class="cta-button" style="width: 100%; max-width: 250px;">Logga in med Google</button>
                 </div>
+            </div>
 
                 <!-- Här ritas resultatet (eleverna) ut -->
                 <div id="kassaResultat" style="margin-top: 25px; text-align: left; display: none;"></div>
