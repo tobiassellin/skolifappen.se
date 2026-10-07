@@ -62,15 +62,23 @@
         .elev-saldo.negativ { color: #C62828; }
 
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; z-index: 1000; padding: 20px; }
-        .modal-content { background: white; width: 100%; max-width: 500px; border-radius: 20px; padding: 30px; box-shadow: 0 15px 35px rgba(0,0,0,0.2); max-height: 90vh; overflow-y: auto; }
-        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid #F0F4F1; padding-bottom: 12px; }
+        .modal-content { background: white; width: 100%; max-width: 800px; border-radius: 20px; padding: 30px; box-shadow: 0 15px 35px rgba(0,0,0,0.2); max-height: 90vh; overflow-y: auto; position: relative; }
+        
+        /* Layout inuti modalen (vänster/höger) */
+        .modal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; }
+        @media (max-width: 700px) { .modal-grid { grid-template-columns: 1fr; } }
+        
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid #F0F4F1; padding-bottom: 12px; grid-column: 1 / -1; }
         .modal-title h3 { font-size: 1.4rem; color: #1E3A24; font-weight: 800; }
-        .close-btn { background: #eee; border: none; width: 32px; height: 32px; border-radius: 50%; font-weight: bold; cursor: pointer; color: #555; }
+        .close-btn { background: #eee; border: none; width: 32px; height: 32px; border-radius: 50%; font-weight: bold; cursor: pointer; color: #555; position: absolute; right: 30px; top: 30px; }
+        .close-btn:hover { background: #ddd; }
+        
         .modal-saldo-box { background: #E8F5E9; padding: 15px; border-radius: 12px; text-align: center; margin-bottom: 20px; }
         .modal-saldo-box span { font-size: 0.85rem; color: #2E7D32; text-transform: uppercase; font-weight: 700; display: block; }
         .modal-saldo-box h2 { font-size: 2rem; font-weight: 900; color: #2E7D32; }
         .modal-saldo-box.negativ { background: #FFEBEE; }
         .modal-saldo-box.negativ span, .modal-saldo-box.negativ h2 { color: #C62828; }
+        
         .modal-section-title { font-size: 1rem; font-weight: 700; color: #333; margin-bottom: 10px; }
         .modal-varor-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px; }
         .modal-vara-btn { background: #F8F9FA; border: 2px solid #E0E0E0; border-radius: 12px; padding: 12px 8px; text-align: center; cursor: pointer; transition: 0.2s; }
@@ -78,10 +86,23 @@
         .modal-vara-emoji { font-size: 1.5rem; }
         .modal-vara-namn { font-size: 0.8rem; font-weight: 600; color: #333; }
         .modal-vara-pris { font-size: 0.8rem; color: #2E7D32; font-weight: 700; }
+        
         .custom-action-box { display: flex; gap: 10px; margin-top: 15px; }
         .custom-input { flex: 1; padding: 12px; border: 2px solid #E0E0E0; border-radius: 10px; font-size: 1rem; outline: none; }
-        .btn-kop { background: #C62828; color: white; border: none; padding: 0 20px; border-radius: 10px; font-weight: 700; cursor: pointer; }
-        .btn-insattning { background: #2E7D32; color: white; border: none; padding: 0 20px; border-radius: 10px; font-weight: 700; cursor: pointer; }
+        .btn-kop { background: #C62828; color: white; border: none; padding: 0 15px; border-radius: 10px; font-weight: 700; cursor: pointer; }
+        .btn-insattning { background: #2E7D32; color: white; border: none; padding: 0 15px; border-radius: 10px; font-weight: 700; cursor: pointer; }
+
+        /* Nya klasser för historiken */
+        .historik-container { background: #FAFAFA; border: 1px solid #EEEEEE; border-radius: 12px; padding: 15px; max-height: 400px; overflow-y: auto; }
+        .historik-item { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #E0E0E0; padding: 10px 0; }
+        .historik-item:last-child { border-bottom: none; }
+        .historik-detaljer { display: flex; flex-direction: column; }
+        .historik-beskrivning { font-weight: 600; font-size: 0.9rem; color: #333; }
+        .historik-datum { font-size: 0.75rem; color: #888; margin-top: 2px; }
+        .historik-belopp { font-weight: 800; font-size: 0.95rem; }
+        .historik-belopp.plus { color: #2E7D32; }
+        .historik-belopp.minus { color: #C62828; }
+        .tom-historik { text-align: center; color: #999; font-size: 0.9rem; padding: 20px 0; font-style: italic; }
     </style>
 </head>
 <body>
@@ -147,30 +168,46 @@
         </div>
     </div>
 
-    <!-- MODAL -->
+    <!-- MODAL (Med Vänster/Höger layout) -->
     <div id="elevModal" class="modal-overlay">
         <div class="modal-content">
+            <button class="close-btn" onclick="stangModal()">✕</button>
+            
             <div class="modal-header">
                 <div class="modal-title">
                     <h3 id="modalElevNamn">Namn</h3>
                     <p id="modalElevKlass" style="font-size:0.9rem; color:#666;">Klass</p>
                 </div>
-                <button class="close-btn" onclick="stangModal()">✕</button>
             </div>
 
-            <div id="modalSaldoBox" class="modal-saldo-box">
-                <span>Nuvarande saldo</span>
-                <h2 id="modalElevSaldo">0 kr</h2>
-            </div>
+            <div class="modal-grid">
+                
+                <!-- VÄNSTER SIDA (Kassan) -->
+                <div class="kassa-sektion">
+                    <div id="modalSaldoBox" class="modal-saldo-box">
+                        <span>Nuvarande saldo</span>
+                        <h2 id="modalElevSaldo">0 kr</h2>
+                    </div>
 
-            <div class="modal-section-title">Kioskvaror (Klicka för direktköp)</div>
-            <div id="modalVarorGrid" class="modal-varor-grid"></div>
+                    <div class="modal-section-title">Kioskvaror (Klicka för direktköp)</div>
+                    <div id="modalVarorGrid" class="modal-varor-grid"></div>
 
-            <div class="modal-section-title" style="margin-top: 20px;">Annat belopp</div>
-            <div class="custom-action-box">
-                <input type="number" id="customBeloppInput" class="custom-input" placeholder="Belopp (kr)">
-                <button onclick="gorKopCustom()" class="btn-kop">Köp</button>
-                <button onclick="gorInsattningCustom()" class="btn-insattning">Insättning</button>
+                    <div class="modal-section-title" style="margin-top: 20px;">Annat belopp</div>
+                    <div class="custom-action-box">
+                        <input type="number" id="customBeloppInput" class="custom-input" placeholder="Belopp (kr)">
+                        <button onclick="gorKopCustom()" class="btn-kop">Köp</button>
+                        <button onclick="gorInsattningCustom()" class="btn-insattning">Insätt</button>
+                    </div>
+                </div>
+
+                <!-- HÖGER SIDA (Historik) -->
+                <div class="historik-sektion">
+                    <div class="modal-section-title">Senaste transaktioner</div>
+                    <div id="elevHistorikBox" class="historik-container">
+                        <!-- Historiken ritas upp här av JS -->
+                    </div>
+                </div>
+
             </div>
         </div>
     </div>
@@ -198,6 +235,7 @@
         let aktivUserId = null;
         let allaEleverCache = [];
         let allaVarorCache = [];
+        let allaTransaktionerCache = []; // NYTT: Lagrar historiken
         let aktivtKlassFilter = "Alla";
         let aktivElevId = null;
 
@@ -229,6 +267,7 @@
                     const data = doc.data();
                     allaEleverCache = JSON.parse(data.elever || "[]");
                     allaVarorCache = JSON.parse(data.varor || "[]");
+                    allaTransaktionerCache = JSON.parse(data.transaktioner || "[]"); // NYTT: Läs in transaktioner
 
                     uppdateraStatistik(allaEleverCache);
                     visaVaror(allaVarorCache);
@@ -237,7 +276,10 @@
 
                     if (aktivElevId !== null) {
                         const uppdaterad = allaEleverCache.find(e => e.id === aktivElevId);
-                        if (uppdaterad) oppnaElevModal(uppdaterad, true);
+                        if (uppdaterad) {
+                            oppnaElevModal(uppdaterad, true);
+                            ritaUppHistorik(); // NYTT: Uppdatera historiken när modalen är öppen
+                        }
                     }
                 }
             });
@@ -276,7 +318,13 @@
                     </div>`).join('');
         }
 
-        function oppnaModalObj(e) { aktivElevId = e.id; oppnaElevModal(e, false); document.getElementById("elevModal").style.display = "flex"; }
+        function oppnaModalObj(e) { 
+            aktivElevId = e.id; 
+            oppnaElevModal(e, false); 
+            ritaUppHistorik(); // Ritar historiken när modalen öppnas
+            document.getElementById("elevModal").style.display = "flex"; 
+        }
+
         function oppnaElevModal(e, endastUppd) {
             document.getElementById("modalElevNamn").innerText = e.namn;
             document.getElementById("modalElevKlass").innerText = "Klass " + e.klass;
@@ -287,30 +335,97 @@
             if(!endastUppd) {
                 document.getElementById("customBeloppInput").value = "";
                 document.getElementById("modalVarorGrid").innerHTML = allaVarorCache.map(v => `
-                    <div class="modal-vara-btn" onclick="kopVara(${e.id}, ${v.pris})">
+                    <div class="modal-vara-btn" onclick="kopVara(${e.id}, ${v.pris}, '${v.emoji} ${v.namn}')">
                         <div class="modal-vara-emoji">${v.emoji||'🍬'}</div>
                         <div class="modal-vara-namn">${v.namn}</div>
                         <div class="modal-vara-pris">${v.pris} kr</div>
                     </div>`).join('');
             }
         }
+
         function stangModal() { aktivElevId = null; document.getElementById("elevModal").style.display = "none"; }
 
-        function sparaMoln() {
-            db.collection("skolif_kassa").doc(aktivUserId).update({ elever: JSON.stringify(allaEleverCache) });
+        // --- NY FUNKTION: Ritar upp historiken i modalen ---
+        function ritaUppHistorik() {
+            const container = document.getElementById("elevHistorikBox");
+            
+            // Hitta bara transaktioner för just den här eleven och sortera nyast överst
+            const elevensHistorik = allaTransaktionerCache
+                .filter(t => t.elevId === aktivElevId)
+                .sort((a, b) => b.tidstampel - a.tidstampel);
+
+            if (elevensHistorik.length === 0) {
+                container.innerHTML = "<div class='tom-historik'>Inga köp eller insättningar än.</div>";
+                return;
+            }
+
+            container.innerHTML = elevensHistorik.map(t => {
+                const datum = new Date(t.tidstampel).toLocaleString("sv-SE", { day: "numeric", month: "short", hour: "2-digit", minute:"2-digit" });
+                const arKop = t.typ === "KÖP";
+                
+                return `
+                <div class="historik-item">
+                    <div class="historik-detaljer">
+                        <span class="historik-beskrivning">${t.beskrivning}</span>
+                        <span class="historik-datum">${datum}</span>
+                    </div>
+                    <div class="historik-belopp ${arKop ? 'minus' : 'plus'}">
+                        ${arKop ? '-' : '+'}${t.belopp} kr
+                    </div>
+                </div>`;
+            }).join('');
         }
 
-        function kopVara(id, pris) {
-            const e = allaEleverCache.find(x => x.id === id);
-            if(e) { e.saldo -= pris; sparaMoln(); }
+        // --- UPPDATERAD: Skapar en transaktion och skickar till Firebase ---
+        function laggTillTransaktion(typ, belopp, beskrivning) {
+            const nyTransaktion = {
+                id: Date.now(), // Unikt ID baserat på tiden
+                elevId: aktivElevId,
+                belopp: belopp,
+                typ: typ, // "KÖP" eller "INSÄTTNING"
+                beskrivning: beskrivning,
+                tidstampel: Date.now()
+            };
+            
+            allaTransaktionerCache.push(nyTransaktion);
+            
+            // Uppdatera Firebase med både ny array för elever och ny array för transaktioner
+            db.collection("skolif_kassa").doc(aktivUserId).update({ 
+                elever: JSON.stringify(allaEleverCache),
+                transaktioner: JSON.stringify(allaTransaktionerCache)
+            });
         }
+
+        function kopVara(id, pris, namn) {
+            const e = allaEleverCache.find(x => x.id === id);
+            if(e) { 
+                e.saldo -= pris; 
+                laggTillTransaktion("KÖP", pris, namn);
+            }
+        }
+
         function gorKopCustom() {
             const b = parseInt(document.getElementById("customBeloppInput").value);
-            if(b>0) { const e = allaEleverCache.find(x => x.id === aktivElevId); if(e){ e.saldo -= b; document.getElementById("customBeloppInput").value=""; sparaMoln(); } }
+            if(b>0) { 
+                const e = allaEleverCache.find(x => x.id === aktivElevId); 
+                if(e){ 
+                    e.saldo -= b; 
+                    document.getElementById("customBeloppInput").value=""; 
+                    laggTillTransaktion("KÖP", b, "Övrigt köp");
+                } 
+            }
         }
+
         function gorInsattningCustom() {
             const b = parseInt(document.getElementById("customBeloppInput").value);
-            if(b>0) { const e = allaEleverCache.find(x => x.id === aktivElevId); if(e){ e.saldo += b; document.getElementById("customBeloppInput").value=""; sparaMoln(); } }
+            if(b>0) { 
+                const e = allaEleverCache.find(x => x.id === aktivElevId); 
+                if(e){ 
+                    e.saldo += b; 
+                    document.getElementById("customBeloppInput").value=""; 
+                    laggTillTransaktion("INSÄTTNING", b, "Webb-insättning");
+                } 
+            }
         }
     </script>
 </body>
