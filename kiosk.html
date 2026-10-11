@@ -131,6 +131,7 @@
                 <div>
                     <h2>Kassavy & Saldon</h2>
                     <p style="color: #666; font-size: 0.9rem;">Ansluten via Google-konto</p>
+                    <button onclick="oppnaAdminModal()" style="margin-top: 10px; background: #2E7D32; color: white; border: none; padding: 8px 14px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 0.85rem;">+ Hantera / Importera elever</button>
                 </div>
                 <div id="anvandareEmail" class="badge">Inloggad</div>
             </div>
@@ -211,6 +212,37 @@
             </div>
         </div>
     </div>
+    <!-- ADMIN MODAL FÖR ELEVER -->
+    <div id="adminModal" class="modal-overlay">
+        <div class="modal-content" style="max-width: 600px;">
+            <button class="close-btn" onclick="stangAdminModal()">✕</button>
+            <div class="modal-header">
+                <div class="modal-title">
+                    <h3>Lägg till eller Importera Elever</h3>
+                </div>
+            </div>
+
+            <!-- Lägg till enskild -->
+            <div style="margin-bottom: 25px;">
+                <div class="modal-section-title">Lägg till enskild elev</div>
+                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                    <input type="text" id="nyElevNamn" class="custom-input" placeholder="Namn (t.ex. Anna Andersson)">
+                    <input type="text" id="nyElevKlass" class="custom-input" placeholder="Klass (t.ex. 9B)" style="max-width: 120px;">
+                    <button onclick="laggTillEnskildElevWebb()" class="btn-insattning" style="padding: 0 20px;">Lägg till</button>
+                </div>
+            </div>
+
+            <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
+
+            <!-- Massimport -->
+            <div>
+                <div class="modal-section-title">Massimportera elever</div>
+                <p style="font-size: 0.85rem; color: #666; margin-bottom: 8px;">Klistra in en lista nedanför (programmet känner automatiskt av vilken del som är klassen, t.ex. "Tobias Sellin 9B").</p>
+                <textarea id="massImportText" class="custom-input" style="width: 100%; height: 120px; resize: vertical; margin-bottom: 10px;" placeholder="Klistra in din lista här..."></textarea>
+                <button onclick="utforMassimportWebb()" class="btn-insattning" style="width: 100%; padding: 12px;">Kör massimport</button>
+            </div>
+        </div>
+    </div>
 
     <!-- Firebase SDK v8 (App, Auth, Firestore) -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
@@ -255,7 +287,7 @@
 
         function loggaInMedGoogle() {
             const provider = new firebase.auth.GoogleAuthProvider();
-            auth.signInWithPopup(provider).catch((error) => {
+            auth.signInWithRedirect(provider).catch((error) => {
                 console.error("Inloggningsfel:", error);
                 alert("Kunde inte logga in med Google.");
             });
@@ -283,6 +315,128 @@
                     }
                 }
             });
+        }
+        function oppnaAdminModal() {
+            document.getElementById("adminModal").style.display = "flex";
+        }
+
+        function stangAdminModal() {
+            document.getElementById("adminModal").style.display = "none";
+            document.getElementById("nyElevNamn").value = "";
+            document.getElementById("nyElevKlass").value = "";
+            document.getElementById("massImportText").value = "";
+        }
+
+        // Lägg till en enskild elev via webben
+        function laggTillEnskildElevWebb() {
+            const namn = document.getElementById("nyElevNamn").value.trim();
+            const klass = document.getElementById("nyElevKlass").value.trim().toUpperCase();
+
+            if (!namn || !klass) {
+                alert("Fyll i både namn och klass!");
+                return;
+            }
+
+            // Kolla dubblett
+            const finnsRedan = allaEleverCache.some(e => 
+                e.namn.toLowerCase() === namn.toLowerCase() && e.klass.toUpperCase() === klass
+            );
+
+            if (finnsRedan) {
+                alert("Eleven finns redan i den här klassen.");
+                return;
+            }
+
+            // Skapa ID (högsta nuvarande ID + 1, eller 1 om listan är tom)
+            const nyttId = allaEleverCache.length > 0 ? Math.max(...allaEleverCache.map(e => e.id)) + 1 : 1;
+
+            const nyElev = {
+                id: nyttId,
+                namn: namn,
+                klass: klass,
+                saldo: 0
+            };
+
+            allaEleverCache.push(nyElev);
+
+            // Spara till Firebase
+            db.collection("skolif_kassa").doc(aktivUserId).update({
+                elever: JSON.stringify(allaEleverCache)
+            }).then(() => {
+                alert("Eleven har lagts till!");
+                stangAdminModal();
+            }).catch(err => {
+                console.error(err);
+                alert("Kunde inte spara till molnet.");
+            });
+        }
+
+        // Massimportera med samma smarta logg som i appen
+        function utforMassimportWebb() {
+            const text = document.getElementById("massImportText").value;
+            if (!text.trim()) {
+                alert("Klistra in lite text först!");
+                return;
+            }
+
+            const rader = text.split("\n");
+            let tillagdaStycken = 0;
+            
+            // Hitta nuvarande högsta ID
+            let aktuelltId = allaEleverCache.length > 0 ? Math.max(...allaEleverCache.map(e => e.id)) : 0;
+
+            for (let rad of rader) {
+                const renRad = rad.trim();
+                if (!renRad) continue;
+
+                // Dela upp raden i ord
+                const ordLista = renRad.replace(/[,;]/g, " ").split(/\s+/).filter(Boolean);
+                let hittadKlass = "";
+                let namnDelar = [];
+
+                for (let ord of ordLista) {
+                    // Om ordet innehåller en siffra och vi inte hittat klassen än
+                    if (/\d/.test(ord) && !hittadKlass) {
+                        hittadKlass = ord.toUpperCase();
+                    } else {
+                        namnDelar.push(ord);
+                    }
+                }
+
+                const namn = namnDelar.join(" ").trim();
+
+                if (namn && hittadKlass) {
+                    // Kolla dubblett
+                    const finnsRedan = allaEleverCache.some(e => 
+                        e.namn.toLowerCase() === namn.toLowerCase() && e.klass.toUpperCase() === hittadKlass
+                    );
+
+                    if (!finnsRedan) {
+                        aktuelltId++;
+                        allaEleverCache.push({
+                            id: aktuelltId,
+                            namn: namn,
+                            klass: hittadKlass,
+                            saldo: 0
+                        });
+                        tillagdaStycken++;
+                    }
+                }
+            }
+
+            if (tillagdaStycken > 0) {
+                db.collection("skolif_kassa").doc(aktivUserId).update({
+                    elever: JSON.stringify(allaEleverCache)
+                }).then(() => {
+                    alert(`${tillagdaStycken} elever har importerats!`);
+                    stangAdminModal();
+                }).catch(err => {
+                    console.error(err);
+                    alert("Kunde inte synka importen till molnet.");
+                });
+            } else {
+                alert("Inga nya elever kunde hittas eller så fanns de redan.");
+            }
         }
 
         function uppdateraStatistik(elever) {
