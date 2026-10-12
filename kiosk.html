@@ -64,6 +64,33 @@
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; z-index: 1000; padding: 20px; }
         .modal-content { background: white; width: 100%; max-width: 800px; border-radius: 20px; padding: 30px; box-shadow: 0 15px 35px rgba(0,0,0,0.2); max-height: 90vh; overflow-y: auto; position: relative; }
         
+        /* Snygg toast-varning */
+#saldoVarningToast {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0.9);
+    background: #C62828;
+    color: white;
+    padding: 20px 32px;
+    border-radius: 16px;
+    font-weight: 600;
+    font-size: 1.1rem;
+    box-shadow: 0 15px 35px rgba(198, 40, 40, 0.4);
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    z-index: 9999;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+#saldoVarningToast.visa {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+    visibility: visible;
+}
+
         /* Layout inuti modalen (vänster/höger) */
         .modal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; }
         @media (max-width: 700px) { .modal-grid { grid-template-columns: 1fr; } }
@@ -123,6 +150,11 @@
             Logga in med Google
         </button>
     </div>
+</div>
+<!-- Snygg varningsruta -->
+<div id="saldoVarningToast">
+    <span>⚠️</span>
+    <span id="toastMeddelande">Köpet medges ej! Eleven har för lågt saldo.</span>
 </div>
 
         <!-- KIOSK-DASHBOARD -->
@@ -271,27 +303,45 @@
         let aktivtKlassFilter = "Alla";
         let aktivElevId = null;
 
+
+// Fånga upp kvittot direkt efter att vi kommer tillbaka från Google
+auth.getRedirectResult().then((result) => {
+    if (result && result.user) {
+        console.log("Wohoo, fångade inloggningen från redirect!", result.user.email);
+        // När denna lyckas kommer onAuthStateChanged automatiskt att vakna strax efter!
+    }
+}).catch((error) => {
+    console.error("Något gick fel vid omdirigeringen:", error);
+});
         // Lyssna på inloggningsstatus
-        auth.onAuthStateChanged((user) => {
-            if (user) {
-                aktivUserId = user.uid;
-                document.getElementById("loginView").style.display = "none";
-                document.getElementById("kioskView").style.display = "block";
-                document.getElementById("anvandareEmail").innerText = user.email;
-                startaLiveLyssnare(user.uid);
-            } else {
-                document.getElementById("loginView").style.display = "flex";
-                document.getElementById("kioskView").style.display = "none";
-            }
-        });
+auth.onAuthStateChanged((user) => {
+    console.log("Inloggningsstatus ändrades! Firebase säger att user är:", user);
+    
+    if (user) {
+        console.log("Användaren ÄR inloggad! Visar kioskView.");
+        aktivUserId = user.uid;
+        document.getElementById("loginView").style.display = "none";
+        document.getElementById("kioskView").style.display = "block";
+        document.getElementById("anvandareEmail").innerText = user.email;
+        startaLiveLyssnare(user.uid);
+    } else {
+        console.log("Ingen användare hittades (user är null). Visar loginView.");
+        document.getElementById("loginView").style.display = "flex";
+        document.getElementById("kioskView").style.display = "none";
+    }
+});
 
         function loggaInMedGoogle() {
-            const provider = new firebase.auth.GoogleAuthProvider();
-            auth.signInWithRedirect(provider).catch((error) => {
-                console.error("Inloggningsfel:", error);
-                alert("Kunde inte logga in med Google.");
-            });
-        }
+    const provider = new firebase.auth.GoogleAuthProvider();
+    // Använd Popup istället för Redirect
+    auth.signInWithPopup(provider).then((result) => {
+        console.log("Inloggad via Popup!", result.user.email);
+        // onAuthStateChanged kommer automatiskt fånga upp detta direkt!
+    }).catch((error) => {
+        console.error("Popup-inloggningsfel:", error);
+        alert("Kunde inte logga in med Google: " + error.message);
+    });
+}
 
         function startaLiveLyssnare(uid) {
             db.collection("skolif_kassa").doc(uid).onSnapshot((doc) => {
@@ -319,6 +369,16 @@
         function oppnaAdminModal() {
             document.getElementById("adminModal").style.display = "flex";
         }
+        function visaSaldoVarning(text) {
+    const toast = document.getElementById("saldoVarningToast");
+    document.getElementById("toastMeddelande").innerText = text;
+    toast.classList.add("visa");
+    
+    // Göm rutan efter 3 sekunder
+    setTimeout(() => {
+        toast.classList.remove("visa");
+    }, 3000);
+}
 
         function stangAdminModal() {
             document.getElementById("adminModal").style.display = "none";
@@ -446,10 +506,23 @@
         }
 
         function visaVaror(varor) {
-            const div = document.getElementById("varorLista");
-            div.innerHTML = varor.length === 0 ? "<p style='color:gray;'>Inga varor inlagda.</p>" : 
-                varor.map(v => `<div class="vara-card"><div class="vara-emoji">${v.emoji||'🍬'}</div><div class="vara-namn">${v.namn}</div><div class="vara-pris">${v.pris} kr</div></div>`).join('');
+    const div = document.getElementById("varorLista");
+    div.innerHTML = varor.length === 0 ? "<p style='color:gray;'>Inga varor inlagda.</p>" : 
+        varor.map(v => `<div class="vara-card" onclick="kopFardigVara('${v.namn}', ${v.pris})"><div class="vara-emoji">${v.emoji||'🍬'}</div><div class="vara-namn">${v.namn}</div><div class="vara-pris">${v.pris} kr</div></div>`).join('');
+}
+function kopFardigVara(namn, pris) {
+    if (pris > 0) {
+        const e = allaEleverCache.find(x => x.id === aktivElevId);
+        if (e) {
+            if (e.saldo - pris < 0) {
+                visaSaldoVarning("Köpet medges ej! Eleven har för lågt saldo.");
+                return; 
+            }
+            e.saldo -= pris;
+            laggTillTransaktion("KÖP", pris, namn);
         }
+    }
+}
 
         function skapaKlassFilterChips(elever) {
             const klasser = ["Alla", ...new Set(elever.map(e => e.klass))].sort();
@@ -551,24 +624,32 @@
         }
 
         function kopVara(id, pris, namn) {
-            const e = allaEleverCache.find(x => x.id === id);
-            if(e) { 
-                e.saldo -= pris; 
-                laggTillTransaktion("KÖP", pris, namn);
-            }
+    const e = allaEleverCache.find(x => x.id === id);
+    if(e) { 
+        if (e.saldo - pris < 0) {
+            visaSaldoVarning("Köpet medges ej! Eleven har för lågt saldo.");
+            return; 
         }
+        e.saldo -= pris; 
+        laggTillTransaktion("KÖP", pris, namn);
+    }
+}
 
         function gorKopCustom() {
-            const b = parseInt(document.getElementById("customBeloppInput").value);
-            if(b>0) { 
-                const e = allaEleverCache.find(x => x.id === aktivElevId); 
-                if(e){ 
-                    e.saldo -= b; 
-                    document.getElementById("customBeloppInput").value=""; 
-                    laggTillTransaktion("KÖP", b, "Övrigt köp");
-                } 
+    const b = parseInt(document.getElementById("customBeloppInput").value);
+    if(b>0) { 
+        const e = allaEleverCache.find(x => x.id === aktivElevId); 
+        if(e){ 
+            if (e.saldo - b < 0) {
+                visaSaldoVarning("Köpet medges ej! Eleven har för lågt saldo.");
+                return; 
             }
-        }
+            e.saldo -= b; 
+            document.getElementById("customBeloppInput").value=""; 
+            laggTillTransaktion("KÖP", b, "Övrigt köp");
+        } 
+    }
+}
 
         function gorInsattningCustom() {
             const b = parseInt(document.getElementById("customBeloppInput").value);
