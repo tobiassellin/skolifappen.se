@@ -56,34 +56,9 @@
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; z-index: 1000; padding: 20px; }
         .modal-content { background: white; width: 100%; max-width: 800px; border-radius: 20px; padding: 30px; box-shadow: 0 15px 35px rgba(0,0,0,0.2); max-height: 90vh; overflow-y: auto; position: relative; }
         
-        /* Central snygg varningsruta */
-        #saldoVarningToast {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%) scale(0.9);
-            background: #C62828;
-            color: white;
-            padding: 20px 32px;
-            border-radius: 16px;
-            font-weight: 600;
-            font-size: 1.1rem;
-            box-shadow: 0 15px 35px rgba(198, 40, 40, 0.4);
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            z-index: 9999;
-            opacity: 0;
-            visibility: hidden;
-            transition: all 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        }
-        #saldoVarningToast.visa {
-            transform: translate(-50%, -50%) scale(1);
-            opacity: 1;
-            visibility: visible;
-        }
+        #saldoVarningToast { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.9); background: #C62828; color: white; padding: 20px 32px; border-radius: 16px; font-weight: 600; font-size: 1.1rem; box-shadow: 0 15px 35px rgba(198, 40, 40, 0.4); display: flex; align-items: center; gap: 15px; z-index: 9999; opacity: 0; visibility: hidden; transition: all 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        #saldoVarningToast.visa { transform: translate(-50%, -50%) scale(1); opacity: 1; visibility: visible; }
 
-        /* Layout inuti modalen (vänster/höger) */
         .modal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; }
         @media (max-width: 700px) { .modal-grid { grid-template-columns: 1fr; } }
         
@@ -111,7 +86,6 @@
         .btn-kop { background: #C62828; color: white; border: none; padding: 0 15px; border-radius: 10px; font-weight: 700; cursor: pointer; }
         .btn-insattning { background: #2E7D32; color: white; border: none; padding: 0 15px; border-radius: 10px; font-weight: 700; cursor: pointer; }
 
-        /* Nya klasser för historiken */
         .historik-container { background: #FAFAFA; border: 1px solid #EEEEEE; border-radius: 12px; padding: 15px; max-height: 400px; overflow-y: auto; }
         .historik-item { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #E0E0E0; padding: 10px 0; }
         .historik-item:last-child { border-bottom: none; }
@@ -123,7 +97,6 @@
         .historik-belopp.minus { color: #C62828; }
         .tom-historik { text-align: center; color: #999; font-size: 0.9rem; padding: 20px 0; font-style: italic; }
 
-        /* --- NY DESIGN FÖR STARTSIDAN --- */
         .landing-wrapper { display: flex; flex-direction: column; align-items: center; padding: 40px 20px; min-height: 80vh; }
         .hero-section { display: flex; flex-wrap: wrap; max-width: 1050px; width: 100%; gap: 40px; align-items: center; justify-content: space-between; margin-bottom: 50px; }
         .hero-text { flex: 1; min-width: 300px; }
@@ -139,12 +112,10 @@
         .google-btn { background-color: white; color: #444; border: 2px solid #E0E0E0; padding: 12px 20px; border-radius: 10px; font-weight: 600; font-size: 1rem; cursor: pointer; width: 100%; display: flex; align-items: center; justify-content: center; gap: 10px; transition: background 0.2s, border-color 0.2s; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
         .google-btn:hover { background-color: #F8F9FA; border-color: #4CAF50; }
 
-        /* Mockup-bild av kassan */
         .demo-preview { width: 100%; max-width: 1050px; background: white; border-radius: 16px; box-shadow: 0 10px 40px rgba(0,0,0,0.1); padding: 25px; position: relative; border: 1px solid #E0E0E0; margin-top: 20px; }
         .demo-preview::before { content: "Förhandsgranskning av kassan"; position: absolute; top: 0; left: 0; background: #2E7D32; color: white; font-size: 0.75rem; padding: 6px 16px; border-bottom-right-radius: 12px; font-weight: bold; text-transform: uppercase; }
         .blur-overlay { opacity: 0.8; pointer-events: none; filter: blur(1.5px); margin-top: 20px; user-select: none; }
 
-        /* Utloggningsknapp */
         .logout-btn { background: #FFEBEE; color: #C62828; border: 1px solid #FFCDD2; padding: 8px 16px; border-radius: 8px; font-weight: 700; cursor: pointer; transition: 0.2s; font-size: 0.85rem; }
         .logout-btn:hover { background: #FFCDD2; }
     </style>
@@ -192,7 +163,9 @@
                     <div class="elev-grid">
                         <div class="elev-card"><div><div class="elev-namn">Anna Andersson</div><div class="elev-klass">Klass 9A</div></div><div class="elev-saldo positiv">120 kr</div></div>
                         <div class="elev-card"><div><div class="elev-namn">Erik Eriksson</div><div class="elev-klass">Klass 9B</div></div><div class="elev-saldo positiv">45 kr</div></div>
+                        <!-- HÄR ÄR SVEN SVENSSON FIXAD -->
                         <div class="elev-card"><div><div class="elev-namn">Sven Svensson</div><div class="elev-klass">Klass 8A</div></div><div class="elev-saldo positiv">25 kr</div></div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -378,11 +351,9 @@
             });
         }
 
-        // --- UTLOGGNING ---
         function loggaUt() {
             if (confirm("Är du säker på att du vill logga ut?")) {
                 auth.signOut().then(() => {
-                    // Töm lokala listor ur minnet som en extra säkerhetsåtgärd
                     allaEleverCache = [];
                     allaVarorCache = [];
                     allaTransaktionerCache = [];
@@ -427,8 +398,6 @@
             const toast = document.getElementById("saldoVarningToast");
             document.getElementById("toastMeddelande").innerText = text;
             toast.classList.add("visa");
-            
-            // Göm rutan efter 3 sekunder
             setTimeout(() => {
                 toast.classList.remove("visa");
             }, 3000);
