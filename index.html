@@ -60,15 +60,15 @@
     <div class="features-container">
         <section class="features">
             <!-- KASSA KORTET -->
-            <div class="card" id="kassa" style="cursor: pointer;">
-                <div class="card-icon">☕</div>
-                <h3>Skol IF Kassa</h3>
-                <p>Logga in med samma Google-konto som i appen för att synka och öppna live-kassan.</p>
-                
-                <div style="margin-top: 20px;">
-                    <button id="kioskBtn" onclick="loggaInMedGoogle()" class="cta-button" style="width: 100%; max-width: 250px;">Logga in med Google</button>
-                </div>
-            </div>
+<div class="card" id="kassa" onclick="gaTillKiosk()" style="cursor: pointer;">
+    <div class="card-icon">☕</div>
+    <h3>Skol IF Kassa</h3>
+    <p>Det digitala systemet för att sköta kioskförsäljningen med blixtsnabba digitala saldon. Slipp krångel med kontanter!</p>
+    
+    <div style="margin-top: 20px;">
+        <button id="kioskBtn" onclick="klickaPaKnapp(event)" class="cta-button" style="width: 100%; max-width: 250px;">Logga in med Google</button>
+    </div>
+</div>
 
             <!-- REDSKAPSBODEN KORTET -->
             <div class="card" id="redskapsboden">
@@ -98,55 +98,63 @@
     <!-- LÄGG TILL FIREBASE AUTH -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
 
-    <script>
-    const firebaseConfig = {
-        apiKey: "AIzaSyCmHoypbgqWYxgAVI98_gCwTJqXVUdG3hg",
-        authDomain: "skol-if.firebaseapp.com",
-        projectId: "skol-if",
-        storageBucket: "skol-if.firebasestorage.app",
-        messagingSenderId: "593631856247",
-        appId: "1:593631856247:web:874d4a87142b44bc336872",
-        measurementId: "G-6JP01V6CYC"
-    };
+   <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyCmHoypbgqWYxgAVI98_gCwTJqXVUdG3hg",
+            authDomain: "skol-if.firebaseapp.com",
+            projectId: "skol-if",
+            storageBucket: "skol-if.firebasestorage.app",
+            messagingSenderId: "593631856247",
+            appId: "1:593631856247:web:874d4a87142b44bc336872",
+            measurementId: "G-6JP01V6CYC"
+        };
 
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.firestore();
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
 
-    // Lyssna på om användaren redan är inloggad
+        // 1. Hela rutan leder till kiosk.html (visar landningssidan om man är utloggad)
+        function gaTillKiosk() {
+            window.location.href = "kiosk.html";
+        }
+
+        // 2. Bestämmer vad knappen gör beroende på inloggningsstatus
+        function klickaPaKnapp(event) {
+            // Stoppa så att klicket på knappen inte "läcker ut" till rutan bakom
+            event.stopPropagation(); 
+
+            const arInloggad = document.getElementById("kioskBtn").dataset.inloggad === "true";
+            
+            if (arInloggad) {
+                window.location.href = "kiosk.html";
+            } else {
+                loggaInMedGoogle();
+            }
+        }
+
+        // 3. Lyssna på om användaren är inloggad och uppdatera knappen
         firebase.auth().onAuthStateChanged((user) => {
             const btn = document.getElementById("kioskBtn");
-            const kassaKort = document.getElementById("kassa"); // Hämtar hela rutan
-
             if (user) {
-                // Är man inloggad
                 btn.innerText = "Öppna Kassan";
-                
-                const oppna = function() {
-                    window.location.href = "kiosk.html";
-                };
-                btn.onclick = oppna;
-                kassaKort.onclick = oppna; // Gör så att hela rutan öppnar kassan
+                btn.dataset.inloggad = "true";
             } else {
-                // Är man utloggad
                 btn.innerText = "Logga in med Google";
-                
-                btn.onclick = loggaInMedGoogle;
-                kassaKort.onclick = loggaInMedGoogle; // Gör så att hela rutan triggar inloggningen
+                btn.dataset.inloggad = "false";
             }
         });
 
-    // Funktion: Logga in med Google (Körs bara om man inte redan är inloggad)
-    function loggaInMedGoogle() {
-        const provider = new firebase.auth.GoogleAuthProvider();
-        firebase.auth().signInWithPopup(provider)
-            .then((result) => {
-                window.location.href = "kiosk.html";
-            })
-            .catch((error) => {
-                console.error("Fel vid inloggning:", error);
-                alert("Det gick inte att logga in. Kontrollera popup-blockerare.");
-            });
-    }
-</script>
+        // 4. Vanlig Google-inloggning
+        function loggaInMedGoogle() {
+            const provider = new firebase.auth.GoogleAuthProvider();
+            firebase.auth().signInWithPopup(provider)
+                .then((result) => {
+                    window.location.href = "kiosk.html";
+                })
+                .catch((error) => {
+                    console.error("Fel vid inloggning:", error);
+                    alert("Det gick inte att logga in. Kontrollera popup-blockerare.");
+                });
+        }
+    </script>
 </body>
 </html>
