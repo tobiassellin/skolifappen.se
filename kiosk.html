@@ -210,18 +210,15 @@
         <!-- KIOSK-DASHBOARD -->
         <div id="kioskView">
             <div class="header-section">
-            <div>
-                <h2>Kassavy & Saldon</h2>
-                <p style="color: #666; font-size: 0.9rem;">Ansluten via Google-konto</p>
-                <div style="display: flex; gap: 10px; margin-top: 15px; flex-wrap: wrap;">
-                    <button onclick="oppnaAdminModal()" style="background: #2E7D32; color: white; border: none; padding: 8px 14px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 0.85rem;">+ Elever</button>
-                    <!-- NY STATISTIK-KNAPP -->
-                    <button onclick="bytVy('statistik')" style="background: #1976D2; color: white; border: none; padding: 8px 14px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 0.85rem;">📊 Statistik</button>
+                <div>
+                    <h2>Kassavy & Saldon</h2>
+                    <p style="color: #666; font-size: 0.9rem;">Ansluten via Google-konto</p>
+                </div>
+                <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 8px;">
                     <button onclick="loggaUt()" class="logout-btn">Logga ut</button>
+                    <div id="anvandareEmail" class="badge">Inloggad</div>
                 </div>
             </div>
-            <div id="anvandareEmail" class="badge">Inloggad</div>
-        </div>
 
             <div class="stats-grid">
                 <div class="stat-card">
@@ -249,12 +246,18 @@
 
             <div class="section-title">
                 <span>🍫 Aktuella kioskvaror</span>
-                <button onclick="hanteraVaror()" style="background: #2E7D32; color: white; border: none; padding: 6px 12px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 0.85rem;">+ Hantera varor</button>
+                <div style="display: flex; gap: 8px;">
+                    <button onclick="bytVy('statistik')" style="background: #1976D2; color: white; border: none; padding: 6px 12px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 0.85rem; display: flex; align-items: center; gap: 5px;">📊 Statistik</button>
+                    <button onclick="hanteraVaror()" style="background: #2E7D32; color: white; border: none; padding: 6px 12px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 0.85rem;">+ Hantera varor</button>
+                </div>
             </div>
             <div id="varorLista" class="varor-grid"></div>
 
             <input type="text" id="sokElev" class="search-box" placeholder="🔍 Sök på elevnamn..." oninput="filtreraOchVisa()">
-            <div id="klassFilterContainer" class="filter-container"></div>
+            <div style="display: flex; justify-content: space-between; align-items: center; gap: 15px; margin-bottom: 20px;">
+                <div id="klassFilterContainer" class="filter-container" style="margin-bottom: 0; flex: 1;"></div>
+                <button onclick="oppnaAdminModal()" style="background: #2E7D32; color: white; border: none; padding: 8px 16px; border-radius: 8px; font-weight: 700; cursor: pointer; font-size: 0.85rem; white-space: nowrap; flex-shrink: 0; display: flex; align-items: center; gap: 6px;">👥 Klasser & Elever</button>
+            </div>
             <div id="elevLista" class="elev-grid"></div>
         </div> <!-- Stänger Kiosk-vyn -->
 
@@ -333,7 +336,7 @@
                         <h3 id="modalElevNamn">Namn</h3>
                         <p id="modalElevKlass" style="font-size:0.9rem; color:#666;">Klass</p>
                     </div>
-                    <button onclick="redigeraAktivElev()" style="background:none; border:none; cursor:pointer; font-size:1.2rem; margin-bottom: 5px;" title="Redigera elev">✏️</button>
+                    <button onclick="oppnaRedigeraElevModal()" style="background: #F0F4F1; border: 1px solid #D0D7DE; width: 36px; height: 36px; border-radius: 8px; cursor: pointer; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; transition: 0.2s;" title="Redigera elev" onmouseover="this.style.background='#E8F5E9'" onmouseout="this.style.background='#F0F4F1'">✏️</button>
                 </div>
             </div>
 
@@ -369,34 +372,72 @@
         </div>
     </div>
 
-    <!-- ADMIN MODAL FÖR ELEVER -->
+    <!-- ADMIN MODAL FÖR ELEVER & KLASSER -->
     <div id="adminModal" class="modal-overlay">
-        <div class="modal-content" style="max-width: 600px;">
+        <div class="modal-content" style="max-width: 620px;">
             <button class="close-btn" onclick="stangAdminModal()">✕</button>
-            <div class="modal-header">
+            <div class="modal-header" style="margin-bottom: 15px;">
                 <div class="modal-title">
-                    <h3>Lägg till eller Importera Elever</h3>
+                    <h3 id="adminModalTitel">👥 Hantera Elever & Klasser</h3>
                 </div>
             </div>
 
-            <!-- Lägg till enskild -->
-            <div style="margin-bottom: 25px;">
-                <div class="modal-section-title">Lägg till enskild elev</div>
-                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                    <input type="text" id="nyElevNamn" class="custom-input" placeholder="Namn (t.ex. Anna Andersson)">
-                    <input type="text" id="nyElevKlass" class="custom-input" placeholder="Klass (t.ex. 9B)" style="max-width: 120px;">
-                    <button onclick="laggTillEnskildElevWebb()" class="btn-insattning" style="padding: 0 20px;">Lägg till</button>
+            <!-- Flikväljare -->
+            <div style="display: flex; gap: 8px; margin-bottom: 22px; border-bottom: 2px solid #E0E0E0; padding-bottom: 10px;">
+                <button type="button" id="tabBtnElever" onclick="bytAdminFlik('elever')" style="background: #E8F5E9; border: 2px solid #4CAF50; color: #2E7D32; font-weight: 700; padding: 8px 16px; border-radius: 10px; cursor: pointer; font-size: 0.9rem; transition: 0.2s;">➕ Lägg till elever</button>
+                <button type="button" id="tabBtnKlasser" onclick="bytAdminFlik('klasser')" style="background: white; border: 2px solid #E0E0E0; color: #555; font-weight: 600; padding: 8px 16px; border-radius: 10px; cursor: pointer; font-size: 0.9rem; transition: 0.2s;">⚙️ Klasser & Läsårsbyte</button>
+            </div>
+
+            <!-- FLIK 1: LÄGG TILL ELEVER -->
+            <div id="tabInnehallElever">
+                <!-- Lägg till enskild -->
+                <div style="margin-bottom: 25px;">
+                    <div class="modal-section-title">Lägg till enskild elev</div>
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                        <input type="text" id="nyElevNamn" class="custom-input" placeholder="Namn (t.ex. Anna Andersson)" style="flex: 2; min-width: 180px;">
+                        <input type="text" id="nyElevKlass" class="custom-input" placeholder="Klass (t.ex. 9B)" style="flex: 1; min-width: 90px; max-width: 130px; text-transform: uppercase;">
+                        <button onclick="laggTillEnskildElevWebb()" class="btn-insattning" style="padding: 0 20px; white-space: nowrap;">Lägg till</button>
+                    </div>
+                </div>
+
+                <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
+
+                <!-- Massimport -->
+                <div>
+                    <div class="modal-section-title">Massimportera elever</div>
+                    <p style="font-size: 0.85rem; color: #666; margin-bottom: 8px;">Klistra in en lista nedanför (programmet känner automatiskt av vilken del som är klassen, t.ex. "Tobias Sellin 9B").</p>
+                    <textarea id="massImportText" class="custom-input" style="width: 100%; height: 120px; resize: vertical; margin-bottom: 10px;" placeholder="Klistra in din lista här..."></textarea>
+                    <button onclick="utforMassimportWebb()" class="btn-insattning" style="width: 100%; padding: 12px;">Kör massimport</button>
                 </div>
             </div>
 
-            <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
+            <!-- FLIK 2: KLASSHANTERING & LÄSÅRSBYTE -->
+            <div id="tabInnehallKlasser" style="display: none;">
+                <!-- 1. Radera en hel klass -->
+                <div style="background: #FAFAFA; border: 1px solid #E0E0E0; border-radius: 12px; padding: 18px; margin-bottom: 20px;">
+                    <div class="modal-section-title" style="color: #C62828; display: flex; align-items: center; gap: 6px;">🗑️ Radera en hel klass</div>
+                    <p style="font-size: 0.85rem; color: #666; margin-bottom: 12px;">Perfekt för avgångsklasser (t.ex. 9:or som slutat). Alla elever i den valda klassen tas bort permanent.</p>
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                        <select id="raderaKlassValjare" class="custom-input" style="flex: 2; min-width: 180px; background: white; cursor: pointer;">
+                            <option value="">Välj klass...</option>
+                        </select>
+                        <button type="button" onclick="raderaValdKlass()" style="background: #C62828; color: white; border: none; padding: 10px 18px; border-radius: 10px; font-weight: 700; cursor: pointer; font-size: 0.85rem; transition: background 0.2s;" onmouseover="this.style.background='#B71C1C'" onmouseout="this.style.background='#C62828'">Radera klass</button>
+                    </div>
+                </div>
 
-            <!-- Massimport -->
-            <div>
-                <div class="modal-section-title">Massimportera elever</div>
-                <p style="font-size: 0.85rem; color: #666; margin-bottom: 8px;">Klistra in en lista nedanför (programmet känner automatiskt av vilken del som är klassen, t.ex. "Tobias Sellin 9B").</p>
-                <textarea id="massImportText" class="custom-input" style="width: 100%; height: 120px; resize: vertical; margin-bottom: 10px;" placeholder="Klistra in din lista här..."></textarea>
-                <button onclick="utforMassimportWebb()" class="btn-insattning" style="width: 100%; padding: 12px;">Kör massimport</button>
+                <!-- 2. Flytta upp alla klasser ett år -->
+                <div style="background: #E8F5E9; border: 1px solid #C8E6C9; border-radius: 12px; padding: 18px;">
+                    <div class="modal-section-title" style="color: #2E7D32; display: flex; align-items: center; gap: 6px;">🎓 Läsårsbyte – Flytta upp alla elever (+1 årskurs)</div>
+                    <p style="font-size: 0.85rem; color: #555; margin-bottom: 12px; line-height: 1.4;">
+                        Stegar automatiskt upp alla klassbeteckningar ett årskurs-steg (t.ex. <strong>7A ➔ 8A</strong>, <strong>8B ➔ 9B</strong> osv).
+                    </p>
+                    <div style="background: white; border-left: 4px solid #4CAF50; padding: 10px 12px; border-radius: 6px; font-size: 0.8rem; color: #555; margin-bottom: 14px;">
+                        💡 <strong>Smidigt tips:</strong> Elever i åk 9 blir automatiskt åk 10 (t.ex. <em>10A</em>). Du kan då enkelt radera de gamla 10:orna med verktyget <em>Radera en hel klass</em> ovanför!
+                    </div>
+                    <button type="button" onclick="flyttaUppAllaKlasser()" class="btn-insattning" style="width: 100%; padding: 12px; font-size: 0.95rem; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                        🚀 Flytta upp alla klasser 1 årskurs
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -437,6 +478,44 @@
         </div>
     </div>
 </div>
+
+    <!-- MODAL FÖR ATT REDIGERA / TA BORT ELEV -->
+    <div id="redigeraElevModal" class="modal-overlay" style="z-index: 1100;">
+        <div class="modal-content" style="max-width: 480px; padding: 25px 30px;">
+            <button class="close-btn" onclick="stangRedigeraElevModal()">✕</button>
+            <div class="modal-header" style="margin-bottom: 20px;">
+                <div class="modal-title">
+                    <h3 style="display: flex; align-items: center; gap: 8px;">✏️ Redigera elev</h3>
+                </div>
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 15px; margin-bottom: 25px;">
+                <div>
+                    <label style="display: block; font-size: 0.85rem; font-weight: 600; color: #555; margin-bottom: 6px;">Elevens namn</label>
+                    <input type="text" id="redigeraElevNamnInput" class="custom-input" style="width: 100%;" placeholder="För- och efternamn">
+                </div>
+                <div>
+                    <label style="display: block; font-size: 0.85rem; font-weight: 600; color: #555; margin-bottom: 6px;">Klass</label>
+                    <input type="text" id="redigeraElevKlassInput" class="custom-input" style="width: 100%; text-transform: uppercase;" placeholder="T.ex. 9B">
+                </div>
+            </div>
+
+            <!-- Åtgärdsknappar -->
+            <div style="display: flex; gap: 10px; justify-content: flex-end; margin-bottom: 20px;">
+                <button type="button" onclick="stangRedigeraElevModal()" style="background: white; border: 2px solid #E0E0E0; color: #555; padding: 10px 18px; border-radius: 10px; font-weight: 600; cursor: pointer; transition: 0.2s;">Avbryt</button>
+                <button type="button" onclick="sparaRedigeradElev()" class="btn-insattning" style="padding: 10px 22px; border-radius: 10px;">Spara ändringar</button>
+            </div>
+
+            <hr style="border: 0; border-top: 1px solid #EEEEEE; margin: 20px 0;">
+
+            <!-- Farlig zon / Ta bort elev -->
+            <div style="background: #FFF5F5; border: 1px solid #FFCDD2; border-radius: 12px; padding: 16px;">
+                <div style="font-weight: 700; color: #C62828; font-size: 0.95rem; margin-bottom: 4px;">⚠️ Ta bort elev</div>
+                <p style="font-size: 0.8rem; color: #777; margin-bottom: 12px; line-height: 1.4;">Eleven tas bort från listan. Transaktionshistoriken finns kvar i statistiken.</p>
+                <button type="button" onclick="taBortAktivElev()" style="background: #C62828; color: white; border: none; padding: 8px 16px; border-radius: 8px; font-weight: 700; font-size: 0.85rem; cursor: pointer; width: 100%; transition: background 0.2s;" onmouseover="this.style.background='#B71C1C'" onmouseout="this.style.background='#C62828'">Ta bort eleven permanent</button>
+            </div>
+        </div>
+    </div>
 
     <!-- Firebase SDK v8 (App, Auth, Firestore) -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
@@ -526,12 +605,154 @@
             });
         }
 
-        function oppnaAdminModal() { document.getElementById("adminModal").style.display = "flex"; }
+        function oppnaAdminModal() {
+            bytAdminFlik('elever');
+            fyllKlassValjareIRadera();
+            document.getElementById("adminModal").style.display = "flex";
+        }
+
         function stangAdminModal() {
             document.getElementById("adminModal").style.display = "none";
             document.getElementById("nyElevNamn").value = "";
             document.getElementById("nyElevKlass").value = "";
             document.getElementById("massImportText").value = "";
+        }
+
+        function bytAdminFlik(flik) {
+            const tabElever = document.getElementById("tabInnehallElever");
+            const tabKlasser = document.getElementById("tabInnehallKlasser");
+            const btnElever = document.getElementById("tabBtnElever");
+            const btnKlasser = document.getElementById("tabBtnKlasser");
+
+            if (flik === 'elever') {
+                tabElever.style.display = "block";
+                tabKlasser.style.display = "none";
+                btnElever.style.background = "#E8F5E9";
+                btnElever.style.borderColor = "#4CAF50";
+                btnElever.style.color = "#2E7D32";
+                btnElever.style.fontWeight = "700";
+
+                btnKlasser.style.background = "white";
+                btnKlasser.style.borderColor = "#E0E0E0";
+                btnKlasser.style.color = "#555";
+                btnKlasser.style.fontWeight = "600";
+            } else {
+                tabElever.style.display = "none";
+                tabKlasser.style.display = "block";
+                btnKlasser.style.background = "#E8F5E9";
+                btnKlasser.style.borderColor = "#4CAF50";
+                btnKlasser.style.color = "#2E7D32";
+                btnKlasser.style.fontWeight = "700";
+
+                btnElever.style.background = "white";
+                btnElever.style.borderColor = "#E0E0E0";
+                btnElever.style.color = "#555";
+                btnElever.style.fontWeight = "600";
+                fyllKlassValjareIRadera();
+            }
+        }
+
+        function fyllKlassValjareIRadera() {
+            const select = document.getElementById("raderaKlassValjare");
+            if (!select) return;
+            const klasser = [...new Set(allaEleverCache.map(e => e.klass))].filter(Boolean).sort();
+            
+            if (klasser.length === 0) {
+                select.innerHTML = '<option value="">Inga klasser registrerade</option>';
+                return;
+            }
+
+            select.innerHTML = '<option value="">-- Välj klass att radera --</option>' + klasser.map(k => {
+                const antal = allaEleverCache.filter(e => e.klass === k).length;
+                return `<option value="${k}">Klass ${k} (${antal} elever)</option>`;
+            }).join('');
+        }
+
+        function raderaValdKlass() {
+            const valdKlass = document.getElementById("raderaKlassValjare").value;
+            if (!valdKlass) {
+                alert("Vänligen välj en klass att radera.");
+                return;
+            }
+
+            const eleverIKlass = allaEleverCache.filter(e => e.klass === valdKlass);
+            const antal = eleverIKlass.length;
+            const totaltSaldo = eleverIKlass.reduce((sum, e) => sum + (e.saldo || 0), 0);
+            const harAktivaSaldon = eleverIKlass.some(e => (e.saldo || 0) !== 0);
+
+            let bekräftelseText = `Är du helt säker på att du vill radera ALLA elever i klass ${valdKlass} (${antal} elever)?\nDetta kan inte ångras!`;
+            if (harAktivaSaldon) {
+                bekräftelseText += `\n\n⚠️ OBSERVERA! Det finns kvarstående saldon i klassen på totalt ${totaltSaldo} kr!`;
+            }
+
+            if (!confirm(bekräftelseText)) return;
+
+            allaEleverCache = allaEleverCache.filter(e => e.klass !== valdKlass);
+
+            db.collection("skolif_kassa").doc(aktivUserId).update({
+                elever: JSON.stringify(allaEleverCache)
+            }).then(() => {
+                alert(`Klass ${valdKlass} har raderats (${antal} elever togs bort).`);
+                fyllKlassValjareIRadera();
+                skapaKlassFilterChips(allaEleverCache);
+                filtreraOchVisa();
+            }).catch(err => {
+                console.error("Fel vid radering av klass:", err);
+                alert("Kunde inte radera klassen. Försök igen.");
+            });
+        }
+
+        function flyttaUppAllaKlasser() {
+            if (allaEleverCache.length === 0) {
+                alert("Det finns inga elever att flytta upp.");
+                return;
+            }
+
+            // Kontrollera om det finns elever med siffror i klassnamnet (t.ex. 7A, 8B)
+            const berordaElever = allaEleverCache.filter(e => /\d+/.test(e.klass));
+            if (berordaElever.length === 0) {
+                alert("Inga klasser med årskurssiffror (t.ex. 7A, 8B) hittades bland eleverna.");
+                return;
+            }
+
+            // Notis om 9:or som blir 10:or
+            const nior = allaEleverCache.filter(e => /^9/i.test(e.klass.trim()));
+            let infoNior = "";
+            if (nior.length > 0) {
+                infoNior = `\n\nℹ️ Info: ${nior.length} st elever i åk 9 kommer att flyttas upp till åk 10 (vilket gör dem enkla att radera under 'Radera en hel klass' när du är redo).`;
+            }
+
+            const promptText = `Vill du genomföra läsårsbyte och flytta upp alla klasser ett årskurs-steg?` +
+                `\n\nExempel:` +
+                `\n7A ➔ 8A` +
+                `\n8B ➔ 9B` +
+                `\n9C ➔ 10C` +
+                `\n\nTotalt ${berordaElever.length} elever kommer att uppdateras.` +
+                infoNior +
+                `\n\nVill du fortsätta?`;
+
+            if (!confirm(promptText)) return;
+
+            // Genomför uppflyttningen
+            allaEleverCache.forEach(e => {
+                // Ersätt första siffror i klassbeteckningen med siffran + 1
+                e.klass = e.klass.replace(/(\d+)/, (match) => {
+                    return parseInt(match, 10) + 1;
+                });
+            });
+
+            db.collection("skolif_kassa").doc(aktivUserId).update({
+                elever: JSON.stringify(allaEleverCache)
+            }).then(() => {
+                alert("🎉 Läsårsbytet är klart! Alla elever har flyttats upp en årskurs.");
+                fyllKlassValjareIRadera();
+                skapaKlassFilterChips(allaEleverCache);
+                filtreraOchVisa();
+                stangAdminModal();
+            }).catch(err => {
+                console.error("Fel vid uppflyttning av klasser:", err);
+                alert("Kunde inte genomföra läsårsbytet. Försök igen.");
+            });
         }
 
         function visaSaldoVarning(text) {
@@ -541,25 +762,69 @@
             setTimeout(() => { toast.classList.remove("visa"); }, 3000);
         }
 
-        // REDIGERA ELEV
-        function redigeraAktivElev() {
+        // REDIGERA / TA BORT ELEV
+        function oppnaRedigeraElevModal() {
             const e = allaEleverCache.find(x => x.id === aktivElevId);
-            if(!e) return;
-            
-            const nyttNamn = prompt("Redigera namn:", e.namn);
-            if(nyttNamn === null) return;
-            
-            const nyKlass = prompt("Redigera klass:", e.klass);
-            if(nyKlass === null) return;
-            
-            if(nyttNamn.trim() !== "" && nyKlass.trim() !== "") {
-                e.namn = nyttNamn.trim();
-                e.klass = nyKlass.trim().toUpperCase();
-                
-                db.collection("skolif_kassa").doc(aktivUserId).update({
-                    elever: JSON.stringify(allaEleverCache)
-                });
+            if (!e) return;
+
+            document.getElementById("redigeraElevNamnInput").value = e.namn;
+            document.getElementById("redigeraElevKlassInput").value = e.klass;
+            document.getElementById("redigeraElevModal").style.display = "flex";
+        }
+
+        function stangRedigeraElevModal() {
+            document.getElementById("redigeraElevModal").style.display = "none";
+        }
+
+        function sparaRedigeradElev() {
+            const e = allaEleverCache.find(x => x.id === aktivElevId);
+            if (!e) return;
+
+            const nyttNamn = document.getElementById("redigeraElevNamnInput").value.trim();
+            const nyKlass = document.getElementById("redigeraElevKlassInput").value.trim().toUpperCase();
+
+            if (!nyttNamn || !nyKlass) {
+                alert("Vänligen fyll i både namn och klass.");
+                return;
             }
+
+            e.namn = nyttNamn;
+            e.klass = nyKlass;
+
+            db.collection("skolif_kassa").doc(aktivUserId).update({
+                elever: JSON.stringify(allaEleverCache)
+            }).then(() => {
+                document.getElementById("modalElevNamn").innerText = e.namn;
+                document.getElementById("modalElevKlass").innerText = "Klass " + e.klass;
+                stangRedigeraElevModal();
+            }).catch(err => {
+                console.error("Fel vid uppdatering av elev:", err);
+                alert("Kunde inte spara ändringarna.");
+            });
+        }
+
+        function taBortAktivElev() {
+            const e = allaEleverCache.find(x => x.id === aktivElevId);
+            if (!e) return;
+
+            let varning = `Är du säker på att du vill ta bort ${e.namn} (${e.klass})?`;
+            if (e.saldo !== 0) {
+                varning += `\n\nOBS! Eleven har ett saldo på ${e.saldo} kr.`;
+            }
+
+            if (!confirm(varning)) return;
+
+            allaEleverCache = allaEleverCache.filter(x => x.id !== e.id);
+
+            db.collection("skolif_kassa").doc(aktivUserId).update({
+                elever: JSON.stringify(allaEleverCache)
+            }).then(() => {
+                stangRedigeraElevModal();
+                stangModal();
+            }).catch(err => {
+                console.error("Fel vid borttagning av elev:", err);
+                alert("Kunde inte ta bort eleven. Försök igen.");
+            });
         }
 
         function laggTillEnskildElevWebb() {
