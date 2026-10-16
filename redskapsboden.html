@@ -202,7 +202,7 @@
     <a href="index.html" class="logo">📦 Redskapsboden</a>
     <div class="nav-right">
         <span id="userBadge">👤 <span id="userEmail"></span></span>
-        <button class="nav-btn primary" id="delaBtn" onclick="handleDelaClick()">☁️ Dela med kollegor</button>
+        <button class="nav-btn primary" id="delaBtn" onclick="handleDelaClick()">☁️ Logga in & synka</button>
         <button class="nav-btn danger" id="logoutBtn" style="display:none" onclick="logoutUser()">Logga ut</button>
         <a href="index.html" class="nav-btn">← Startsidan</a>
     </div>
@@ -214,9 +214,11 @@
     <div id="syncBar">
         <div class="sync-left">
             <span id="syncIcon">💾</span>
-            <span id="syncText">Sparar lokalt på den här enheten</span>
+            <span id="syncText"><strong>Lokalt läge:</strong> All data sparas lokalt på denna enhet.</span>
         </div>
-        <div id="bodInfoText" style="font-size:0.8rem; font-weight:500; opacity:0.85;"></div>
+        <div id="bodInfoText" style="font-size:0.82rem; font-weight:500;">
+            <a href="#" onclick="openModal('loginModal'); return false;" style="color:#2E7D32; font-weight:700; text-decoration:underline;">☁️ Logga in för att synka med appen</a>
+        </div>
     </div>
 
     <!-- Dela / Behöriga Panel -->
@@ -387,12 +389,12 @@
 
 <!-- ====== MODAL: INLOGGNING (för delning) ====== -->
 <div class="modal-overlay" id="loginModal">
-    <div class="modal-content" style="max-width:380px; text-align:center;">
+    <div class="modal-content" style="max-width:400px; text-align:center;">
         <button class="modal-close" onclick="closeModal('loginModal')">✕</button>
         <div style="font-size:2.5rem; margin-bottom:12px;">☁️</div>
-        <div class="modal-title" style="text-align:center;">Logga in med Google</div>
-        <p style="color:#666; font-size:0.9rem; margin-bottom:22px;">
-            Logga in med din Gmail för att synka Redskapsboden i realtid med Android-appen och kollegor.
+        <div class="modal-title" style="text-align:center;">Aktivera molnsynk</div>
+        <p style="color:#555; font-size:0.9rem; margin-bottom:18px; line-height:1.5;">
+            Du kan använda Redskapsboden lokalt på datorn utan inloggning. Vill du däremot <strong>synka med Android-appen</strong> eller <strong>dela boden med kollegor</strong> loggar du in med Google nedan.
         </p>
         <button class="btn btn-blue" style="width:100%; justify-content:center; font-size:1rem;" onclick="loginGoogle()">
             <svg width="18" height="18" viewBox="0 0 48 48" style="vertical-align:middle;">
@@ -403,8 +405,8 @@
             </svg>
             &nbsp; Fortsätt med Google
         </button>
-        <p style="font-size:0.8rem; color:#aaa; margin-top:14px;">
-            Inga lösenord eller koder behövs – allt styrs av din Gmail!
+        <p style="font-size:0.8rem; color:#888; margin-top:14px;">
+            Dina befintliga artiklar laddas upp automatiskt.
         </p>
     </div>
 </div>
@@ -501,15 +503,15 @@ function startCloudListener(docId) {
         bodDocData = data;
 
         // Krav 4: Läs i första hand snapshot.data().artiklar, annars JSON.parse(data.data)
-        if (Array.isArray(data.artiklar)) {
-            artiklar = data.artiklar;
-        } else if (data.data) {
-            try {
-                artiklar = JSON.parse(data.data);
-            } catch(e) {
-                console.error('Kunde inte parsa data.data:', e);
-            }
+        if (data.data) {
+        try {
+            artiklar = JSON.parse(data.data);
+        } catch(e) {
+            console.error('Kunde inte parsa data.data:', e);
         }
+    } else if (Array.isArray(data.artiklar)) {
+        artiklar = data.artiklar;
+    }
 
         saveLocal();
         setSyncBar('cloud', `☁️ Synkad i realtid (${data.namn || docId})`);
@@ -553,12 +555,13 @@ auth.onAuthStateChanged(async (user) => {
         document.getElementById('userEmail').textContent = userEmail;
         document.getElementById('logoutBtn').style.display = 'inline-block';
         document.getElementById('delaBtn').textContent = '👥 Behöriga kollegor';
+        document.getElementById('bodInfoText').innerHTML = '';
 
         await hanteraInloggadAnvandare(userEmail);
     } else {
         document.getElementById('userBadge').style.display = 'none';
         document.getElementById('logoutBtn').style.display = 'none';
-        document.getElementById('delaBtn').textContent = '☁️ Dela med kollegor';
+        document.getElementById('delaBtn').textContent = '☁️ Logga in & synka';
         document.getElementById('delaPanel').classList.remove('visible');
 
         if (firestoreListener) {
@@ -569,7 +572,8 @@ auth.onAuthStateChanged(async (user) => {
         activeBodDocId = null;
         bodDocData = null;
 
-        setSyncBar('local', '💾 Sparar lokalt på den här enheten');
+        setSyncBar('local', '<strong>Lokalt läge:</strong> All data sparas lokalt på denna enhet.');
+        document.getElementById('bodInfoText').innerHTML = '<a href="#" onclick="openModal(\'loginModal\'); return false;" style="color:#2E7D32; font-weight:700; text-decoration:underline;">☁️ Logga in för att synka med appen</a>';
         renderAll();
     }
 });
@@ -594,15 +598,15 @@ async function hanteraInloggadAnvandare(userEmail) {
                 const data = docSnap.data();
                 bodDocData = data;
 
-                if (Array.isArray(data.artiklar)) {
-                    artiklar = data.artiklar;
-                } else if (data.data) {
-                    try {
-                        artiklar = JSON.parse(data.data);
-                    } catch(e) {
-                        console.error('Kunde inte parsa data.data:', e);
-                    }
-                }
+                if (data.data) {
+        try {
+            artiklar = JSON.parse(data.data);
+        } catch(e) {
+            console.error('Kunde inte parsa data.data:', e);
+        }
+    } else if (Array.isArray(data.artiklar)) {
+        artiklar = data.artiklar;
+    }
 
                 saveLocal();
                 setSyncBar('cloud', `☁️ Synkad i realtid (${data.namn || userEmail})`);
@@ -610,49 +614,51 @@ async function hanteraInloggadAnvandare(userEmail) {
                 renderBehorigaPanel();
             } else {
                 // Om dokumentet INTE finns på /redskapsbodar/${userEmail}:
-                // Sök om användaren har blivit inbjuden till en kollegas bod
-                try {
-                    const q = db.collection('redskapsbodar').where('behoriga_anvandare', 'array-contains', userEmail);
-                    const deladeSnap = await q.get();
-
-                    if (!deladeSnap.empty) {
-                        // Inbjuden till en kollegas bod -> anslut onSnapshot dit
-                        const kollegaBod = deladeSnap.docs[0];
-                        const kollegaBodId = kollegaBod.id.trim().toLowerCase();
-                        startCloudListener(kollegaBodId);
-                        showToast('☁️ Ansluten till delad bod från ' + (kollegaBod.data().skapare || kollegaBodId));
-                    } else {
-                        // Ingen inbjudan finns -> Skapa nytt dokument på /redskapsbodar/${userEmail}
-                        const standardData = artiklar && artiklar.length > 0 ? artiklar : STANDARD_ARTIKLAR;
-                        const nyBod = {
-                            bodId: userEmail,
-                            namn: `Redskapsboden (${userEmail})`,
-                            skapare: userEmail,
-                            behoriga_anvandare: [userEmail],
-                            artiklar: standardData,
-                            data: JSON.stringify(standardData),
-                            senastUppdaterad: Date.now()
-                        };
-
-                        await egetRef.set(nyBod);
-                        isCloudMode = true;
-                        showToast('☁️ Ny Redskapsbod skapad och kopplad till ditt konto!');
-                    }
-                } catch(queryErr) {
-                    console.error('Fel vid sökning efter inbjudningar:', queryErr);
-                    setSyncBar('warning', '⚠️ Kunde inte söka bodar');
-                }
+                await sokEllerSkapaBod(userEmail, egetRef);
             }
-        }, err => {
-            console.error('Firestore onSnapshot fel:', err);
-            setSyncBar('warning', '⚠️ Synkfel mot molnet');
-            showToast('⚠️ Kunde inte ansluta till molnet: ' + err.message);
+        }, async (err) => {
+            console.warn('Första onSnapshot gav fel, kontrollerar om bod ska skapas:', err.message);
+            // Om dokumentet inte finns eller ger behörighetsfel vid initial lyssning:
+            await sokEllerSkapaBod(userEmail, egetRef);
         });
 
     } catch(err) {
         console.error('Fel vid inloggningskontroll:', err);
         setSyncBar('warning', '⚠️ Kunde inte ansluta till molnet');
         showToast('❌ Fel vid molnanslutning: ' + err.message);
+    }
+}
+
+async function sokEllerSkapaBod(userEmail, egetRef) {
+    try {
+        const q = db.collection('redskapsbodar').where('behoriga_anvandare', 'array-contains', userEmail);
+        const deladeSnap = await q.get();
+
+        if (!deladeSnap.empty) {
+            const kollegaBod = deladeSnap.docs[0];
+            const kollegaBodId = kollegaBod.id;
+            startCloudListener(kollegaBodId);
+            showToast('☁️ Ansluten till delad bod från ' + (kollegaBod.data().skapare || kollegaBodId));
+        } else {
+            const standardData = artiklar && artiklar.length > 0 ? artiklar : STANDARD_ARTIKLAR;
+            const nyBod = {
+                bodId: userEmail,
+                namn: `Redskapsboden (${userEmail})`,
+                skapare: userEmail,
+                behoriga_anvandare: [userEmail],
+                artiklar: standardData,
+                data: JSON.stringify(standardData),
+                senastUppdaterad: Date.now()
+            };
+
+            await egetRef.set(nyBod);
+            isCloudMode = true;
+            startCloudListener(userEmail);
+            showToast('☁️ Ny Redskapsbod skapad och kopplad till ditt konto!');
+        }
+    } catch(err) {
+        console.error('Kunde inte söka/skapa bod:', err);
+        setSyncBar('warning', '⚠️ Kontrollera behörighetsregler i Firebase');
     }
 }
 
@@ -670,12 +676,19 @@ function closeDela() {
     document.getElementById('delaPanel').classList.remove('visible');
 }
 
+let isLoggingIn = false;
 function loginGoogle() {
+    if (isLoggingIn) return;
+    isLoggingIn = true;
     closeModal('loginModal');
     const provider = new firebase.auth.GoogleAuthProvider();
     auth.signInWithPopup(provider).catch(err => {
-        console.error(err);
-        showToast('❌ Inloggning misslyckades: ' + err.message);
+        if (err.code !== 'auth/cancelled-popup-request') {
+            console.error(err);
+            showToast('❌ Inloggning misslyckades: ' + err.message);
+        }
+    }).finally(() => {
+        isLoggingIn = false;
     });
 }
 
@@ -1125,7 +1138,7 @@ function setSyncBar(type, text) {
     const icon = document.getElementById('syncIcon');
     icon.textContent = type === 'cloud' ? '☁️' : (type === 'warning' ? '⚠️' : '💾');
 
-    document.getElementById('syncText').textContent = text;
+    document.getElementById('syncText').innerHTML = text;
 }
 
 function generateUUID() {
