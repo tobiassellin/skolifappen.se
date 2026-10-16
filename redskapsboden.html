@@ -4,32 +4,1151 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Redskapsboden - Skol-IF</title>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Firebase SDK v8 -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif; }
-        body { background-color: #F8F9FA; color: #333; line-height: 1.6; }
-        nav { background: linear-gradient(135deg, #2E7D32, #4CAF50); padding: 1rem 5%; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        body { background-color: #F4F7F6; color: #333; line-height: 1.6; }
+
+        nav {
+            background: linear-gradient(135deg, #2E7D32, #4CAF50);
+            padding: 1rem 5%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            flex-wrap: wrap;
+            gap: 10px;
+        }
         .logo { color: white; font-size: 1.4rem; font-weight: 800; text-decoration: none; }
-        .back-btn { color: white; text-decoration: none; font-weight: 600; background: rgba(255,255,255,0.15); padding: 8px 16px; border-radius: 8px; transition: background 0.2s; font-size: 0.9rem; }
-        .back-btn:hover { background: rgba(255,255,255,0.25); }
-        .container { max-width: 800px; margin: 80px auto; padding: 0 20px; text-align: center; }
-        .card { background: white; padding: 50px 30px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); border-top: 6px solid #4CAF50; }
-        .icon { font-size: 4rem; margin-bottom: 20px; }
-        h1 { color: #2E7D32; font-size: 2.2rem; margin-bottom: 15px; font-weight: 800; }
-        p { color: #666; font-size: 1.1rem; max-width: 500px; margin: 0 auto; }
+        .nav-right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+        .nav-btn {
+            color: white; text-decoration: none; font-weight: 600;
+            background: rgba(255,255,255,0.15); padding: 8px 16px;
+            border-radius: 8px; transition: background 0.2s; font-size: 0.9rem;
+            border: none; cursor: pointer;
+        }
+        .nav-btn:hover { background: rgba(255,255,255,0.25); }
+        .nav-btn.primary { background: rgba(255,255,255,0.3); }
+        .nav-btn.danger { background: rgba(198,40,40,0.5); }
+
+        #userBadge {
+            background: rgba(255,255,255,0.2); color: white;
+            padding: 6px 12px; border-radius: 8px; font-size: 0.8rem; font-weight: 600;
+            display: none;
+        }
+
+        .container { max-width: 1100px; margin: 30px auto; padding: 0 20px; }
+
+        /* ====== SYNC STATUS ====== */
+        #syncBar {
+            display: flex; align-items: center; justify-content: space-between; gap: 10px;
+            background: #E8F5E9; border: 1px solid #C8E6C9; border-radius: 10px;
+            padding: 10px 16px; margin-bottom: 20px; font-size: 0.88rem; color: #2E7D32; font-weight: 600;
+            flex-wrap: wrap;
+        }
+        #syncBar.cloud { background: #E3F2FD; border-color: #90CAF9; color: #1565C0; }
+        #syncBar.warning { background: #FFF3E0; border-color: #FFB74D; color: #E65100; }
+
+        .sync-left { display: flex; align-items: center; gap: 8px; }
+
+        /* ====== STATS ====== */
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 25px; }
+        .stat-card { background: white; padding: 18px; border-radius: 14px; box-shadow: 0 4px 15px rgba(0,0,0,0.04); display: flex; align-items: center; gap: 12px; border-left: 4px solid #4CAF50; }
+        .stat-icon { font-size: 1.8rem; background: #E8F5E9; width: 46px; height: 46px; display: flex; align-items: center; justify-content: center; border-radius: 10px; }
+        .stat-info h4 { font-size: 0.75rem; color: #777; text-transform: uppercase; font-weight: 600; }
+        .stat-value { font-size: 1.35rem; font-weight: 800; color: #222; }
+
+        /* ====== SECTION HEADERS ====== */
+        .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 8px; }
+        .section-title { color: #1E3A24; font-weight: 700; font-size: 1.15rem; }
+
+        /* ====== BUTTONS ====== */
+        .btn {
+            padding: 10px 18px; border: none; border-radius: 10px; font-weight: 700;
+            font-size: 0.9rem; cursor: pointer; transition: all 0.2s; display: inline-flex;
+            align-items: center; gap: 6px; font-family: 'Poppins', sans-serif;
+        }
+        .btn-green { background: #4CAF50; color: white; }
+        .btn-green:hover { background: #388E3C; }
+        .btn-blue { background: #1976D2; color: white; }
+        .btn-blue:hover { background: #1565C0; }
+        .btn-red { background: #E53935; color: white; }
+        .btn-red:hover { background: #C62828; }
+        .btn-outline { background: white; color: #2E7D32; border: 2px solid #4CAF50; }
+        .btn-outline:hover { background: #E8F5E9; }
+        .btn-sm { padding: 6px 12px; font-size: 0.8rem; border-radius: 8px; }
+
+        /* ====== TABS ====== */
+        .tabs { display: flex; gap: 8px; margin-bottom: 20px; border-bottom: 2px solid #E0E0E0; }
+        .tab-btn {
+            padding: 10px 20px; border: none; background: none; font-weight: 600;
+            font-size: 0.95rem; color: #888; cursor: pointer; border-bottom: 3px solid transparent;
+            margin-bottom: -2px; font-family: 'Poppins', sans-serif; transition: all 0.2s;
+        }
+        .tab-btn.active { color: #2E7D32; border-bottom-color: #4CAF50; }
+
+        /* ====== ARTIKLAR ====== */
+        .artiklar-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 14px; margin-bottom: 25px; }
+        .artikel-card {
+            background: white; padding: 18px 14px; border-radius: 14px; text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.04); border: 2px solid #E8F5E9;
+            cursor: pointer; transition: all 0.2s; position: relative;
+        }
+        .artikel-card:hover { border-color: #4CAF50; transform: translateY(-2px); box-shadow: 0 6px 20px rgba(76,175,80,0.15); }
+        .artikel-card.utlånad { border-color: #FF9800; background: #FFFDF9; }
+        .artikel-card.slut { border-color: #E0E0E0; background: #F9F9F9; opacity: 0.8; }
+        .artikel-emoji { font-size: 2.2rem; margin-bottom: 6px; }
+        .artikel-namn { font-weight: 700; font-size: 0.95rem; color: #333; }
+        .artikel-antal {
+            font-size: 0.82rem; color: #2E7D32; margin-top: 5px; font-weight: 700;
+            background: #E8F5E9; padding: 3px 10px; border-radius: 6px; display: inline-block;
+        }
+        .artikel-antal.lågt { background: #FFF3E0; color: #E65100; }
+        .artikel-antal.slut { background: #FFEBEE; color: #C62828; }
+        .artikel-edit-btn {
+            position: absolute; top: 8px; right: 8px; background: none; border: none;
+            font-size: 0.85rem; cursor: pointer; opacity: 0.4; transition: opacity 0.2s; padding: 2px;
+        }
+        .artikel-edit-btn:hover { opacity: 1; }
+
+        /* ====== UTLÅNINGAR ====== */
+        .utlaningar-list { display: flex; flex-direction: column; gap: 10px; }
+        .utlaning-card {
+            background: white; padding: 16px 20px; border-radius: 14px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04); display: flex;
+            justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;
+            border-left: 5px solid #FF9800;
+        }
+        .utlaning-info { flex: 1; min-width: 150px; }
+        .utlaning-namn { font-weight: 700; font-size: 1.05rem; }
+        .utlaning-detalj { font-size: 0.85rem; color: #555; margin-top: 3px; font-weight: 600; }
+        .utlaning-artikelnamn { color: #2E7D32; font-size: 0.82rem; }
+
+        /* ====== MODALS ====== */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5); display: none; justify-content: center;
+            align-items: center; z-index: 1000; padding: 20px;
+        }
+        .modal-overlay.open { display: flex; }
+        .modal-content {
+            background: white; width: 100%; max-width: 480px; border-radius: 20px;
+            padding: 28px; box-shadow: 0 15px 35px rgba(0,0,0,0.2); max-height: 90vh;
+            overflow-y: auto; position: relative;
+        }
+        .modal-title { font-size: 1.3rem; font-weight: 800; color: #1E3A24; margin-bottom: 20px; }
+        .modal-close {
+            position: absolute; top: 16px; right: 18px; background: none; border: none;
+            font-size: 1.4rem; cursor: pointer; color: #aaa;
+        }
+        .modal-close:hover { color: #333; }
+
+        .form-group { margin-bottom: 16px; }
+        label { display: block; font-weight: 600; font-size: 0.88rem; margin-bottom: 5px; color: #444; }
+        input[type="text"], input[type="number"], select, textarea {
+            width: 100%; padding: 12px 14px; border: 2px solid #E0E0E0;
+            border-radius: 10px; font-size: 0.95rem; font-family: 'Poppins', sans-serif;
+            outline: none; transition: border-color 0.2s;
+        }
+        input:focus, select:focus, textarea:focus { border-color: #4CAF50; }
+
+        /* ====== DELA / BEHÖRIGA ====== */
+        #delaPanel {
+            background: white; border-radius: 16px; padding: 22px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-bottom: 25px;
+            border: 2px solid #90CAF9; display: none;
+        }
+        #delaPanel.visible { display: block; }
+
+        /* ====== HISTORIK ====== */
+        .historik-list { display: flex; flex-direction: column; gap: 8px; }
+        .historik-item {
+            background: white; padding: 12px 16px; border-radius: 10px;
+            display: flex; justify-content: space-between; align-items: center;
+            font-size: 0.88rem; box-shadow: 0 1px 5px rgba(0,0,0,0.04);
+        }
+        .historik-item .ev-laned { color: #E65100; font-weight: 600; }
+        .historik-item .ev-aterlamnad { color: #2E7D32; font-weight: 600; }
+        .historik-item .ev-tid { color: #999; font-size: 0.78rem; }
+
+        /* ====== TOMMA TILLSTÅND ====== */
+        .empty-state { text-align: center; padding: 50px 20px; color: #aaa; }
+        .empty-state .empty-icon { font-size: 3rem; margin-bottom: 12px; }
+        .empty-state p { font-size: 1rem; }
+
+        /* ====== TOAST ====== */
+        #toast {
+            position: fixed; bottom: 25px; left: 50%; transform: translateX(-50%);
+            background: #2E7D32; color: white; padding: 12px 24px; border-radius: 30px;
+            font-weight: 600; font-size: 0.9rem; opacity: 0; transition: opacity 0.4s;
+            z-index: 9999; pointer-events: none; white-space: nowrap;
+        }
+        #toast.show { opacity: 1; }
+
+        @media (max-width: 600px) {
+            .artiklar-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
+        }
     </style>
 </head>
 <body>
-    <nav>
-        <a href="index.html" class="logo">📦 Redskapsboden</a>
-        <a href="index.html" class="back-btn">← Till startsidan</a>
-    </nav>
-    <div class="container">
-        <div class="card">
-            <div class="icon">📦</div>
-            <h1>Redskapsboden kommer snart!</h1>
-            <p>Vi bygger ett digitalt system för att hålla ordning på utlåning av bollar, västar och utrustning under rasterna. Håll utkik – lanseras inom kort!</p>
+
+<nav>
+    <a href="index.html" class="logo">📦 Redskapsboden</a>
+    <div class="nav-right">
+        <span id="userBadge">👤 <span id="userEmail"></span></span>
+        <button class="nav-btn primary" id="delaBtn" onclick="handleDelaClick()">☁️ Dela med kollegor</button>
+        <button class="nav-btn danger" id="logoutBtn" style="display:none" onclick="logoutUser()">Logga ut</button>
+        <a href="index.html" class="nav-btn">← Startsidan</a>
+    </div>
+</nav>
+
+<div class="container">
+
+    <!-- Sync Status Bar -->
+    <div id="syncBar">
+        <div class="sync-left">
+            <span id="syncIcon">💾</span>
+            <span id="syncText">Sparar lokalt på den här enheten</span>
+        </div>
+        <div id="bodInfoText" style="font-size:0.8rem; font-weight:500; opacity:0.85;"></div>
+    </div>
+
+    <!-- Dela / Behöriga Panel -->
+    <div id="delaPanel">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
+            <strong style="font-size:1.05rem; color:#1565C0;">👥 Dela redskapsbod med kollegor</strong>
+            <button class="btn btn-sm btn-outline" onclick="closeDela()">Stäng</button>
+        </div>
+        <p style="font-size:0.88rem; color:#555; margin-bottom:14px;">
+            Lägg till dina kollegors Gmail-adresser. När de loggar in i Android-appen eller på webben får de direkt tillgång till denna bod och alla ändringar synkas i realtid!
+        </p>
+
+        <div style="display:flex; gap:8px; margin-bottom:16px;">
+            <input type="text" id="bjudEmail" placeholder="kollega@gmail.com" style="flex:1;">
+            <button class="btn btn-green btn-sm" onclick="laggTillBehorig()">+ Lägg till kollega</button>
+        </div>
+
+        <div id="behoriga-lista" style="font-size:0.85rem; color:#555;"></div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-icon">📦</div>
+            <div class="stat-info">
+                <h4>Artiklar</h4>
+                <div class="stat-value" id="statArtiklar">0</div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon">🔄</div>
+            <div class="stat-info">
+                <h4>Utlånade nu</h4>
+                <div class="stat-value" id="statUtlanade">0</div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon">✅</div>
+            <div class="stat-info">
+                <h4>Tillgängliga</h4>
+                <div class="stat-value" id="statTillgangliga">0</div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon">👥</div>
+            <div class="stat-info">
+                <h4>Aktiva lånare</h4>
+                <div class="stat-value" id="statLanare">0</div>
+            </div>
         </div>
     </div>
+
+    <!-- Tabs -->
+    <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('artiklar', this)">📦 Artiklar</button>
+        <button class="tab-btn" onclick="switchTab('utlaningar', this)">🔄 Utlånade</button>
+        <button class="tab-btn" onclick="switchTab('historik', this)">📋 Historik</button>
+    </div>
+
+    <!-- TAB: ARTIKLAR -->
+    <div id="tab-artiklar">
+        <div class="section-header">
+            <span class="section-title">Alla artiklar</span>
+            <button class="btn btn-green" onclick="openNyArtikelModal()">+ Ny artikel</button>
+        </div>
+        <div class="artiklar-grid" id="artiklarGrid">
+            <div class="empty-state" style="grid-column:1/-1;">
+                <div class="empty-icon">📦</div>
+                <p>Inga artiklar ännu.<br>Lägg till din första artikel!</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- TAB: UTLÅNADE -->
+    <div id="tab-utlaningar" style="display:none;">
+        <div class="section-header">
+            <span class="section-title">Aktiva utlåningar</span>
+            <button class="btn btn-green" onclick="openLanaModal()">+ Registrera utlåning</button>
+        </div>
+        <div class="utlaningar-list" id="utlaningarList">
+            <div class="empty-state">
+                <div class="empty-icon">✅</div>
+                <p>Inga aktiva utlåningar just nu.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- TAB: HISTORIK -->
+    <div id="tab-historik" style="display:none;">
+        <div class="section-header">
+            <span class="section-title">Händelsehistorik</span>
+            <button class="btn btn-sm btn-outline" onclick="rensaHistorik()">🗑 Rensa historik</button>
+        </div>
+        <div class="historik-list" id="historikList">
+            <div class="empty-state">
+                <div class="empty-icon">📋</div>
+                <p>Historiken är tom.</p>
+            </div>
+        </div>
+    </div>
+
+</div><!-- /container -->
+
+
+<!-- ====== MODAL: NY/REDIGERA ARTIKEL ====== -->
+<div class="modal-overlay" id="artikelModal">
+    <div class="modal-content">
+        <button class="modal-close" onclick="closeModal('artikelModal')">✕</button>
+        <div class="modal-title" id="artikelModalTitel">Ny artikel</div>
+
+        <div class="form-group">
+            <label>Namn på artikeln</label>
+            <input type="text" id="artikelNamn" placeholder="T.ex. Fotbollar (Storlek 5)...">
+        </div>
+        <div class="form-group">
+            <label>Totalt antal st</label>
+            <input type="number" id="artikelAntal" min="1" value="10">
+        </div>
+        <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:20px; flex-wrap:wrap;">
+            <button class="btn btn-red btn-sm" id="raderaArtikelBtn" onclick="raderaArtikel()" style="display:none;">🗑 Radera artikel</button>
+            <button class="btn btn-outline" onclick="closeModal('artikelModal')">Avbryt</button>
+            <button class="btn btn-green" onclick="sparaArtikel()">💾 Spara</button>
+        </div>
+    </div>
+</div>
+
+<!-- ====== MODAL: LÅNA UT ====== -->
+<div class="modal-overlay" id="lanaModal">
+    <div class="modal-content">
+        <button class="modal-close" onclick="closeModal('lanaModal')">✕</button>
+        <div class="modal-title">🔄 Registrera utlåning</div>
+
+        <div class="form-group">
+            <label>Välj artikel</label>
+            <select id="lanaArtikelSelect"></select>
+        </div>
+        <div class="form-group">
+            <label>Låntagare (namn / klass)</label>
+            <input type="text" id="lanarnamn" placeholder="T.ex. Kalle / 7A">
+        </div>
+        <div class="form-group">
+            <label>Antal st att låna ut</label>
+            <input type="number" id="lanaAntal" min="1" value="1">
+        </div>
+        <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:20px;">
+            <button class="btn btn-outline" onclick="closeModal('lanaModal')">Avbryt</button>
+            <button class="btn btn-green" onclick="sparaUtlaning()">✅ Registrera lån</button>
+        </div>
+    </div>
+</div>
+
+<!-- ====== MODAL: ÅTERLÄMNA ====== -->
+<div class="modal-overlay" id="aterlamnModal">
+    <div class="modal-content">
+        <button class="modal-close" onclick="closeModal('aterlamnModal')">✕</button>
+        <div class="modal-title">✅ Registrera återlämning</div>
+        <p id="aterlamnInfo" style="color:#555; margin-bottom:18px; font-size:0.95rem;"></p>
+        <div class="form-group">
+            <label>Antal som återlämnas</label>
+            <input type="number" id="aterlamnAntal" min="1" value="1">
+        </div>
+        <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:20px;">
+            <button class="btn btn-outline" onclick="closeModal('aterlamnModal')">Avbryt</button>
+            <button class="btn btn-green" onclick="bekraftaAterlam()">✅ Återlämna</button>
+        </div>
+    </div>
+</div>
+
+<!-- ====== MODAL: INLOGGNING (för delning) ====== -->
+<div class="modal-overlay" id="loginModal">
+    <div class="modal-content" style="max-width:380px; text-align:center;">
+        <button class="modal-close" onclick="closeModal('loginModal')">✕</button>
+        <div style="font-size:2.5rem; margin-bottom:12px;">☁️</div>
+        <div class="modal-title" style="text-align:center;">Logga in med Google</div>
+        <p style="color:#666; font-size:0.9rem; margin-bottom:22px;">
+            Logga in med din Gmail för att synka Redskapsboden i realtid med Android-appen och kollegor.
+        </p>
+        <button class="btn btn-blue" style="width:100%; justify-content:center; font-size:1rem;" onclick="loginGoogle()">
+            <svg width="18" height="18" viewBox="0 0 48 48" style="vertical-align:middle;">
+                <path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9 3.2l6.7-6.7C35.6 2.3 30.1 0 24 0 14.6 0 6.6 5.4 2.6 13.3l7.8 6.1C12.3 13 17.7 9.5 24 9.5z"/>
+                <path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v8.5h12.7c-.6 3-2.3 5.5-4.8 7.2l7.5 5.8c4.4-4.1 7.1-10.1 7.1-17z"/>
+                <path fill="#FBBC05" d="M10.4 28.6A14.5 14.5 0 0 1 9.5 24c0-1.6.3-3.2.8-4.6l-7.8-6.1A23.9 23.9 0 0 0 0 24c0 3.9.9 7.5 2.6 10.7l7.8-6.1z"/>
+                <path fill="#34A853" d="M24 48c6.1 0 11.2-2 14.9-5.5l-7.5-5.8c-2 1.4-4.6 2.2-7.4 2.2-6.3 0-11.7-4.2-13.6-10l-7.8 6.1C6.6 42.6 14.6 48 24 48z"/>
+            </svg>
+            &nbsp; Fortsätt med Google
+        </button>
+        <p style="font-size:0.8rem; color:#aaa; margin-top:14px;">
+            Inga lösenord eller koder behövs – allt styrs av din Gmail!
+        </p>
+    </div>
+</div>
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<script>
+// ==========================================
+//  FIREBASE KONFIGURATION
+// ==========================================
+const firebaseConfig = {
+    apiKey: "AIzaSyCmHoypbgqWYxgAVI98_gCwTJqXVUdG3hg",
+    authDomain: "skol-if.firebaseapp.com",
+    projectId: "skol-if",
+    storageBucket: "skol-if.firebasestorage.app",
+    messagingSenderId: "593631856247",
+    appId: "1:593631856247:web:874d4a87142b44bc336872"
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+// Standardartiklar för en ny redskapsbod
+const STANDARD_ARTIKLAR = [
+    { id: 1, namn: "Fotbollar (Storlek 5)", totaltAntal: 15, lan: [] },
+    { id: 2, namn: "Basketbollar", totaltAntal: 10, lan: [] },
+    { id: 3, namn: "Innebandyklubbor", totaltAntal: 20, lan: [] },
+    { id: 4, namn: "Västar (Gröna)", totaltAntal: 15, lan: [] },
+    { id: 5, namn: "Hopprep", totaltAntal: 12, lan: [] }
+];
+
+// ==========================================
+//  TILLSTÅND (STATE)
+// ==========================================
+// artiklar: [{ id: number, namn: string, totaltAntal: number, lan: [{ id: string, namn: string, antal: number }] }]
+let artiklar = [];
+let historik = [];
+let bodDocData = null;       // Hela Firestore-dokumentet
+let activeBodDocId = null;   // ID för dokumentet i Firestore (t.ex. skapare@gmail.com)
+let currentUser = null;
+let firestoreListener = null;
+let isCloudMode = false;
+
+let editingArtikelId = null;
+let aterlamnInfo = null;     // { artikelId, lanId }
+
+// ==========================================
+//  LOCALSTORAGE (Offline First)
+// ==========================================
+const STORAGE_KEY = 'redskapsbod_artiklar';
+const HISTORIK_KEY = 'redskapsbod_historik';
+
+function loadLocal() {
+    try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+            artiklar = JSON.parse(raw);
+        } else {
+            artiklar = JSON.parse(JSON.stringify(STANDARD_ARTIKLAR));
+            saveLocal();
+        }
+        const histRaw = localStorage.getItem(HISTORIK_KEY);
+        if (histRaw) historik = JSON.parse(histRaw);
+    } catch(e) {
+        artiklar = JSON.parse(JSON.stringify(STANDARD_ARTIKLAR));
+    }
+}
+
+function saveLocal() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(artiklar));
+    localStorage.setItem(HISTORIK_KEY, JSON.stringify(historik));
+}
+
+// ==========================================
+//  FIRESTORE REALTIME SYNC (onSnapshot)
+// ==========================================
+function startCloudListener(docId) {
+    if (firestoreListener) {
+        firestoreListener();
+        firestoreListener = null;
+    }
+    activeBodDocId = docId;
+    const ref = db.collection('redskapsbodar').doc(docId);
+
+    firestoreListener = ref.onSnapshot(docSnap => {
+        if (!docSnap.exists) {
+            console.warn('Bod-dokumentet finns inte längre:', docId);
+            setSyncBar('warning', '⚠️ Bod-dokumentet hittades inte');
+            return;
+        }
+
+        const data = docSnap.data();
+        bodDocData = data;
+
+        // Krav 4: Läs i första hand snapshot.data().artiklar, annars JSON.parse(data.data)
+        if (Array.isArray(data.artiklar)) {
+            artiklar = data.artiklar;
+        } else if (data.data) {
+            try {
+                artiklar = JSON.parse(data.data);
+            } catch(e) {
+                console.error('Kunde inte parsa data.data:', e);
+            }
+        }
+
+        saveLocal();
+        setSyncBar('cloud', `☁️ Synkad i realtid (${data.namn || docId})`);
+        renderAll();
+        renderBehorigaPanel();
+    }, err => {
+        console.error('Firestore onSnapshot fel:', err);
+        setSyncBar('warning', '⚠️ Synkfel mot molnet');
+        showToast('⚠️ Kunde inte hämta realtidsändringar: ' + err.message);
+    });
+}
+
+// Krav 5: Spara / uppdatera artiklar och lån
+async function sparaTillMolnEllerLokalt() {
+    saveLocal();
+
+    if (isCloudMode && activeBodDocId) {
+        try {
+            const bodRef = db.collection('redskapsbodar').doc(activeBodDocId);
+            await bodRef.update({
+                artiklar: artiklar,
+                data: JSON.stringify(artiklar),
+                senastUppdaterad: Date.now()
+            });
+        } catch(err) {
+            console.error('Fel vid uppdatering av Firestore:', err);
+            showToast('⚠️ Sparat lokalt, men kunde inte nå molnet: ' + err.message);
+        }
+    }
+}
+
+// ==========================================
+//  AUTH & INLOGGNINGSLOGIK (Krav 3)
+// ==========================================
+auth.onAuthStateChanged(async (user) => {
+    currentUser = user;
+
+    if (user && user.email) {
+        const userEmail = user.email.toLowerCase();
+        document.getElementById('userBadge').style.display = 'inline-block';
+        document.getElementById('userEmail').textContent = userEmail;
+        document.getElementById('logoutBtn').style.display = 'inline-block';
+        document.getElementById('delaBtn').textContent = '👥 Behöriga kollegor';
+
+        await hanteraInloggadAnvandare(userEmail);
+    } else {
+        document.getElementById('userBadge').style.display = 'none';
+        document.getElementById('logoutBtn').style.display = 'none';
+        document.getElementById('delaBtn').textContent = '☁️ Dela med kollegor';
+        document.getElementById('delaPanel').classList.remove('visible');
+
+        if (firestoreListener) {
+            firestoreListener();
+            firestoreListener = null;
+        }
+        isCloudMode = false;
+        activeBodDocId = null;
+        bodDocData = null;
+
+        setSyncBar('local', '💾 Sparar lokalt på den här enheten');
+        renderAll();
+    }
+});
+
+async function hanteraInloggadAnvandare(userEmail) {
+    try {
+        setSyncBar('cloud', '🔄 Ansluter till Redskapsboden...');
+
+        // Steg 1: Kolla om dokumentet /redskapsbodar/${userEmail} finns
+        const egetRef = db.collection('redskapsbodar').doc(userEmail);
+        const egetSnap = await egetRef.get();
+
+        if (egetSnap.exists) {
+            isCloudMode = true;
+            startCloudListener(userEmail);
+            showToast('☁️ Ansluten till din egen Redskapsbod!');
+            return;
+        }
+
+        // Steg 2: Om det inte finns, sök om e-posten finns inbjuden i en kollegas bod
+        const q = db.collection('redskapsbodar').where('behoriga_anvandare', 'array-contains', userEmail);
+        const deladeSnap = await q.get();
+
+        if (!deladeSnap.empty) {
+            const forstaBod = deladeSnap.docs[0];
+            isCloudMode = true;
+            startCloudListener(forstaBod.id);
+            showToast('☁️ Ansluten till delad bod från ' + (forstaBod.data().skapare || forstaBod.id));
+            return;
+        }
+
+        // Steg 3: Helt ny användare - skapa nytt dokument i /redskapsbodar/${userEmail}
+        const standardData = artiklar && artiklar.length > 0 ? artiklar : STANDARD_ARTIKLAR;
+        const nyBod = {
+            bodId: userEmail,
+            namn: `Redskapsboden (${userEmail})`,
+            skapare: userEmail,
+            behoriga_anvandare: [userEmail],
+            artiklar: standardData,
+            data: JSON.stringify(standardData),
+            senastUppdaterad: Date.now()
+        };
+
+        await egetRef.set(nyBod);
+        isCloudMode = true;
+        startCloudListener(userEmail);
+        showToast('☁️ Ny Redskapsbod skapad och kopplad till ditt konto!');
+
+    } catch(err) {
+        console.error('Fel vid inloggningskontroll:', err);
+        setSyncBar('warning', '⚠️ Kunde inte ansluta till molnet');
+        showToast('❌ Fel vid molnanslutning: ' + err.message);
+    }
+}
+
+function handleDelaClick() {
+    if (!currentUser) {
+        openModal('loginModal');
+    } else {
+        const panel = document.getElementById('delaPanel');
+        panel.classList.toggle('visible');
+        renderBehorigaPanel();
+    }
+}
+
+function closeDela() {
+    document.getElementById('delaPanel').classList.remove('visible');
+}
+
+function loginGoogle() {
+    closeModal('loginModal');
+    const provider = new firebase.auth.GoogleAuthProvider();
+    auth.signInWithPopup(provider).catch(err => {
+        console.error(err);
+        showToast('❌ Inloggning misslyckades: ' + err.message);
+    });
+}
+
+function logoutUser() {
+    auth.signOut().then(() => {
+        showToast('👋 Utloggad');
+    });
+}
+
+// ==========================================
+//  LÄGGA TILL / TA BORT KOLLEGA (Krav 6)
+// ==========================================
+async function laggTillBehorig() {
+    const input = document.getElementById('bjudEmail');
+    const email = input.value.trim().toLowerCase();
+
+    if (!email || !email.includes('@')) {
+        showToast('Ange en giltig Gmail-adress');
+        return;
+    }
+
+    if (!isCloudMode || !activeBodDocId) {
+        showToast('Du måste vara ansluten till molnet');
+        return;
+    }
+
+    try {
+        const bodRef = db.collection('redskapsbodar').doc(activeBodDocId);
+        await bodRef.update({
+            behoriga_anvandare: firebase.firestore.FieldValue.arrayUnion(email)
+        });
+
+        input.value = '';
+        showToast(`✅ ${email} har lagts till som behörig!`);
+    } catch(err) {
+        console.error('Kunde inte lägga till behörig:', err);
+        showToast('❌ Kunde inte lägga till behörig: ' + err.message);
+    }
+}
+
+async function taBortBehorig(email) {
+    if (!isCloudMode || !activeBodDocId) return;
+
+    if (currentUser && currentUser.email && email.toLowerCase() === currentUser.email.toLowerCase()) {
+        showToast('Du kan inte ta bort dig själv');
+        return;
+    }
+
+    if (!confirm(`Vill du ta bort behörigheten för ${email}?`)) return;
+
+    try {
+        const bodRef = db.collection('redskapsbodar').doc(activeBodDocId);
+        await bodRef.update({
+            behoriga_anvandare: firebase.firestore.FieldValue.arrayRemove(email)
+        });
+        showToast(`🗑 ${email} har tagits bort`);
+    } catch(err) {
+        console.error('Kunde inte ta bort behörig:', err);
+        showToast('❌ Fel: ' + err.message);
+    }
+}
+
+function renderBehorigaPanel() {
+    const container = document.getElementById('behoriga-lista');
+    if (!container) return;
+
+    if (!bodDocData || !bodDocData.behoriga_anvandare) {
+        container.innerHTML = '<p style="color:#888;">Inga behöriga inlästa ännu.</p>';
+        return;
+    }
+
+    const behoriga = bodDocData.behoriga_anvandare || [];
+    let html = '<strong>Behöriga Gmail-adresser med direkt tillgång:</strong><ul style="list-style:none; margin-top:8px; padding:0;">';
+
+    behoriga.forEach(email => {
+        const isSelf = currentUser && currentUser.email && email.toLowerCase() === currentUser.email.toLowerCase();
+        const isCreator = bodDocData.skapare && email.toLowerCase() === bodDocData.skapare.toLowerCase();
+
+        html += `<li style="padding:6px 0; border-bottom:1px solid #F0F0F0; display:flex; justify-content:space-between; align-items:center;">
+            <span>
+                📧 <strong>${email}</strong>
+                ${isCreator ? '<span style="color:#1976D2; font-size:0.75rem; margin-left:6px;">(Skapare)</span>' : ''}
+                ${isSelf ? '<span style="color:#4CAF50; font-size:0.75rem; margin-left:6px;">(Du)</span>' : ''}
+            </span>
+            ${!isSelf ? `<button class="btn btn-sm btn-red" style="padding:2px 8px; font-size:0.75rem;" onclick="taBortBehorig('${email}')">Ta bort</button>` : ''}
+        </li>`;
+    });
+
+    html += '</ul>';
+    container.innerHTML = html;
+}
+
+// ==========================================
+//  ARTIKLAR - CRUD
+// ==========================================
+function openNyArtikelModal() {
+    editingArtikelId = null;
+    document.getElementById('artikelModalTitel').textContent = 'Ny artikel';
+    document.getElementById('artikelNamn').value = '';
+    document.getElementById('artikelAntal').value = '10';
+    document.getElementById('raderaArtikelBtn').style.display = 'none';
+    openModal('artikelModal');
+}
+
+function openRedigeraArtikelModal(id) {
+    const a = artiklar.find(x => x.id === id);
+    if (!a) return;
+    editingArtikelId = id;
+    document.getElementById('artikelModalTitel').textContent = 'Redigera artikel';
+    document.getElementById('artikelNamn').value = a.namn;
+    document.getElementById('artikelAntal').value = a.totaltAntal;
+    document.getElementById('raderaArtikelBtn').style.display = 'inline-flex';
+    openModal('artikelModal');
+}
+
+async function sparaArtikel() {
+    const namn = document.getElementById('artikelNamn').value.trim();
+    const antal = parseInt(document.getElementById('artikelAntal').value) || 1;
+    if (!namn) { showToast('Ange ett namn på artikeln'); return; }
+
+    if (editingArtikelId !== null) {
+        const a = artiklar.find(x => x.id === editingArtikelId);
+        if (a) {
+            a.namn = namn;
+            a.totaltAntal = antal;
+        }
+        laggTillHistorik('artikel', `Ändrade artikeln "${namn}"`);
+    } else {
+        const nextId = artiklar.length > 0 ? Math.max(...artiklar.map(x => typeof x.id === 'number' ? x.id : 0)) + 1 : 1;
+        artiklar.push({
+            id: nextId,
+            namn: namn,
+            totaltAntal: antal,
+            lan: []
+        });
+        laggTillHistorik('artikel', `Lade till artikeln "${namn}"`);
+    }
+
+    await sparaTillMolnEllerLokalt();
+    renderAll();
+    closeModal('artikelModal');
+    showToast(editingArtikelId ? '✅ Artikel uppdaterad' : '✅ Ny artikel sparad');
+}
+
+async function raderaArtikel() {
+    if (editingArtikelId === null) return;
+    const a = artiklar.find(x => x.id === editingArtikelId);
+    if (!confirm(`Vill du verkligen radera artikeln "${a?.namn}"?`)) return;
+
+    artiklar = artiklar.filter(x => x.id !== editingArtikelId);
+    laggTillHistorik('artikel', `Raderade artikeln "${a?.namn || ''}"`);
+    await sparaTillMolnEllerLokalt();
+    renderAll();
+    closeModal('artikelModal');
+    showToast('🗑 Artikel raderad');
+}
+
+// ==========================================
+//  LÅN - CRUD (Krav 2 & 5)
+// ==========================================
+function openLanaModal(artikelId) {
+    const sel = document.getElementById('lanaArtikelSelect');
+    sel.innerHTML = artiklar.map(a => {
+        const utlanat = (a.lan || []).reduce((s, l) => s + (l.antal || 0), 0);
+        const kvar = Math.max(0, a.totaltAntal - utlanat);
+        return `<option value="${a.id}" ${a.id === artikelId ? 'selected' : ''} ${kvar <= 0 ? 'disabled' : ''}>
+            ${a.namn} (${kvar} kvar av ${a.totaltAntal})
+        </option>`;
+    }).join('');
+
+    if (!sel.innerHTML) {
+        showToast('Lägg till artiklar först');
+        return;
+    }
+
+    document.getElementById('lanarnamn').value = '';
+    document.getElementById('lanaAntal').value = '1';
+    openModal('lanaModal');
+}
+
+async function sparaUtlaning() {
+    const artikelIdVal = document.getElementById('lanaArtikelSelect').value;
+    const artikelId = isNaN(artikelIdVal) ? artikelIdVal : Number(artikelIdVal);
+    const lanarnamn = document.getElementById('lanarnamn').value.trim();
+    const antal = parseInt(document.getElementById('lanaAntal').value) || 1;
+
+    if (!lanarnamn) {
+        showToast('Ange vem som lånar (namn / klass)');
+        return;
+    }
+
+    const a = artiklar.find(x => x.id === artikelId);
+    if (!a) {
+        showToast('Välj en artikel');
+        return;
+    }
+
+    if (!Array.isArray(a.lan)) a.lan = [];
+
+    const utlanat = a.lan.reduce((s, l) => s + (l.antal || 0), 0);
+    const kvar = a.totaltAntal - utlanat;
+    if (antal > kvar) {
+        showToast(`Bara ${kvar} st tillgängliga`);
+        return;
+    }
+
+    // Android-kompatibelt UUID
+    const nyttLan = {
+        id: generateUUID(),
+        namn: lanarnamn,
+        antal: antal
+    };
+
+    a.lan.push(nyttLan);
+    laggTillHistorik('lånad', `Lånade ut ${antal} st ${a.namn} till ${lanarnamn}`);
+
+    await sparaTillMolnEllerLokalt();
+    renderAll();
+    closeModal('lanaModal');
+    showToast(`✅ ${antal} st utlånat till ${lanarnamn}`);
+}
+
+function openAterlamnModal(artikelId, lanId) {
+    const a = artiklar.find(x => x.id === artikelId);
+    if (!a || !a.lan) return;
+    const l = a.lan.find(x => x.id === lanId);
+    if (!l) return;
+
+    aterlamnInfo = { artikelId, lanId };
+    document.getElementById('aterlamnInfo').textContent =
+        `${a.namn} – lånat av ${l.namn} (${l.antal} st)`;
+    document.getElementById('aterlamnAntal').value = l.antal;
+    document.getElementById('aterlamnAntal').max = l.antal;
+    openModal('aterlamnModal');
+}
+
+async function bekraftaAterlam() {
+    if (!aterlamnInfo) return;
+    const { artikelId, lanId } = aterlamnInfo;
+    const a = artiklar.find(x => x.id === artikelId);
+    if (!a || !a.lan) return;
+    const l = a.lan.find(x => x.id === lanId);
+    if (!l) return;
+
+    const antal = parseInt(document.getElementById('aterlamnAntal').value) || l.antal;
+
+    if (antal >= l.antal) {
+        // Hela lånet återlämnat
+        a.lan = a.lan.filter(x => x.id !== lanId);
+        laggTillHistorik('återlämnad', `${l.namn} återlämnade alla ${antal} st ${a.namn}`);
+    } else {
+        // Delvis återlämning
+        l.antal -= antal;
+        laggTillHistorik('återlämnad', `${l.namn} återlämnade ${antal} st ${a.namn} (${l.antal} kvar)`);
+    }
+
+    await sparaTillMolnEllerLokalt();
+    renderAll();
+    closeModal('aterlamnModal');
+    showToast('✅ Återlämning registrerad');
+}
+
+// Snabb-återlämning av allt direkt från listan
+async function aterlamnaHelaLanet(artikelId, lanId) {
+    const a = artiklar.find(x => x.id === artikelId);
+    if (!a || !a.lan) return;
+    const l = a.lan.find(x => x.id === lanId);
+    if (!l) return;
+
+    const namn = l.namn;
+    const antal = l.antal;
+    a.lan = a.lan.filter(x => x.id !== lanId);
+    laggTillHistorik('återlämnad', `${namn} återlämnade ${antal} st ${a.namn}`);
+
+    await sparaTillMolnEllerLokalt();
+    renderAll();
+    showToast(`✅ ${antal} st återlämnade från ${namn}`);
+}
+
+// ==========================================
+//  HISTORIK
+// ==========================================
+function laggTillHistorik(typ, text) {
+    historik.unshift({
+        id: generateUUID(),
+        typ: typ,
+        text: text,
+        tid: new Date().toISOString()
+    });
+    if (historik.length > 300) historik = historik.slice(0, 300);
+    localStorage.setItem(HISTORIK_KEY, JSON.stringify(historik));
+}
+
+function rensaHistorik() {
+    if (!confirm('Vill du rensa historiken?')) return;
+    historik = [];
+    localStorage.setItem(HISTORIK_KEY, JSON.stringify(historik));
+    renderHistorik();
+    showToast('🗑 Historiken rensad');
+}
+
+// ==========================================
+//  RENDERING AV GRÄNSSNITT
+// ==========================================
+function renderAll() {
+    renderStats();
+    renderArtiklar();
+    renderUtlaningar();
+    renderHistorik();
+}
+
+function renderStats() {
+    const totArtiklar = artiklar.length;
+    let totUtlanade = 0;
+    let totTillgangliga = 0;
+    const unikaLanare = new Set();
+
+    artiklar.forEach(a => {
+        const lanArray = Array.isArray(a.lan) ? a.lan : [];
+        const utlanat = lanArray.reduce((s, l) => s + (l.antal || 0), 0);
+        totUtlanade += utlanat;
+        totTillgangliga += Math.max(0, (a.totaltAntal || 0) - utlanat);
+        lanArray.forEach(l => {
+            if (l.namn) unikaLanare.add(l.namn.trim().toLowerCase());
+        });
+    });
+
+    document.getElementById('statArtiklar').textContent = totArtiklar;
+    document.getElementById('statUtlanade').textContent = totUtlanade;
+    document.getElementById('statTillgangliga').textContent = totTillgangliga;
+    document.getElementById('statLanare').textContent = unikaLanare.size;
+}
+
+function renderArtiklar() {
+    const grid = document.getElementById('artiklarGrid');
+    if (!artiklar.length) {
+        grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1;">
+            <div class="empty-icon">📦</div>
+            <p>Inga artiklar i boden ännu.<br>Klicka på "+ Ny artikel" för att lägga till!</p>
+        </div>`;
+        return;
+    }
+
+    grid.innerHTML = artiklar.map(a => {
+        const lanArray = Array.isArray(a.lan) ? a.lan : [];
+        const utlanat = lanArray.reduce((s, l) => s + (l.antal || 0), 0);
+        const kvar = Math.max(0, (a.totaltAntal || 0) - utlanat);
+
+        let antalKlass = '';
+        if (kvar === 0) antalKlass = 'slut';
+        else if (kvar <= Math.max(1, Math.floor((a.totaltAntal || 0) * 0.25))) antalKlass = 'lågt';
+
+        let cardKlass = '';
+        if (utlanat > 0) cardKlass = 'utlånad';
+        if (kvar === 0 && (a.totaltAntal || 0) > 0) cardKlass = 'slut';
+
+        return `<div class="artikel-card ${cardKlass}" onclick="openLanaModal(${typeof a.id === 'string' ? `'${a.id}'` : a.id})">
+            <button class="artikel-edit-btn" title="Redigera" onclick="event.stopPropagation(); openRedigeraArtikelModal(${typeof a.id === 'string' ? `'${a.id}'` : a.id})">✏️</button>
+            <div class="artikel-emoji">📦</div>
+            <div class="artikel-namn">${escapeHtml(a.namn)}</div>
+            <div class="artikel-antal ${antalKlass}">${kvar} / ${a.totaltAntal} kvar</div>
+            ${utlanat > 0 ? `<div style="font-size:0.75rem; color:#E65100; margin-top:5px; font-weight:600;">🔄 ${utlanat} st utlånad</div>` : ''}
+        </div>`;
+    }).join('');
+}
+
+function renderUtlaningar() {
+    const lista = document.getElementById('utlaningarList');
+    const allaLan = [];
+
+    artiklar.forEach(a => {
+        if (Array.isArray(a.lan)) {
+            a.lan.forEach(l => {
+                allaLan.push({
+                    artikelId: a.id,
+                    artikelNamn: a.namn,
+                    lanId: l.id,
+                    namn: l.namn,
+                    antal: l.antal
+                });
+            });
+        }
+    });
+
+    if (!allaLan.length) {
+        lista.innerHTML = `<div class="empty-state">
+            <div class="empty-icon">✅</div>
+            <p>Inga aktiva utlåningar just nu.<br>All utrustning finns i boden!</p>
+        </div>`;
+        return;
+    }
+
+    lista.innerHTML = allaLan.map(l => {
+        const idArt = typeof l.artikelId === 'string' ? `'${l.artikelId}'` : l.artikelId;
+        const idLan = `'${l.lanId}'`;
+
+        return `<div class="utlaning-card">
+            <div class="utlaning-info">
+                <div class="utlaning-namn">👤 ${escapeHtml(l.namn)}</div>
+                <div class="utlaning-detalj">📦 ${l.antal} st × <span class="utlaning-artikelnamn">${escapeHtml(l.artikelNamn)}</span></div>
+            </div>
+            <div style="display:flex; gap:8px;">
+                <button class="btn btn-outline btn-sm" onclick="openAterlamnModal(${idArt}, ${idLan})">Delåterlämna</button>
+                <button class="btn btn-green btn-sm" onclick="aterlamnaHelaLanet(${idArt}, ${idLan})">✅ Återlämnad</button>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+function renderHistorik() {
+    const lista = document.getElementById('historikList');
+    if (!historik.length) {
+        lista.innerHTML = `<div class="empty-state">
+            <div class="empty-icon">📋</div>
+            <p>Historiken är tom.</p>
+        </div>`;
+        return;
+    }
+
+    lista.innerHTML = historik.slice(0, 100).map(h => {
+        return `<div class="historik-item">
+            <span class="${h.typ === 'lånad' ? 'ev-laned' : 'ev-aterlamnad'}">
+                ${h.typ === 'lånad' ? '🔄' : (h.typ === 'artikel' ? '📦' : '✅')} ${escapeHtml(h.text)}
+            </span>
+            <span class="ev-tid">${formatTid(h.tid)}</span>
+        </div>`;
+    }).join('');
+}
+
+// ==========================================
+//  FLIKAR & HJÄLPFUNKTIONER
+// ==========================================
+function switchTab(tab, btn) {
+    ['artiklar', 'utlaningar', 'historik'].forEach(t => {
+        document.getElementById('tab-' + t).style.display = t === tab ? 'block' : 'none';
+    });
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+}
+
+function setSyncBar(type, text) {
+    const bar = document.getElementById('syncBar');
+    bar.className = '';
+    if (type === 'cloud') bar.classList.add('cloud');
+    if (type === 'warning') bar.classList.add('warning');
+
+    const icon = document.getElementById('syncIcon');
+    icon.textContent = type === 'cloud' ? '☁️' : (type === 'warning' ? '⚠️' : '💾');
+
+    document.getElementById('syncText').textContent = text;
+}
+
+function generateUUID() {
+    if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+        return crypto.randomUUID();
+    }
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+        const r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
+        return v.toString(16);
+    });
+}
+
+function formatTid(iso) {
+    if (!iso) return '';
+    const d = new Date(iso);
+    const nu = new Date();
+    const diff = nu - d;
+    if (diff < 60000) return 'just nu';
+    if (diff < 3600000) return Math.floor(diff / 60000) + ' min sedan';
+    if (diff < 86400000) return Math.floor(diff / 3600000) + ' tim sedan';
+    return d.toLocaleDateString('sv-SE', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+}
+
+function escapeHtml(str) {
+    if (!str) return '';
+    return String(str).replace(/[&<>'"]/g, tag => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
+    }[tag] || tag));
+}
+
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+let toastTimer;
+function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), 3200);
+}
+
+// Stäng modal vid klick utanför innehållet
+document.querySelectorAll('.modal-overlay').forEach(overlay => {
+    overlay.addEventListener('click', e => {
+        if (e.target === overlay) overlay.classList.remove('open');
+    });
+});
+
+// ==========================================
+//  START
+// ==========================================
+loadLocal();
+renderAll();
+</script>
 </body>
 </html>
