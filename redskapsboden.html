@@ -578,45 +578,76 @@ async function hanteraInloggadAnvandare(userEmail) {
     try {
         setSyncBar('cloud', '🔄 Ansluter till Redskapsboden...');
 
-        // Steg 1: Kolla om dokumentet /redskapsbodar/${userEmail} finns
+        // 1. Anslut direkt med onSnapshot till /redskapsbodar/${userEmail}
+        if (firestoreListener) {
+            firestoreListener();
+            firestoreListener = null;
+        }
+
+        activeBodDocId = userEmail;
         const egetRef = db.collection('redskapsbodar').doc(userEmail);
-        const egetSnap = await egetRef.get();
 
-        if (egetSnap.exists) {
-            isCloudMode = true;
-            startCloudListener(userEmail);
-            showToast('☁️ Ansluten till din egen Redskapsbod!');
-            return;
-        }
+        firestoreListener = egetRef.onSnapshot(async (docSnap) => {
+            if (docSnap.exists) {
+                // Dokumentet finns!
+                isCloudMode = true;
+                const data = docSnap.data();
+                bodDocData = data;
 
-        // Steg 2: Om det inte finns, sök om e-posten finns inbjuden i en kollegas bod
-        const q = db.collection('redskapsbodar').where('behoriga_anvandare', 'array-contains', userEmail);
-        const deladeSnap = await q.get();
+                if (Array.isArray(data.artiklar)) {
+                    artiklar = data.artiklar;
+                } else if (data.data) {
+                    try {
+                        artiklar = JSON.parse(data.data);
+                    } catch(e) {
+                        console.error('Kunde inte parsa data.data:', e);
+                    }
+                }
 
-        if (!deladeSnap.empty) {
-            const forstaBod = deladeSnap.docs[0];
-            isCloudMode = true;
-            startCloudListener(forstaBod.id);
-            showToast('☁️ Ansluten till delad bod från ' + (forstaBod.data().skapare || forstaBod.id));
-            return;
-        }
+                saveLocal();
+                setSyncBar('cloud', `☁️ Synkad i realtid (${data.namn || userEmail})`);
+                renderAll();
+                renderBehorigaPanel();
+            } else {
+                // Om dokumentet INTE finns på /redskapsbodar/${userEmail}:
+                // Sök om användaren har blivit inbjuden till en kollegas bod
+                try {
+                    const q = db.collection('redskapsbodar').where('behoriga_anvandare', 'array-contains', userEmail);
+                    const deladeSnap = await q.get();
 
-        // Steg 3: Helt ny användare - skapa nytt dokument i /redskapsbodar/${userEmail}
-        const standardData = artiklar && artiklar.length > 0 ? artiklar : STANDARD_ARTIKLAR;
-        const nyBod = {
-            bodId: userEmail,
-            namn: `Redskapsboden (${userEmail})`,
-            skapare: userEmail,
-            behoriga_anvandare: [userEmail],
-            artiklar: standardData,
-            data: JSON.stringify(standardData),
-            senastUppdaterad: Date.now()
-        };
+                    if (!deladeSnap.empty) {
+                        // Inbjuden till en kollegas bod -> anslut onSnapshot dit
+                        const kollegaBod = deladeSnap.docs[0];
+                        const kollegaBodId = kollegaBod.id.trim().toLowerCase();
+                        startCloudListener(kollegaBodId);
+                        showToast('☁️ Ansluten till delad bod från ' + (kollegaBod.data().skapare || kollegaBodId));
+                    } else {
+                        // Ingen inbjudan finns -> Skapa nytt dokument på /redskapsbodar/${userEmail}
+                        const standardData = artiklar && artiklar.length > 0 ? artiklar : STANDARD_ARTIKLAR;
+                        const nyBod = {
+                            bodId: userEmail,
+                            namn: `Redskapsboden (${userEmail})`,
+                            skapare: userEmail,
+                            behoriga_anvandare: [userEmail],
+                            artiklar: standardData,
+                            data: JSON.stringify(standardData),
+                            senastUppdaterad: Date.now()
+                        };
 
-        await egetRef.set(nyBod);
-        isCloudMode = true;
-        startCloudListener(userEmail);
-        showToast('☁️ Ny Redskapsbod skapad och kopplad till ditt konto!');
+                        await egetRef.set(nyBod);
+                        isCloudMode = true;
+                        showToast('☁️ Ny Redskapsbod skapad och kopplad till ditt konto!');
+                    }
+                } catch(queryErr) {
+                    console.error('Fel vid sökning efter inbjudningar:', queryErr);
+                    setSyncBar('warning', '⚠️ Kunde inte söka bodar');
+                }
+            }
+        }, err => {
+            console.error('Firestore onSnapshot fel:', err);
+            setSyncBar('warning', '⚠️ Synkfel mot molnet');
+            showToast('⚠️ Kunde inte ansluta till molnet: ' + err.message);
+        });
 
     } catch(err) {
         console.error('Fel vid inloggningskontroll:', err);
