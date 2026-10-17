@@ -4,32 +4,1782 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Skapa Turnering - Skol-IF</title>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif; }
-        body { background-color: #F8F9FA; color: #333; line-height: 1.6; }
-        nav { background: linear-gradient(135deg, #2E7D32, #4CAF50); padding: 1rem 5%; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        body { background-color: #F4F7F6; color: #333; line-height: 1.6; }
+
+        nav {
+            background: linear-gradient(135deg, #2E7D32, #4CAF50);
+            padding: 1rem 5%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            flex-wrap: wrap;
+            gap: 10px;
+        }
         .logo { color: white; font-size: 1.4rem; font-weight: 800; text-decoration: none; }
-        .back-btn { color: white; text-decoration: none; font-weight: 600; background: rgba(255,255,255,0.15); padding: 8px 16px; border-radius: 8px; transition: background 0.2s; font-size: 0.9rem; }
-        .back-btn:hover { background: rgba(255,255,255,0.25); }
-        .container { max-width: 800px; margin: 80px auto; padding: 0 20px; text-align: center; }
-        .card { background: white; padding: 50px 30px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); border-top: 6px solid #4CAF50; }
-        .icon { font-size: 4rem; margin-bottom: 20px; }
-        h1 { color: #2E7D32; font-size: 2.2rem; margin-bottom: 15px; font-weight: 800; }
-        p { color: #666; font-size: 1.1rem; max-width: 500px; margin: 0 auto; }
+        .nav-right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+        .nav-btn {
+            color: white; text-decoration: none; font-weight: 600;
+            background: rgba(255,255,255,0.18); padding: 8px 16px;
+            border-radius: 8px; transition: background 0.2s; font-size: 0.9rem;
+            border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;
+        }
+        .nav-btn:hover { background: rgba(255,255,255,0.28); }
+        .nav-btn.gold { background: #D4AF37; color: #111; font-weight: 700; }
+        .nav-btn.gold:hover { background: #E5BE48; }
+
+        .container { max-width: 1100px; margin: 30px auto; padding: 0 20px; }
+
+        /* ====== BUTTONS ====== */
+        .btn {
+            padding: 10px 18px; border: none; border-radius: 10px; font-weight: 700;
+            font-size: 0.9rem; cursor: pointer; transition: all 0.2s; display: inline-flex;
+            align-items: center; gap: 6px; font-family: 'Poppins', sans-serif; text-decoration: none;
+        }
+        .btn-green { background: #4CAF50; color: white; }
+        .btn-green:hover { background: #388E3C; }
+        .btn-gold { background: #D4AF37; color: #111; font-weight: 800; }
+        .btn-gold:hover { background: #C5A030; }
+        .btn-blue { background: #1976D2; color: white; }
+        .btn-blue:hover { background: #1565C0; }
+        .btn-red { background: #E53935; color: white; }
+        .btn-red:hover { background: #C62828; }
+        .btn-outline { background: white; color: #2E7D32; border: 2px solid #4CAF50; }
+        .btn-outline:hover { background: #E8F5E9; }
+        .btn-sm { padding: 6px 12px; font-size: 0.8rem; border-radius: 8px; }
+
+        /* ====== CARD ====== */
+        .card {
+            background: white; border-radius: 16px; padding: 26px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.04); margin-bottom: 24px;
+        }
+        .card-header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 18px; flex-wrap: wrap; gap: 10px;
+        }
+        .card-title {
+            color: #1E3A24; font-size: 1.25rem; font-weight: 800;
+            display: flex; align-items: center; gap: 8px;
+        }
+
+        /* ====== FORM ELEMENTS ====== */
+        .form-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 16px; margin-bottom: 18px;
+        }
+        .form-group { margin-bottom: 14px; }
+        label { display: block; font-weight: 600; font-size: 0.88rem; margin-bottom: 6px; color: #444; }
+        input[type="text"], input[type="number"], select, textarea {
+            width: 100%; padding: 12px 14px; border: 2px solid #E0E0E0;
+            border-radius: 10px; font-size: 0.95rem; font-family: 'Poppins', sans-serif;
+            outline: none; transition: border-color 0.2s; background: white;
+        }
+        input:focus, select:focus, textarea:focus { border-color: #4CAF50; }
+        textarea { resize: vertical; min-height: 80px; }
+
+        .checkbox-row {
+            display: flex; align-items: center; gap: 8px; cursor: pointer;
+            user-select: none; font-weight: 600; font-size: 0.9rem; margin-bottom: 12px;
+        }
+        .checkbox-row input[type="checkbox"] {
+            width: 18px; height: 18px; accent-color: #2E7D32; cursor: pointer;
+        }
+
+        .quick-fill-chips {
+            display: flex; gap: 8px; flex-wrap: wrap; margin-top: 6px; margin-bottom: 12px;
+        }
+        .chip {
+            background: #E8F5E9; color: #2E7D32; border: 1px solid #C8E6C9;
+            padding: 4px 10px; border-radius: 14px; font-size: 0.78rem; font-weight: 700;
+            cursor: pointer; transition: 0.15s;
+        }
+        .chip:hover { background: #C8E6C9; transform: translateY(-1px); }
+
+        /* ====== TABS ====== */
+        .tabs { display: flex; gap: 8px; margin-bottom: 22px; border-bottom: 2px solid #E0E0E0; flex-wrap: wrap; }
+        .tab-btn {
+            padding: 10px 20px; border: none; background: none; font-weight: 700;
+            font-size: 0.95rem; color: #888; cursor: pointer; border-bottom: 3px solid transparent;
+            margin-bottom: -2px; font-family: 'Poppins', sans-serif; transition: all 0.2s;
+        }
+        .tab-btn.active { color: #2E7D32; border-bottom-color: #4CAF50; }
+
+        /* ====== TABELLER ====== */
+        .groups-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 18px; margin-bottom: 25px;
+        }
+        .group-card {
+            background: #E3F2FD; border-radius: 14px; padding: 16px 18px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.03); border: 1px solid #BBDEFB;
+        }
+        .group-name { font-weight: 800; font-size: 1.05rem; color: #1565C0; margin-bottom: 10px; }
+        .table-responsive { width: 100%; overflow-x: auto; }
+        table.group-table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+        table.group-table th {
+            text-align: left; padding: 6px 8px; color: #555; font-weight: 700;
+            font-size: 0.75rem; text-transform: uppercase; border-bottom: 1.5px solid #90CAF9;
+        }
+        table.group-table td {
+            padding: 8px 8px; border-bottom: 1px solid rgba(0,0,0,0.06); font-weight: 500;
+        }
+        table.group-table tr.advancing td:first-child {
+            font-weight: 800; color: #1E3A24;
+        }
+        .adv-indicator {
+            display: inline-block; width: 6px; height: 6px; border-radius: 50%;
+            background: #4CAF50; margin-right: 4px;
+        }
+        .diff-pos { color: #2E7D32; font-weight: 700; }
+        .diff-neg { color: #C62828; font-weight: 700; }
+
+        /* ====== MATCHER ====== */
+        .phase-header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-top: 24px; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;
+        }
+        .phase-title { font-weight: 800; font-size: 1.15rem; color: #1565C0; }
+        .match-card {
+            background: white; border-radius: 12px; padding: 14px 18px;
+            margin-bottom: 10px; box-shadow: 0 2px 6px rgba(0,0,0,0.03);
+            display: flex; justify-content: space-between; align-items: center;
+            border-left: 5px solid #1976D2; flex-wrap: wrap; gap: 12px;
+        }
+        .match-card.finished { border-left-color: #4CAF50; background: #FAFFF9; }
+        .match-card.lunch {
+            background: #FFF3E0; border-left-color: #FF9800;
+            justify-content: center; font-weight: 800; color: #E65100;
+        }
+        .match-meta { min-width: 110px; font-size: 0.82rem; color: #666; font-weight: 600; }
+        .match-pitch { color: #D4AF37; font-weight: 800; font-size: 0.78rem; text-transform: uppercase; }
+        .match-teams {
+            flex: 1; text-align: center; font-size: 0.98rem; font-weight: 600;
+            min-width: 200px;
+        }
+        .match-score {
+            font-size: 1.25rem; font-weight: 900; color: #1565C0; margin: 0 10px;
+        }
+        .match-actions { display: flex; gap: 8px; }
+
+        /* ====== BRACKET (SLUTSPELSTRÄD) ====== */
+        .bracket-wrapper {
+            overflow-x: auto; padding: 20px 10px; margin-bottom: 25px;
+            display: flex; justify-content: flex-start;
+        }
+        .bracket-container {
+            display: flex; gap: 40px; align-items: stretch; min-width: 800px;
+        }
+        .bracket-round {
+            display: flex; flex-direction: column; justify-content: space-around;
+            flex: 1; min-width: 180px; gap: 20px;
+        }
+        .bracket-round-title {
+            text-align: center; font-weight: 800; font-size: 0.95rem;
+            color: #1565C0; margin-bottom: 12px; text-transform: uppercase;
+        }
+        .bracket-match {
+            background: white; border: 2px solid #E0E0E0; border-radius: 12px;
+            padding: 10px 12px; box-shadow: 0 3px 10px rgba(0,0,0,0.04);
+            cursor: pointer; transition: 0.2s; position: relative;
+        }
+        .bracket-match:hover { border-color: #4CAF50; transform: translateY(-2px); }
+        .bracket-match.finished { border-color: #4CAF50; background: #FAFFF9; }
+        .bracket-team {
+            display: flex; justify-content: space-between; align-items: center;
+            font-size: 0.85rem; font-weight: 600; padding: 4px 0;
+        }
+        .bracket-team.winner { font-weight: 800; color: #2E7D32; }
+        .bracket-score {
+            font-weight: 800; font-size: 0.95rem; padding: 2px 6px;
+            background: #F0F4F1; border-radius: 4px;
+        }
+        .bracket-match-meta {
+            font-size: 0.7rem; color: #888; font-weight: 600;
+            border-top: 1px solid #EEE; margin-top: 4px; padding-top: 3px;
+            display: flex; justify-content: space-between;
+        }
+
+        /* ====== WINNER BANNER ====== */
+        .winner-banner {
+            background: linear-gradient(135deg, #FFF9C4, #FFE082);
+            border: 3px solid #D4AF37; border-radius: 18px; padding: 24px;
+            text-align: center; margin: 25px 0; box-shadow: 0 8px 25px rgba(212,175,55,0.25);
+            animation: bounce 0.6s ease;
+        }
+        .winner-trophy { font-size: 3.5rem; margin-bottom: 6px; }
+        .winner-title { font-size: 1.4rem; font-weight: 900; color: #5D4037; }
+        .winner-team { font-size: 2rem; font-weight: 900; color: #2E7D32; margin: 8px 0; }
+
+        /* ====== SCOREBOARD MODAL ====== */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6); display: none; justify-content: center;
+            align-items: center; z-index: 2000; padding: 20px;
+        }
+        .modal-overlay.open { display: flex; }
+        .modal-content {
+            background: white; width: 100%; max-width: 540px; border-radius: 20px;
+            padding: 26px; box-shadow: 0 15px 40px rgba(0,0,0,0.25); max-height: 90vh;
+            overflow-y: auto; position: relative;
+        }
+        .modal-title { font-size: 1.25rem; font-weight: 800; color: #1E3A24; margin-bottom: 18px; }
+        .modal-close {
+            position: absolute; top: 16px; right: 18px; background: none; border: none;
+            font-size: 1.4rem; cursor: pointer; color: #888;
+        }
+
+        /* Scoreboard styling */
+        .sb-timer-box {
+            background: #111; color: #00E676; font-size: 3.5rem; font-weight: 900;
+            text-align: center; padding: 14px 20px; border-radius: 14px;
+            letter-spacing: 2px; margin-bottom: 16px; font-family: 'Courier New', monospace;
+            display: flex; justify-content: center; align-items: center; gap: 10px;
+        }
+        .sb-timer-controls { display: flex; gap: 8px; justify-content: center; margin-bottom: 20px; }
+        .sb-teams-grid { display: grid; grid-template-columns: 1fr auto 1fr; gap: 14px; align-items: center; margin-bottom: 20px; }
+        .sb-team-col { text-align: center; }
+        .sb-team-name { font-weight: 800; font-size: 1.1rem; color: #222; margin-bottom: 8px; }
+        .sb-team-score { font-size: 3.8rem; font-weight: 900; color: #1E3A24; line-height: 1; margin-bottom: 10px; }
+        .sb-btn-row { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; }
+
+        /* ====== PRINT / PDF STYLING ====== */
+        @media print {
+            body { background: white; color: black; }
+            nav, .nav-btn, .btn, .tabs, .quick-fill-chips, .sb-timer-controls, #setupView { display: none !important; }
+            .container { max-width: 100%; margin: 0; padding: 0; }
+            .card { box-shadow: none; border: 1px solid #ccc; padding: 12px; margin-bottom: 12px; page-break-inside: avoid; }
+            .match-card { box-shadow: none; border: 1px solid #ccc !important; }
+            .print-header { display: block !important; margin-bottom: 20px; text-align: center; }
+        }
+        .print-header { display: none; }
     </style>
 </head>
 <body>
-    <nav>
-        <a href="index.html" class="logo">🏆 Skapa Turnering</a>
-        <a href="index.html" class="back-btn">← Till startsidan</a>
-    </nav>
-    <div class="container">
+
+<nav>
+    <a href="index.html" class="logo" id="navTourTitle">🏆 Turnering & Spelschema</a>
+    <div class="nav-right">
+        <button class="nav-btn" onclick="toggleFullscreen()" title="Fullskärm för projektor / TV">📺 Storskärm</button>
+        <button class="nav-btn gold" id="printBtn" onclick="skrivUtSpelschema()" style="display:none;">📄 Skriv ut / PDF</button>
+        <button class="nav-btn" id="exportBtn" onclick="exporteraCSV()" style="display:none;">📊 Exportera CSV</button>
+        <button class="nav-btn" id="clearBtn" onclick="nollstallTurnering()" style="display:none; background:rgba(198,40,40,0.4);">🗑️ Ny turnering</button>
+        <a href="index.html" class="nav-btn">← Startsidan</a>
+    </div>
+</nav>
+
+<div class="container">
+
+    <!-- Utskrifts-rubrik (visas bara vid print) -->
+    <div class="print-header">
+        <h1 style="color:#2E7D32; font-size:1.8rem; font-weight:900;">Skol-IF Turnering</h1>
+        <p style="color:#666; font-size:0.9rem;">Spelschema & Tabeller</p>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- VY 1: INSTÄLLNINGAR (NÄR INGEN TURNERING KÖRS) -->
+    <!-- ========================================== -->
+    <div id="setupView">
         <div class="card">
-            <div class="icon">🏆</div>
-            <h1>Skapa Turnering kommer snart!</h1>
-            <p>Här kommer du att kunna generera kompletta spelscheman och hantera slutspelsträd automatiskt med några få klick. Lanseras inom kort!</p>
+            <div class="card-header">
+                <div class="card-title">⚙️ Skapa ny turnering</div>
+                <span style="font-size:0.85rem; color:#666;">Fyll i detaljerna så skapas spelschema & tabeller automatiskt!</span>
+            </div>
+
+            <!-- Snabb-mallar -->
+            <label>Snabb-mallar för lag:</label>
+            <div class="quick-fill-chips">
+                <span class="chip" onclick="fyllMall(4)">+ 4 lag</span>
+                <span class="chip" onclick="fyllMall(6)">+ 6 lag</span>
+                <span class="chip" onclick="fyllMall(8)">+ 8 lag (Klasser)</span>
+                <span class="chip" onclick="fyllMall(12)">+ 12 lag</span>
+                <span class="chip" onclick="fyllMall(16)">+ 16 lag (Stort slutspel)</span>
+                <span class="chip" onclick="rensaLagInput()" style="background:#FFEBEE; color:#C62828; border-color:#FFCDD2;">Rensa</span>
+            </div>
+
+            <div class="form-group">
+                <label>Lagnamn (separera med kommatecken, semikolon eller ny rad):</label>
+                <textarea id="teamsInput" placeholder="T.ex. Klass 7A, Klass 7B, Klass 8A, Klass 8B..."></textarea>
+                <div style="font-size:0.8rem; color:#666; margin-top:4px;">
+                    Totalt antal lag: <strong id="teamCountBadge">0</strong> st
+                </div>
+            </div>
+
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Sport / Regler</label>
+                    <select id="sportType">
+                        <option value="GENERIC">⚽ Standard / Fotboll / Innebandy</option>
+                        <option value="BASKET">🏀 Basket (+1, +2, +3 poäng)</option>
+                        <option value="BRANNBOLL">🏏 Brännboll (Bränd, Lyra, Varv)</option>
+                        <option value="PADEL">🎾 Padel / Volleyboll (Sets & Game)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Starttid för första match</label>
+                    <input type="text" id="startTime" value="09:00" placeholder="09:00">
+                </div>
+                <div class="form-group">
+                    <label>Antal planer / banor</label>
+                    <input type="number" id="pitchCount" value="1" min="1" max="10">
+                </div>
+                <div class="form-group">
+                    <label>Matchtid (minuter)</label>
+                    <input type="text" id="matchDuration" value="12" placeholder="T.ex. 12 eller 2x8">
+                </div>
+                <div class="form-group">
+                    <label>Paus mellan matcher (minuter)</label>
+                    <input type="number" id="breakDuration" value="3" min="0" max="30">
+                </div>
+                <div class="form-group">
+                    <label>Antal grupper</label>
+                    <select id="groupCount">
+                        <option value="1">1 grupp (alla i samma)</option>
+                        <option value="2">2 grupper (Grupp A & B)</option>
+                        <option value="4">4 grupper (A, B, C, D)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Lag till slutspel</label>
+                    <select id="teamsToAdvance">
+                        <option value="2">2 lag (Direkt final)</option>
+                        <option value="4" selected>4 lag (Semifinaler + Final)</option>
+                        <option value="8">8 lag (Kvartsfinaler + Semis + Final)</option>
+                        <option value="16">16 lag (Åttondelar + Kvartar + Semis + Final)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Möten i gruppspelet</label>
+                    <select id="matchesPerTeam">
+                        <option value="1" selected>Alla möter alla 1 gång (Enkelmöte)</option>
+                        <option value="2">Alla möter alla 2 ggr (Dubbelmöte)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div id="tournamentSetupHint" style="background:#E8F5E9; color:#2E7D32; border:1px solid #C8E6C9; border-radius:10px; padding:10px 14px; font-size:0.86rem; margin-bottom:18px;">
+                <strong>Status:</strong> Ange lag ovan så anpassas inställningarna automatiskt.
+            </div>
+
+            <!-- Extrainställningar -->
+            <div style="background:#F8FBF8; border:1px solid #E8F5E9; border-radius:12px; padding:16px; margin-bottom:20px;">
+                <label class="checkbox-row">
+                    <input type="checkbox" id="avoidBackToBack">
+                    <span>Undvik matcher i rad (ge lagen vila emellan när det är möjligt)</span>
+                </label>
+
+                <label class="checkbox-row">
+                    <input type="checkbox" id="hasBronzeMatch">
+                    <span>Inkludera match om 3:e pris (Bronsmatch)</span>
+                </label>
+
+                <label class="checkbox-row" onclick="toggleLunchInput()">
+                    <input type="checkbox" id="planLunch">
+                    <span>Planera in lunchpaus i schemat</span>
+                </label>
+                <div id="lunchTimeContainer" style="display:none; margin-top:8px; max-width:260px;">
+                    <label style="font-size:0.8rem;">Lunchtid (intervall):</label>
+                    <input type="text" id="lunchTime" value="11:45-12:30" placeholder="11:45-12:30">
+                </div>
+            </div>
+
+            <div id="errorMessage" style="display:none; color:#C62828; font-weight:700; margin-bottom:14px; background:#FFEBEE; padding:12px; border-radius:8px;"></div>
+
+            <button class="btn btn-gold" style="width:100%; justify-content:center; padding:14px; font-size:1.05rem;" onclick="genereraTurnering()">
+                🏆 Generera Turnering & Spelschema
+            </button>
         </div>
     </div>
+
+    <!-- ========================================== -->
+    <!-- VY 2: PÅGÅENDE TURNERING (SPELSCHEMA & TABELLER) -->
+    <!-- ========================================== -->
+    <div id="activeView" style="display:none;">
+
+        <!-- Vinnar-banner om finalen är avgjord -->
+        <div id="winnerBanner" class="winner-banner" style="display:none;">
+            <div class="winner-trophy">🏆</div>
+            <div class="winner-title">Turneringen är avslutad!</div>
+            <div class="winner-team" id="winnerTeamName">Lag</div>
+            <p style="font-weight:600; color:#5D4037;">Stort grattis till segern!</p>
+        </div>
+
+        <!-- Flikar -->
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTourTab('tab-schema', this)">📋 Spelschema & Tabeller</button>
+            <button class="tab-btn" onclick="switchTourTab('tab-bracket', this)">🌳 Slutspelsträd (Bracket)</button>
+        </div>
+
+        <!-- TAB 1: SPELSCHEMA OCH TABELLER -->
+        <div id="tab-schema">
+            <!-- Grupptabeller -->
+            <div class="groups-grid" id="groupsContainer"></div>
+
+            <!-- Matcher per fas -->
+            <div id="matchesContainer"></div>
+        </div>
+
+        <!-- TAB 2: SLUTSPELSTRÄD (BRACKET) -->
+        <div id="tab-bracket" style="display:none;">
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">🌳 Visuellt Slutspelsträd</div>
+                    <span style="font-size:0.85rem; color:#666;">Klicka på en match för att registrera resultat eller köra matchklockan</span>
+                </div>
+                <div class="bracket-wrapper">
+                    <div class="bracket-container" id="bracketContainer"></div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+</div><!-- /container -->
+
+
+<!-- ====== MODAL: RESULTATREGISTRERING ====== -->
+<div class="modal-overlay" id="scoreModal">
+    <div class="modal-content" style="max-width:420px;">
+        <button class="modal-close" onclick="closeModal('scoreModal')">✕</button>
+        <div class="modal-title">✍️ Registrera resultat</div>
+        <p id="scoreModalMatchInfo" style="font-weight:600; color:#555; margin-bottom:16px; text-align:center;"></p>
+
+        <div style="display:flex; justify-content:center; align-items:center; gap:16px; margin-bottom:20px;">
+            <div style="flex:1; text-align:center;">
+                <label id="scoreModalHomeLabel" style="font-weight:700; font-size:0.95rem;"></label>
+                <input type="number" id="homeScoreInput" min="0" value="0" style="text-align:center; font-size:1.8rem; font-weight:800;">
+            </div>
+            <span style="font-size:1.8rem; font-weight:900; color:#888;">-</span>
+            <div style="flex:1; text-align:center;">
+                <label id="scoreModalAwayLabel" style="font-weight:700; font-size:0.95rem;"></label>
+                <input type="number" id="awayScoreInput" min="0" value="0" style="text-align:center; font-size:1.8rem; font-weight:800;">
+            </div>
+        </div>
+
+        <div style="display:flex; gap:10px; justify-content:flex-end;">
+            <button class="btn btn-outline" onclick="closeModal('scoreModal')">Avbryt</button>
+            <button class="btn btn-green" onclick="sparaResultatFranModal()">💾 Spara resultat</button>
+        </div>
+    </div>
+</div>
+
+
+<!-- ====== MODAL: LIVE SCOREBOARD / MATCHKLOCKA ====== -->
+<div class="modal-overlay" id="scoreboardModal">
+    <div class="modal-content" style="max-width:600px; text-align:center;">
+        <button class="modal-close" onclick="stangScoreboard()">✕</button>
+
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+            <span id="sbPhaseBadge" style="background:#E3F2FD; color:#1565C0; padding:4px 10px; border-radius:6px; font-size:0.8rem; font-weight:700;">MATCH</span>
+            <span id="sbPitchBadge" style="font-size:0.85rem; font-weight:700; color:#D4AF37;"></span>
+        </div>
+
+        <!-- Timer Box -->
+        <div class="sb-timer-box" id="sbTimerDisplay">12:00</div>
+
+        <!-- Timer Controls -->
+        <div class="sb-timer-controls">
+            <button class="btn btn-green" id="sbStartBtn" onclick="toggleTimer()">▶ Starta klocka</button>
+            <button class="btn btn-outline" onclick="justeraTid(-60)">-1 min</button>
+            <button class="btn btn-outline" onclick="justeraTid(60)">+1 min</button>
+            <button class="btn btn-outline" onclick="aterstallTimer()">↺ Återställ</button>
+        </div>
+
+        <!-- Lagen och poäng -->
+        <div class="sb-teams-grid">
+            <div class="sb-team-col">
+                <div class="sb-team-name" id="sbHomeName">Hemma</div>
+                <div class="sb-team-score" id="sbHomeScore">0</div>
+                <div class="sb-btn-row" id="sbHomeButtons"></div>
+            </div>
+
+            <div style="font-size:1.8rem; font-weight:900; color:#888;">VS</div>
+
+            <div class="sb-team-col">
+                <div class="sb-team-name" id="sbAwayName">Borta</div>
+                <div class="sb-team-score" id="sbAwayScore">0</div>
+                <div class="sb-btn-row" id="sbAwayButtons"></div>
+            </div>
+        </div>
+
+        <div style="border-top:1px solid #EEE; padding-top:16px; margin-top:16px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+            <button class="btn btn-outline btn-sm" onclick="stangScoreboard()">Stäng utan att spara</button>
+            <button class="btn btn-green" onclick="sparaOchAvslutaMatch()">✅ Spara resultat & avsluta match</button>
+        </div>
+    </div>
+</div>
+
+<script>
+// ==========================================
+//  TILLSTÅND & MODELLER (State)
+// ==========================================
+const STORAGE_KEY = 'skolif_turnering_data';
+
+let tournamentState = {
+    phase: 'SETUP',          // SETUP, GROUP, ROUND_OF_16, QUARTERS, SEMIS, FINAL, DONE
+    sport: 'GENERIC',
+    settings: {
+        startTime: '09:00',
+        matchDuration: 12,
+        breakDuration: 3,
+        pitchCount: 1,
+        groupCount: 1,
+        teamsToAdvance: 4,
+        matchesPerTeam: 1,
+        planLunch: false,
+        lunchTime: '11:45-12:30',
+        avoidBackToBack: false,
+        hasBronzeMatch: false
+    },
+    teamsInput: '',
+    groups: [],              // [{ name: "Grupp A", teams: ["Lag 1", ...] }]
+    schedule: []             // [ TournamentMatch ]
+};
+
+let activeScoreMatch = null;
+let liveTimerInterval = null;
+let liveTimeRemaining = 0;
+let liveTimerRunning = false;
+let liveHomeScore = 0;
+let liveAwayScore = 0;
+
+// ==========================================
+//  INITIALISERING & LOCALSTORAGE
+// ==========================================
+function loadLocalTournament() {
+    try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+            const parsed = JSON.parse(raw);
+            if (parsed && parsed.schedule && parsed.schedule.length > 0) {
+                tournamentState = parsed;
+            }
+        }
+    } catch(e) {
+        console.error('Kunde inte läsa lokal turnering:', e);
+    }
+}
+
+function saveLocalTournament() {
+    try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(tournamentState));
+    } catch(e) {
+        console.error('Kunde inte spara lokal turnering:', e);
+    }
+}
+
+// ==========================================
+//  SNABB-MALLAR & FORMULÄRVALIDERINGS-LOGIK
+// ==========================================
+function fyllMall(antal) {
+    const mallar = {
+        4: 'Klass 7A, Klass 7B, Klass 8A, Klass 8B',
+        6: 'Klass 7A, Klass 7B, Klass 8A, Klass 8B, Klass 9A, Klass 9B',
+        8: 'Klass 7A, Klass 7B, Klass 7C, Klass 8A, Klass 8B, Klass 8C, Klass 9A, Klass 9B',
+        12: 'Klass 6A, Klass 6B, Klass 7A, Klass 7B, Klass 7C, Klass 8A, Klass 8B, Klass 8C, Klass 9A, Klass 9B, Klass 9C, Klass 9D',
+        16: 'Lag 1, Lag 2, Lag 3, Lag 4, Lag 5, Lag 6, Lag 7, Lag 8, Lag 9, Lag 10, Lag 11, Lag 12, Lag 13, Lag 14, Lag 15, Lag 16'
+    };
+    document.getElementById('teamsInput').value = mallar[antal] || '';
+    
+    // Sätt förslag för grupper och slutspelslag före validering
+    if (antal >= 16) {
+        document.getElementById('groupCount').value = '4';
+        document.getElementById('teamsToAdvance').value = '8';
+    } else if (antal >= 12) {
+        document.getElementById('groupCount').value = '4';
+        document.getElementById('teamsToAdvance').value = '4';
+    } else if (antal >= 8) {
+        document.getElementById('groupCount').value = '2';
+        document.getElementById('teamsToAdvance').value = '4';
+    } else if (antal >= 6) {
+        document.getElementById('groupCount').value = '2';
+        document.getElementById('teamsToAdvance').value = '2';
+    } else {
+        document.getElementById('groupCount').value = '1';
+        document.getElementById('teamsToAdvance').value = '2';
+    }
+    
+    uppdateraLagAntal();
+}
+
+function rensaLagInput() {
+    document.getElementById('teamsInput').value = '';
+    uppdateraLagAntal();
+}
+
+function uppdateraLagAntal() {
+    const raw = document.getElementById('teamsInput').value;
+    const teams = raw.split(/[,;\n]/).map(t => t.trim()).filter(t => t.length > 0);
+    const count = teams.length;
+    document.getElementById('teamCountBadge').textContent = count;
+
+    const advanceSelect = document.getElementById('teamsToAdvance');
+    const groupSelect = document.getElementById('groupCount');
+    const hintEl = document.getElementById('tournamentSetupHint');
+
+    if (!advanceSelect || !groupSelect) return;
+
+    // 1. DYNAMISK HANTERING AV SLUTSPELSLAG (teamsToAdvance)
+    // Man ska aldrig kunna välja fler slutspelslag än vad som faktiskt finns inlagda!
+    const advanceOptions = [
+        { val: 2, label: '2 lag (Direkt final)' },
+        { val: 4, label: '4 lag (Semifinaler + Final)' },
+        { val: 8, label: '8 lag (Kvartsfinaler + Semis + Final)' },
+        { val: 16, label: '16 lag (Åttondelar + Kvartar + Semis + Final)' }
+    ];
+
+    const currentAdv = parseInt(advanceSelect.value) || 4;
+    advanceSelect.innerHTML = '';
+
+    advanceOptions.forEach(opt => {
+        const optionEl = document.createElement('option');
+        optionEl.value = opt.val;
+        // Om inga lag skrivits in än tillåts alla alternativ (för överblick).
+        // Så fort lag skrivits in inaktiveras alternativ som är större än antalet lag.
+        const isAllowed = (count === 0 || count >= opt.val);
+        optionEl.textContent = isAllowed ? opt.label : `${opt.val} lag (Kräver minst ${opt.val} lag)`;
+        optionEl.disabled = !isAllowed;
+        if (!isAllowed) {
+            optionEl.style.color = '#aaa';
+        }
+        advanceSelect.appendChild(optionEl);
+    });
+
+    // Om det tidigare valet är större än antalet lag, sänk automatiskt till högsta giltiga
+    if (count > 0 && currentAdv > count) {
+        if (count >= 16) advanceSelect.value = '16';
+        else if (count >= 8) advanceSelect.value = '8';
+        else if (count >= 4) advanceSelect.value = '4';
+        else advanceSelect.value = '2';
+    } else if (advanceSelect.querySelector(`option[value="${currentAdv}"]:not(:disabled)`)) {
+        advanceSelect.value = String(currentAdv);
+    } else {
+        if (count >= 16) advanceSelect.value = '16';
+        else if (count >= 8) advanceSelect.value = '8';
+        else if (count >= 4) advanceSelect.value = '4';
+        else advanceSelect.value = '2';
+    }
+
+    // 2. DYNAMISK HANTERING AV GRUPPER (groupCount)
+    // Varje grupp måste ha minst 2 lag för att matcher ska kunna spelas:
+    // 1 grupp kräver >= 2 lag
+    // 2 grupper kräver >= 4 lag
+    // 4 grupper kräver >= 8 lag
+    const groupOptions = [
+        { val: 1, label: '1 grupp (alla i samma)' },
+        { val: 2, label: '2 grupper (Grupp A & B)' },
+        { val: 4, label: '4 grupper (A, B, C, D)' }
+    ];
+
+    const currentGrp = parseInt(groupSelect.value) || 1;
+    groupSelect.innerHTML = '';
+
+    groupOptions.forEach(opt => {
+        const optionEl = document.createElement('option');
+        optionEl.value = opt.val;
+        const minTeamsNeeded = opt.val * 2;
+        const isAllowed = (count === 0 || count >= minTeamsNeeded);
+        optionEl.textContent = isAllowed ? opt.label : `${opt.val} grupper (Kräver minst ${minTeamsNeeded} lag)`;
+        optionEl.disabled = !isAllowed;
+        if (!isAllowed) {
+            optionEl.style.color = '#aaa';
+        }
+        groupSelect.appendChild(optionEl);
+    });
+
+    // Om tidigare vald gruppstorlek inte längre är tillåten, sänk automatiskt
+    if (count > 0 && currentGrp * 2 > count) {
+        if (count >= 8) groupSelect.value = '4';
+        else if (count >= 4) groupSelect.value = '2';
+        else groupSelect.value = '1';
+    } else if (groupSelect.querySelector(`option[value="${currentGrp}"]:not(:disabled)`)) {
+        groupSelect.value = String(currentGrp);
+    } else {
+        groupSelect.value = '1';
+    }
+
+    // 3. LIVE HINT / SAMMANFATTNING
+    if (hintEl) {
+        if (count < 2) {
+            hintEl.innerHTML = `<span>⚠️ <strong>Ange minst 2 lag</strong> för att konfigurera och starta turneringen.</span>`;
+            hintEl.style.background = '#FFF3E0';
+            hintEl.style.borderColor = '#FFE0B2';
+            hintEl.style.color = '#E65100';
+        } else {
+            const activeGrp = parseInt(groupSelect.value) || 1;
+            const activeAdv = parseInt(advanceSelect.value) || 2;
+            const perGroup = Math.floor(count / activeGrp);
+            const extra = count % activeGrp;
+            const grpStr = activeGrp === 1 
+                ? `1 grupp med alla ${count} lag` 
+                : `${activeGrp} grupper (${perGroup}${extra > 0 ? `–${perGroup + 1}` : ''} lag per grupp)`;
+
+            let advStr = '';
+            if (activeAdv === 2) advStr = 'Topp 2 möts direkt i Final 🏆';
+            else if (activeAdv === 4) advStr = 'Topp 4 går till Semifinaler 🏆';
+            else if (activeAdv === 8) advStr = 'Topp 8 går till Kvartsfinaler 🏆';
+            else if (activeAdv === 16) advStr = 'Topp 16 går till Åttondelsfinaler 🏆';
+
+            let extraTip = '';
+            if (activeGrp === 4 && activeAdv < 4) {
+                extraTip = '<br><span style="color:#C62828;">💡 <em>Tips: Vid 4 grupper rekommenderas minst 4 slutspelslag så att alla gruppvinnare får spela slutspel!</em></span>';
+            }
+
+            hintEl.innerHTML = `<strong>Aktuellt upplägg:</strong> ${count} lag inlagda. ${grpStr}. ${advStr}.${extraTip}`;
+            hintEl.style.background = '#E8F5E9';
+            hintEl.style.borderColor = '#C8E6C9';
+            hintEl.style.color = '#2E7D32';
+        }
+    }
+}
+
+document.getElementById('teamsInput').addEventListener('input', uppdateraLagAntal);
+document.getElementById('groupCount').addEventListener('change', uppdateraLagAntal);
+document.getElementById('teamsToAdvance').addEventListener('change', uppdateraLagAntal);
+
+function toggleLunchInput() {
+    const chk = document.getElementById('planLunch');
+    document.getElementById('lunchTimeContainer').style.display = chk.checked ? 'block' : 'none';
+}
+
+// ==========================================
+//  GENERERA TURNERING (Schemaläggningsalgoritm)
+// ==========================================
+function parseMatchDuration(str) {
+    if (str.toLowerCase().includes('x')) {
+        const p = str.toLowerCase().split('x');
+        const h = parseInt(p[0]) || 1;
+        const m = parseInt(p[1]) || 10;
+        return h * m;
+    }
+    return parseInt(str) || 12;
+}
+
+function formatMinutes(min) {
+    const h = Math.floor(min / 60) % 24;
+    const m = min % 60;
+    return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+}
+
+function genereraTurnering() {
+    const errorEl = document.getElementById('errorMessage');
+    errorEl.style.display = 'none';
+    errorEl.textContent = '';
+
+    const rawTeams = document.getElementById('teamsInput').value;
+    let teams = rawTeams.split(/[,;\n]/).map(t => t.trim()).filter(t => t.length > 0);
+
+    if (teams.length < 2) {
+        visaFel('Du måste ange minst 2 lag för att starta en turnering.');
+        return;
+    }
+
+    // Kontrollera dubbletter
+    const uniqueSet = new Set(teams);
+    if (uniqueSet.size !== teams.length) {
+        visaFel('Varje lag måste ha ett unikt namn. Det finns lag med samma namn i listan.');
+        return;
+    }
+
+    const sport = document.getElementById('sportType').value;
+    const startTimeStr = document.getElementById('startTime').value.trim() || '09:00';
+    const pitchCount = Math.max(1, parseInt(document.getElementById('pitchCount').value) || 1);
+    const matchDur = parseMatchDuration(document.getElementById('matchDuration').value);
+    const breakDur = Math.max(0, parseInt(document.getElementById('breakDuration').value) || 0);
+    const numGroups = Math.max(1, parseInt(document.getElementById('groupCount').value) || 1);
+    const mPerTeam = Math.max(1, parseInt(document.getElementById('matchesPerTeam').value) || 1);
+    let advance = parseInt(document.getElementById('teamsToAdvance').value) || 4;
+    const avoidBackToBack = document.getElementById('avoidBackToBack').checked;
+    const planLunch = document.getElementById('planLunch').checked;
+    const lunchTimeStr = document.getElementById('lunchTime').value.trim();
+    const hasBronzeMatch = document.getElementById('hasBronzeMatch').checked;
+
+    // Säkerställ att antalet grupper är möjligt (minst 2 lag per grupp)
+    if (teams.length < numGroups * 2) {
+        visaFel(`Med ${teams.length} lag kan du max ha ${Math.floor(teams.length / 2)} grupper. Varje grupp måste ha minst 2 lag.`);
+        return;
+    }
+
+    // Säkerställ att antalet slutspelslag inte överstiger antalet faktiska lag
+    if (advance > teams.length) {
+        visaFel(`Du kan inte välja ${advance} slutspelslag när turneringen bara har ${teams.length} lag.`);
+        return;
+    }
+
+    // Slumpa lagordning inför grupplottning
+    teams = teams.sort(() => Math.random() - 0.5);
+
+    // 1. Skapa grupper
+    const tempGroups = [];
+    const groupLists = Array.from({ length: numGroups }, () => []);
+    teams.forEach((team, index) => {
+        groupLists[index % numGroups].push(team);
+    });
+
+    groupLists.forEach((groupTeams, index) => {
+        if (groupTeams.length > 0) {
+            const groupName = numGroups === 1 ? 'Gruppspel' : `Grupp ${String.fromCharCode(65 + index)}`;
+            tempGroups.push({ name: groupName, teams: groupTeams });
+        }
+    });
+
+    // 2. Skapa gruppspelsmatcher (Round-robin)
+    const matchesToCreate = [];
+    tempGroups.forEach(group => {
+        const gTeams = group.teams;
+        const allPairs = [];
+        for (let i = 0; i < gTeams.length; i++) {
+            for (let j = i + 1; j < gTeams.length; j++) {
+                allPairs.push([gTeams[i], gTeams[j]]);
+            }
+        }
+
+        // mPerTeam = 1: Enkelmöte (alla möter alla 1 gång)
+        // mPerTeam = 2: Dubbelmöte (alla möter alla 2 gånger)
+        for (let round = 1; round <= mPerTeam; round++) {
+            const shuffled = [...allPairs].sort(() => Math.random() - 0.5);
+            shuffled.forEach(pair => {
+                if (round % 2 === 0) {
+                    matchesToCreate.push([pair[1], pair[0]]);
+                } else {
+                    matchesToCreate.push([pair[0], pair[1]]);
+                }
+            });
+        }
+    });
+
+    // 3. Tidsberäkning och schemaläggning
+    let currentMinutes = 540; // 09:00 default
+    try {
+        const p = startTimeStr.split(':');
+        currentMinutes = (parseInt(p[0]) * 60) + parseInt(p[1]);
+    } catch(e) {}
+
+    let lunchStartMin = 99999;
+    let lunchDur = 45;
+    if (planLunch && lunchTimeStr) {
+        try {
+            const times = lunchTimeStr.split('-');
+            const s = times[0].trim().split(':');
+            const e = times[1].trim().split(':');
+            lunchStartMin = (parseInt(s[0]) * 60) + parseInt(s[1]);
+            lunchDur = ((parseInt(e[0]) * 60) + parseInt(e[1])) - lunchStartMin;
+            if (lunchDur <= 0) lunchDur = 45;
+        } catch(e) {}
+    }
+
+    const tempSchedule = [];
+    let matchId = 1;
+    let lunchInserted = false;
+    const remaining = [...matchesToCreate];
+    let teamsPlayedLast = new Set();
+
+    while (remaining.length > 0) {
+        // Lunchpaus
+        if (planLunch && !lunchInserted && currentMinutes >= lunchStartMin) {
+            tempSchedule.push({
+                id: matchId++,
+                homeTeam: 'LUNCHPAUS',
+                awayTeam: '🍔',
+                startTime: formatMinutes(currentMinutes),
+                pitch: '',
+                isLunchBreak: true,
+                isFinished: true,
+                matchPhase: 'GROUP'
+            });
+            currentMinutes += lunchDur;
+            lunchInserted = true;
+            teamsPlayedLast.clear();
+            continue;
+        }
+
+        const slotMatches = [];
+        const teamsPlayingNow = new Set();
+
+        for (let i = 0; i < remaining.length && slotMatches.length < pitchCount; i++) {
+            const m = remaining[i];
+            const noConflict = !teamsPlayingNow.has(m[0]) && !teamsPlayingNow.has(m[1]);
+            const hasRested = !avoidBackToBack || (!teamsPlayedLast.has(m[0]) && !teamsPlayedLast.has(m[1]));
+
+            if (noConflict && hasRested) {
+                slotMatches.push(m);
+                teamsPlayingNow.add(m[0]);
+                teamsPlayingNow.add(m[1]);
+                remaining.splice(i, 1);
+                i--;
+            }
+        }
+
+        // Om vi inte kunde schemalägga pga vila, tvinga in en match
+        if (slotMatches.length === 0 && remaining.length > 0) {
+            const force = remaining.shift();
+            slotMatches.push(force);
+            teamsPlayingNow.add(force[0]);
+            teamsPlayingNow.add(force[1]);
+        }
+
+        let pitchNum = 1;
+        slotMatches.forEach(pair => {
+            const pitchLabel = pitchCount > 1 ? `Plan ${pitchNum}` : '';
+            tempSchedule.push({
+                id: matchId++,
+                homeTeam: pair[0],
+                awayTeam: pair[1],
+                startTime: formatMinutes(currentMinutes),
+                pitch: pitchLabel,
+                isLunchBreak: false,
+                homeScore: null,
+                awayScore: null,
+                isFinished: false,
+                matchPhase: 'GROUP'
+            });
+            pitchNum++;
+        });
+
+        teamsPlayedLast = new Set(teamsPlayingNow);
+        currentMinutes += (matchDur + breakDur);
+    }
+
+    // 4. Slutspels-platshållare med parallella planer
+    function addPlayoffRound(phase, count, labelPrefix) {
+        let pitchIdx = 0;
+        for (let i = 1; i <= count; i++) {
+            const pitchNum = (pitchIdx % pitchCount) + 1;
+            const pitchLabel = pitchCount > 1 ? `Plan ${pitchNum}` : '';
+            tempSchedule.push({
+                id: matchId++,
+                homeTeam: '?',
+                awayTeam: '?',
+                startTime: formatMinutes(currentMinutes),
+                pitch: pitchLabel,
+                isLunchBreak: false,
+                homeScore: null,
+                awayScore: null,
+                isFinished: false,
+                matchPhase: phase,
+                customLabel: `${labelPrefix} ${i}`
+            });
+            pitchIdx++;
+            if (pitchIdx % pitchCount === 0 || i === count) {
+                currentMinutes += (matchDur + breakDur);
+            }
+        }
+    }
+
+    if (advance >= 16) {
+        addPlayoffRound('ROUND_OF_16', 8, 'Åttondel');
+    }
+    if (advance >= 8) {
+        addPlayoffRound('QUARTERS', 4, 'Kvart');
+    }
+    if (advance >= 4) {
+        addPlayoffRound('SEMIS', 2, 'Semi');
+    }
+    if (hasBronzeMatch && advance >= 4) {
+        tempSchedule.push({
+            id: matchId++,
+            homeTeam: '?',
+            awayTeam: '?',
+            startTime: formatMinutes(currentMinutes),
+            pitch: pitchCount > 1 ? 'Plan 1' : '',
+            isLunchBreak: false,
+            homeScore: null,
+            awayScore: null,
+            isFinished: false,
+            matchPhase: 'BRONZE',
+            customLabel: 'Match om 3:e pris 🥉'
+        });
+        currentMinutes += (matchDur + breakDur);
+    }
+    tempSchedule.push({
+        id: matchId++,
+        homeTeam: '?',
+        awayTeam: '?',
+        startTime: formatMinutes(currentMinutes),
+        pitch: pitchCount > 1 ? 'Plan 1' : '',
+        isLunchBreak: false,
+        homeScore: null,
+        awayScore: null,
+        isFinished: false,
+        matchPhase: 'FINAL',
+        customLabel: 'Final 🏆'
+    });
+
+    // Spara i state
+    tournamentState = {
+        phase: 'GROUP',
+        sport: sport,
+        settings: {
+            startTime: startTimeStr,
+            matchDuration: matchDur,
+            breakDuration: breakDur,
+            pitchCount: pitchCount,
+            groupCount: numGroups,
+            teamsToAdvance: advance,
+            matchesPerTeam: mPerTeam,
+            planLunch: planLunch,
+            lunchTime: lunchTimeStr,
+            avoidBackToBack: avoidBackToBack,
+            hasBronzeMatch: hasBronzeMatch
+        },
+        teamsInput: rawTeams,
+        groups: tempGroups,
+        schedule: tempSchedule
+    };
+
+    saveLocalTournament();
+    visaAktivVy();
+}
+
+function visaFel(msg) {
+    const errorEl = document.getElementById('errorMessage');
+    errorEl.textContent = msg;
+    errorEl.style.display = 'block';
+}
+
+function nollstallTurnering() {
+    if (!confirm('Vill du verkligen rensa turneringen och börja om?')) return;
+    localStorage.removeItem(STORAGE_KEY);
+    tournamentState.schedule = [];
+    tournamentState.groups = [];
+    tournamentState.phase = 'SETUP';
+    visaStartVy();
+}
+
+// ==========================================
+//  TABELLBERÄKNING
+// ==========================================
+function beraknaGrupptabell(group) {
+    const stats = {};
+    group.teams.forEach(team => {
+        stats[team] = {
+            name: team,
+            played: 0,
+            wins: 0,
+            draws: 0,
+            losses: 0,
+            scored: 0,
+            conceded: 0,
+            diff: 0,
+            points: 0
+        };
+    });
+
+    tournamentState.schedule.filter(m => m.isFinished && !m.isLunchBreak && m.matchPhase === 'GROUP').forEach(m => {
+        const home = stats[m.homeTeam];
+        const away = stats[m.awayTeam];
+        if (home && away) {
+            home.played++;
+            away.played++;
+            const hs = m.homeScore || 0;
+            const as = m.awayScore || 0;
+            home.scored += hs;
+            home.conceded += as;
+            away.scored += as;
+            away.conceded += hs;
+
+            if (hs > as) {
+                home.wins++;
+                away.losses++;
+            } else if (as > hs) {
+                away.wins++;
+                home.losses++;
+            } else {
+                home.draws++;
+                away.draws++;
+            }
+        }
+    });
+
+    Object.values(stats).forEach(s => {
+        s.diff = s.scored - s.conceded;
+        s.points = (s.wins * 3) + (s.draws * 1);
+    });
+
+    return Object.values(stats).sort((a, b) => {
+        if (b.points !== a.points) return b.points - a.points;
+        if (b.diff !== a.diff) return b.diff - a.diff;
+        return b.scored - a.scored;
+    });
+}
+
+// Hämta slutspelslag rangordnade från alla tabeller
+function hamtaSlutspelslag(antal) {
+    const allTables = tournamentState.groups.map(g => beraknaGrupptabell(g));
+    const advancing = [];
+    const maxTeamsInGroup = Math.max(...allTables.map(t => t.length), 0);
+
+    for (let pos = 0; pos < maxTeamsInGroup; pos++) {
+        const teamsAtPos = [];
+        allTables.forEach(t => {
+            if (pos < t.length) teamsAtPos.push(t[pos]);
+        });
+        teamsAtPos.sort((a, b) => {
+            if (b.points !== a.points) return b.points - a.points;
+            if (b.diff !== a.diff) return b.diff - a.diff;
+            return b.scored - a.scored;
+        });
+        advancing.push(...teamsAtPos);
+    }
+    return advancing.slice(0, antal).map(s => s.name);
+}
+
+// ==========================================
+//  SLUTSPEL GENERERA RUNDA
+// ==========================================
+function uppdateraSlutspelsmatch(phase, home, away, indexInPhase = 0) {
+    const matchesInPhase = tournamentState.schedule.filter(m => m.matchPhase === phase);
+    if (matchesInPhase[indexInPhase]) {
+        matchesInPhase[indexInPhase].homeTeam = home;
+        matchesInPhase[indexInPhase].awayTeam = away;
+    }
+}
+
+function genereraNastaSlutspelsrunda(targetPhase) {
+    if (targetPhase === 'ROUND_OF_16') {
+        const teams = hamtaSlutspelslag(16);
+        if (teams.length >= 16) {
+            uppdateraSlutspelsmatch('ROUND_OF_16', teams[0], teams[15], 0);
+            uppdateraSlutspelsmatch('ROUND_OF_16', teams[1], teams[14], 1);
+            uppdateraSlutspelsmatch('ROUND_OF_16', teams[2], teams[13], 2);
+            uppdateraSlutspelsmatch('ROUND_OF_16', teams[3], teams[12], 3);
+            uppdateraSlutspelsmatch('ROUND_OF_16', teams[4], teams[11], 4);
+            uppdateraSlutspelsmatch('ROUND_OF_16', teams[5], teams[10], 5);
+            uppdateraSlutspelsmatch('ROUND_OF_16', teams[6], teams[9], 6);
+            uppdateraSlutspelsmatch('ROUND_OF_16', teams[7], teams[8], 7);
+        }
+    } else if (targetPhase === 'QUARTERS') {
+        if (tournamentState.phase === 'ROUND_OF_16') {
+            const vinnare = hamtaVinnareFranFas('ROUND_OF_16');
+            if (vinnare.length >= 8) {
+                uppdateraSlutspelsmatch('QUARTERS', vinnare[0], vinnare[1], 0);
+                uppdateraSlutspelsmatch('QUARTERS', vinnare[2], vinnare[3], 1);
+                uppdateraSlutspelsmatch('QUARTERS', vinnare[4], vinnare[5], 2);
+                uppdateraSlutspelsmatch('QUARTERS', vinnare[6], vinnare[7], 3);
+            }
+        } else {
+            const teams = hamtaSlutspelslag(8);
+            if (teams.length >= 8) {
+                uppdateraSlutspelsmatch('QUARTERS', teams[0], teams[7], 0);
+                uppdateraSlutspelsmatch('QUARTERS', teams[1], teams[6], 1);
+                uppdateraSlutspelsmatch('QUARTERS', teams[2], teams[5], 2);
+                uppdateraSlutspelsmatch('QUARTERS', teams[3], teams[4], 3);
+            }
+        }
+    } else if (targetPhase === 'SEMIS') {
+        if (tournamentState.phase === 'GROUP') {
+            const teams = hamtaSlutspelslag(4);
+            if (teams.length >= 4) {
+                uppdateraSlutspelsmatch('SEMIS', teams[0], teams[3], 0);
+                uppdateraSlutspelsmatch('SEMIS', teams[1], teams[2], 1);
+            }
+        } else {
+            const vinnare = hamtaVinnareFranFas('QUARTERS');
+            if (vinnare.length >= 4) {
+                uppdateraSlutspelsmatch('SEMIS', vinnare[0], vinnare[1], 0);
+                uppdateraSlutspelsmatch('SEMIS', vinnare[2], vinnare[3], 1);
+            }
+        }
+    } else if (targetPhase === 'FINAL') {
+        if (tournamentState.phase === 'GROUP') {
+            // Direkt final från gruppspel (2 lag till slutspel)
+            const teams = hamtaSlutspelslag(2);
+            if (teams.length >= 2) {
+                uppdateraSlutspelsmatch('FINAL', teams[0], teams[1], 0);
+            }
+        } else {
+            const vinnare = hamtaVinnareFranFas('SEMIS');
+            if (vinnare.length >= 2) {
+                uppdateraSlutspelsmatch('FINAL', vinnare[0], vinnare[1], 0);
+            }
+
+            // Om bronsmatch är vald
+            if (tournamentState.settings.hasBronzeMatch) {
+                const forlorare = hamtaForlorareFranFas('SEMIS');
+                if (forlorare.length >= 2) {
+                    uppdateraSlutspelsmatch('BRONZE', forlorare[0], forlorare[1], 0);
+                }
+            }
+        }
+    }
+
+    tournamentState.phase = targetPhase;
+    saveLocalTournament();
+    renderaAktivVy();
+}
+
+function hamtaVinnareFranFas(phase) {
+    const matches = tournamentState.schedule.filter(m => m.matchPhase === phase && m.isFinished && !m.isLunchBreak);
+    return matches.map(m => {
+        if (m.homeScore > m.awayScore) return m.homeTeam;
+        if (m.awayScore > m.homeScore) return m.awayTeam;
+        return m.homeTeam;
+    });
+}
+
+function hamtaForlorareFranFas(phase) {
+    const matches = tournamentState.schedule.filter(m => m.matchPhase === phase && m.isFinished && !m.isLunchBreak);
+    return matches.map(m => {
+        if (m.homeScore < m.awayScore) return m.homeTeam;
+        if (m.awayScore < m.homeScore) return m.awayTeam;
+        return m.awayTeam;
+    });
+}
+
+// ==========================================
+//  RENDERING & VYER
+// ==========================================
+function visaStartVy() {
+    document.getElementById('setupView').style.display = 'block';
+    document.getElementById('activeView').style.display = 'none';
+    document.getElementById('printBtn').style.display = 'none';
+    document.getElementById('exportBtn').style.display = 'none';
+    document.getElementById('clearBtn').style.display = 'none';
+    const logoEl = document.getElementById('navTourTitle');
+    if (logoEl) logoEl.innerText = '🏆 Skapa Turnering';
+    document.title = 'Skapa Turnering - Skol-IF';
+    uppdateraLagAntal();
+}
+
+function visaAktivVy() {
+    document.getElementById('setupView').style.display = 'none';
+    document.getElementById('activeView').style.display = 'block';
+    document.getElementById('printBtn').style.display = 'inline-flex';
+    document.getElementById('exportBtn').style.display = 'inline-flex';
+    document.getElementById('clearBtn').style.display = 'inline-flex';
+    const logoEl = document.getElementById('navTourTitle');
+    if (logoEl) logoEl.innerText = '🏆 Pågående Turnering';
+    document.title = 'Pågående Turnering - Skol-IF';
+    renderaAktivVy();
+}
+
+function renderaAktivVy() {
+    renderaGrupptabeller();
+    renderaSpelschema();
+    renderaBracket();
+    kontrolleraVinnare();
+}
+
+function switchTourTab(tabId, btn) {
+    document.getElementById('tab-schema').style.display = tabId === 'tab-schema' ? 'block' : 'none';
+    document.getElementById('tab-bracket').style.display = tabId === 'tab-bracket' ? 'block' : 'none';
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+}
+
+function renderaGrupptabeller() {
+    const container = document.getElementById('groupsContainer');
+    container.innerHTML = '';
+
+    const advanceCount = tournamentState.settings.teamsToAdvance || 4;
+    const advancingTeams = new Set(hamtaSlutspelslag(advanceCount));
+
+    tournamentState.groups.forEach(group => {
+        const table = beraknaGrupptabell(group);
+
+        let html = `<div class="group-card">
+            <div class="group-name">🏆 ${escapeHtml(group.name)}</div>
+            <div class="table-responsive">
+                <table class="group-table">
+                    <thead>
+                        <tr>
+                            <th>Lag</th>
+                            <th>M</th>
+                            <th>Mål</th>
+                            <th>+/-</th>
+                            <th>P</th>
+                        </tr>
+                    </thead>
+                    <tbody>`;
+
+        table.forEach((s, idx) => {
+            const isAdvancing = advancingTeams.has(s.name);
+            const diffClass = s.diff > 0 ? 'diff-pos' : (s.diff < 0 ? 'diff-neg' : '');
+            const diffPrefix = s.diff > 0 ? '+' : '';
+            html += `<tr class="${isAdvancing ? 'advancing' : ''}">
+                <td>
+                    ${isAdvancing ? '<span class="adv-indicator" title="Slutspelsplats"></span>' : ''}
+                    ${idx + 1}. ${escapeHtml(s.name)}
+                </td>
+                <td>${s.played}</td>
+                <td>${s.scored}-${s.conceded}</td>
+                <td class="${diffClass}">${diffPrefix}${s.diff}</td>
+                <td><strong>${s.points}</strong></td>
+            </tr>`;
+        });
+
+        html += `</tbody></table></div></div>`;
+        container.innerHTML += html;
+    });
+}
+
+function renderaSpelschema() {
+    const container = document.getElementById('matchesContainer');
+    container.innerHTML = '';
+
+    const phaseOrder = ['GROUP', 'ROUND_OF_16', 'QUARTERS', 'SEMIS', 'BRONZE', 'FINAL'];
+    const phaseNames = {
+        'GROUP': 'Gruppspel',
+        'ROUND_OF_16': 'Åttondelsfinaler',
+        'QUARTERS': 'Kvartsfinaler',
+        'SEMIS': 'Semifinaler',
+        'BRONZE': 'Match om 3:e pris (Bronsmatch)',
+        'FINAL': 'Final 🏆'
+    };
+
+    const grouped = {};
+    tournamentState.schedule.forEach(m => {
+        if (!grouped[m.matchPhase]) grouped[m.matchPhase] = [];
+        grouped[m.matchPhase].push(m);
+    });
+
+    phaseOrder.forEach(phase => {
+        const matches = grouped[phase];
+        if (!matches || matches.length === 0) return;
+
+        // Kontrollera om denna fas är klar
+        const validMatches = matches.filter(m => !m.isLunchBreak && m.homeTeam !== '?');
+        const isFinished = validMatches.length > 0 && validMatches.every(m => m.isFinished);
+
+        // Skapa knapp för nästa slutspelssteg om fasen är klar
+        let nextBtnHtml = '';
+        if (isFinished) {
+            if (phase === 'GROUP' && tournamentState.phase === 'GROUP') {
+                const adv = tournamentState.settings.teamsToAdvance;
+                const nextPhase = adv >= 16 ? 'ROUND_OF_16' : (adv >= 8 ? 'QUARTERS' : (adv >= 4 ? 'SEMIS' : 'FINAL'));
+                const label = adv >= 16 ? 'Skapa Åttondelar 🏆' : (adv >= 8 ? 'Skapa Kvartsfinaler 🏆' : (adv >= 4 ? 'Skapa Semifinaler 🏆' : 'Skapa Final 🏆'));
+                nextBtnHtml = `<button class="btn btn-gold btn-sm" onclick="genereraNastaSlutspelsrunda('${nextPhase}')">${label}</button>`;
+            } else if (phase === 'ROUND_OF_16' && tournamentState.phase === 'ROUND_OF_16') {
+                nextBtnHtml = `<button class="btn btn-gold btn-sm" onclick="genereraNastaSlutspelsrunda('QUARTERS')">Skapa Kvartsfinaler 🏆</button>`;
+            } else if (phase === 'QUARTERS' && tournamentState.phase === 'QUARTERS') {
+                nextBtnHtml = `<button class="btn btn-gold btn-sm" onclick="genereraNastaSlutspelsrunda('SEMIS')">Skapa Semifinaler 🏆</button>`;
+            } else if (phase === 'SEMIS' && tournamentState.phase === 'SEMIS') {
+                nextBtnHtml = `<button class="btn btn-gold btn-sm" onclick="genereraNastaSlutspelsrunda('FINAL')">Skapa Final 🏆</button>`;
+            }
+        }
+
+        let html = `<div class="phase-header">
+            <span class="phase-title">${phaseNames[phase] || phase}</span>
+            ${nextBtnHtml}
+        </div>`;
+
+        matches.forEach(m => {
+            if (m.isLunchBreak) {
+                html += `<div class="match-card lunch">
+                    <span>${m.startTime} &nbsp; 🍔 LUNCHPAUS 🍔</span>
+                </div>`;
+            } else {
+                const isPlayed = m.isFinished && m.homeScore !== null;
+                const canPlay = m.homeTeam !== '?' && m.awayTeam !== '?';
+
+                html += `<div class="match-card ${isPlayed ? 'finished' : ''}">
+                    <div class="match-meta">
+                        <div>🕐 ${m.startTime}</div>
+                        ${m.pitch ? `<div class="match-pitch">${escapeHtml(m.pitch)}</div>` : ''}
+                    </div>
+
+                    <div class="match-teams">
+                        ${isPlayed ? `
+                            <span>${escapeHtml(m.homeTeam)}</span>
+                            <span class="match-score">${m.homeScore} - ${m.awayScore}</span>
+                            <span>${escapeHtml(m.awayTeam)}</span>
+                        ` : `
+                            <span>${escapeHtml(m.homeTeam)}</span>
+                            <span style="color:#888; margin:0 8px;">vs</span>
+                            <span>${escapeHtml(m.awayTeam)}</span>
+                        `}
+                    </div>
+
+                    <div class="match-actions">
+                        ${canPlay ? `
+                            <button class="btn btn-outline btn-sm" onclick="oppnaScoreModal(${m.id})" title="Registrera siffror direkt">✍️ Reg</button>
+                            <button class="btn btn-green btn-sm" onclick="oppnaScoreboard(${m.id})" title="Kör matchklocka & livepoäng">⏱️ Spela live</button>
+                        ` : `
+                            <span style="font-size:0.8rem; color:#aaa; font-weight:600;">(Väntar på lag)</span>
+                        `}
+                    </div>
+                </div>`;
+            }
+        });
+
+        container.innerHTML += html;
+    });
+}
+
+// ==========================================
+//  VISUELLT SLUTSPELSTRÄD (BRACKET)
+// ==========================================
+function renderaBracket() {
+    const container = document.getElementById('bracketContainer');
+    container.innerHTML = '';
+
+    const playoffPhases = ['ROUND_OF_16', 'QUARTERS', 'SEMIS', 'FINAL'];
+    const phaseTitles = {
+        'ROUND_OF_16': 'Åttondelsfinaler',
+        'QUARTERS': 'Kvartsfinaler',
+        'SEMIS': 'Semifinaler',
+        'FINAL': 'Final'
+    };
+
+    const presentPhases = playoffPhases.filter(p => tournamentState.schedule.some(m => m.matchPhase === p));
+
+    if (presentPhases.length === 0) {
+        container.innerHTML = '<p style="color:#888;">Slutspelsträdet aktiveras när slutspelet genereras.</p>';
+        return;
+    }
+
+    presentPhases.forEach(phase => {
+        const matches = tournamentState.schedule.filter(m => m.matchPhase === phase);
+        let colHtml = `<div class="bracket-round">
+            <div class="bracket-round-title">${phaseTitles[phase]}</div>`;
+
+        matches.forEach(m => {
+            const hasTeams = m.homeTeam !== '?' && m.awayTeam !== '?';
+            const isFinished = m.isFinished && m.homeScore !== null;
+            const homeWon = isFinished && m.homeScore > m.awayScore;
+            const awayWon = isFinished && m.awayScore > m.homeScore;
+
+            colHtml += `<div class="bracket-match ${isFinished ? 'finished' : ''}" onclick="${hasTeams ? `oppnaScoreboard(${m.id})` : ''}">
+                <div class="bracket-team ${homeWon ? 'winner' : ''}">
+                    <span>${escapeHtml(m.homeTeam)}</span>
+                    ${isFinished ? `<span class="bracket-score">${m.homeScore}</span>` : ''}
+                </div>
+                <div class="bracket-team ${awayWon ? 'winner' : ''}">
+                    <span>${escapeHtml(m.awayTeam)}</span>
+                    ${isFinished ? `<span class="bracket-score">${m.awayScore}</span>` : ''}
+                </div>
+                <div class="bracket-match-meta">
+                    <span>${m.startTime}</span>
+                    <span>${m.pitch || ''}</span>
+                </div>
+            </div>`;
+        });
+
+        colHtml += `</div>`;
+        container.innerHTML += colHtml;
+    });
+
+    // Rendera bronsmatch om vald i inställningarna
+    if (tournamentState.settings.hasBronzeMatch) {
+        const bronzeMatch = tournamentState.schedule.find(m => m.matchPhase === 'BRONZE');
+        if (bronzeMatch) {
+            const hasTeams = bronzeMatch.homeTeam !== '?' && bronzeMatch.awayTeam !== '?';
+            const isFinished = bronzeMatch.isFinished && bronzeMatch.homeScore !== null;
+            const homeWon = isFinished && bronzeMatch.homeScore > bronzeMatch.awayScore;
+            const awayWon = isFinished && bronzeMatch.awayScore > bronzeMatch.homeScore;
+
+            let bronzeHtml = `<div class="bracket-round">
+                <div class="bracket-round-title" style="color:#B87333;">🥉 3:e pris</div>
+                <div class="bracket-match ${isFinished ? 'finished' : ''}" style="border-left: 4px solid #B87333;" onclick="${hasTeams ? `oppnaScoreboard(${bronzeMatch.id})` : ''}">
+                    <div class="bracket-team ${homeWon ? 'winner' : ''}">
+                        <span>${escapeHtml(bronzeMatch.homeTeam)}</span>
+                        ${isFinished ? `<span class="bracket-score">${bronzeMatch.homeScore}</span>` : ''}
+                    </div>
+                    <div class="bracket-team ${awayWon ? 'winner' : ''}">
+                        <span>${escapeHtml(bronzeMatch.awayTeam)}</span>
+                        ${isFinished ? `<span class="bracket-score">${bronzeMatch.awayScore}</span>` : ''}
+                    </div>
+                    <div class="bracket-match-meta">
+                        <span>${bronzeMatch.startTime}</span>
+                        <span>${bronzeMatch.pitch || ''}</span>
+                    </div>
+                </div>
+            </div>`;
+            container.innerHTML += bronzeHtml;
+        }
+    }
+}
+
+function kontrolleraVinnare() {
+    const finalMatch = tournamentState.schedule.find(m => m.matchPhase === 'FINAL' && m.isFinished);
+    const banner = document.getElementById('winnerBanner');
+
+    if (finalMatch && finalMatch.homeScore !== null && finalMatch.awayScore !== null) {
+        const winner = finalMatch.homeScore > finalMatch.awayScore ? finalMatch.homeTeam : finalMatch.awayTeam;
+        document.getElementById('winnerTeamName').textContent = winner;
+        banner.style.display = 'block';
+    } else {
+        banner.style.display = 'none';
+    }
+}
+
+// ==========================================
+//  RESULTAT-REGISTRERING (Enkel modal)
+// ==========================================
+function oppnaScoreModal(matchId) {
+    const match = tournamentState.schedule.find(m => m.id === matchId);
+    if (!match) return;
+
+    activeScoreMatch = match;
+    document.getElementById('scoreModalMatchInfo').textContent = `${match.homeTeam} vs ${match.awayTeam} (${match.startTime})`;
+    document.getElementById('scoreModalHomeLabel').textContent = match.homeTeam;
+    document.getElementById('scoreModalAwayLabel').textContent = match.awayTeam;
+    document.getElementById('homeScoreInput').value = match.homeScore !== null ? match.homeScore : 0;
+    document.getElementById('awayScoreInput').value = match.awayScore !== null ? match.awayScore : 0;
+
+    openModal('scoreModal');
+}
+
+function sparaResultatFranModal() {
+    if (!activeScoreMatch) return;
+    const h = Math.max(0, parseInt(document.getElementById('homeScoreInput').value) || 0);
+    const a = Math.max(0, parseInt(document.getElementById('awayScoreInput').value) || 0);
+
+    if (activeScoreMatch.matchPhase !== 'GROUP' && h === a) {
+        alert('En slutspelsmatch kan inte sluta oavgjort. Ett lag måste vinna (t.ex. efter förlängning eller straffar).');
+        return;
+    }
+
+    activeScoreMatch.homeScore = h;
+    activeScoreMatch.awayScore = a;
+    activeScoreMatch.isFinished = true;
+
+    saveLocalTournament();
+    closeModal('scoreModal');
+    renderaAktivVy();
+}
+
+// ==========================================
+//  LIVE SCOREBOARD & MATCHKLOCKA
+// ==========================================
+function oppnaScoreboard(matchId) {
+    const match = tournamentState.schedule.find(m => m.id === matchId);
+    if (!match || match.homeTeam === '?' || match.awayTeam === '?') return;
+
+    activeScoreMatch = match;
+    liveHomeScore = match.homeScore !== null ? match.homeScore : 0;
+    liveAwayScore = match.awayScore !== null ? match.awayScore : 0;
+
+    document.getElementById('sbHomeName').textContent = match.homeTeam;
+    document.getElementById('sbAwayName').textContent = match.awayTeam;
+    document.getElementById('sbPitchBadge').textContent = match.pitch || '';
+    document.getElementById('sbPhaseBadge').textContent = match.matchPhase || 'MATCH';
+
+    // Sätt matchtid från inställningarna
+    const durationMin = tournamentState.settings.matchDuration || 12;
+    liveTimeRemaining = durationMin * 60;
+    liveTimerRunning = false;
+    uppdateraTimerDisplay();
+    uppdateraScoreboardPoang();
+    skapaSportKnappar();
+
+    document.getElementById('sbStartBtn').textContent = '▶ Starta klocka';
+    document.getElementById('sbStartBtn').className = 'btn btn-green';
+
+    openModal('scoreboardModal');
+}
+
+function stangScoreboard() {
+    if (liveTimerInterval) {
+        clearInterval(liveTimerInterval);
+        liveTimerInterval = null;
+    }
+    liveTimerRunning = false;
+    closeModal('scoreboardModal');
+}
+
+function toggleTimer() {
+    const btn = document.getElementById('sbStartBtn');
+    if (liveTimerRunning) {
+        // Pausa
+        clearInterval(liveTimerInterval);
+        liveTimerInterval = null;
+        liveTimerRunning = false;
+        btn.textContent = '▶ Fortsätt';
+        btn.className = 'btn btn-green';
+    } else {
+        // Starta
+        if (liveTimeRemaining <= 0) liveTimeRemaining = (tournamentState.settings.matchDuration || 12) * 60;
+        liveTimerRunning = true;
+        btn.textContent = '⏸ Pausa';
+        btn.className = 'btn btn-gold';
+
+        liveTimerInterval = setInterval(() => {
+            if (liveTimeRemaining > 0) {
+                liveTimeRemaining--;
+                uppdateraTimerDisplay();
+                if (liveTimeRemaining === 0) {
+                    clearInterval(liveTimerInterval);
+                    liveTimerRunning = false;
+                    btn.textContent = '▶ Starta om';
+                    btn.className = 'btn btn-green';
+                    spelaVissla();
+                    alert('⏱️ Matchen är slut!');
+                }
+            }
+        }, 1000);
+    }
+}
+
+function justeraTid(sekunder) {
+    liveTimeRemaining = Math.max(0, liveTimeRemaining + sekunder);
+    uppdateraTimerDisplay();
+}
+
+function aterstallTimer() {
+    if (liveTimerInterval) {
+        clearInterval(liveTimerInterval);
+        liveTimerInterval = null;
+    }
+    liveTimerRunning = false;
+    liveTimeRemaining = (tournamentState.settings.matchDuration || 12) * 60;
+    uppdateraTimerDisplay();
+    document.getElementById('sbStartBtn').textContent = '▶ Starta klocka';
+    document.getElementById('sbStartBtn').className = 'btn btn-green';
+}
+
+function uppdateraTimerDisplay() {
+    const m = Math.floor(liveTimeRemaining / 60);
+    const s = liveTimeRemaining % 60;
+    document.getElementById('sbTimerDisplay').textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+}
+
+function uppdateraScoreboardPoang() {
+    document.getElementById('sbHomeScore').textContent = liveHomeScore;
+    document.getElementById('sbAwayScore').textContent = liveAwayScore;
+}
+
+function andraPoang(lag, delta) {
+    if (lag === 'home') liveHomeScore = Math.max(0, liveHomeScore + delta);
+    if (lag === 'away') liveAwayScore = Math.max(0, liveAwayScore + delta);
+    uppdateraScoreboardPoang();
+}
+
+function skapaSportKnappar() {
+    const sport = tournamentState.sport || 'GENERIC';
+    const homeBox = document.getElementById('sbHomeButtons');
+    const awayBox = document.getElementById('sbAwayButtons');
+
+    let btns = [];
+    if (sport === 'BASKET') {
+        btns = [
+            { label: '+1', delta: 1, cls: 'btn-outline' },
+            { label: '+2', delta: 2, cls: 'btn-green' },
+            { label: '+3', delta: 3, cls: 'btn-gold' },
+            { label: '-1', delta: -1, cls: 'btn-red' }
+        ];
+    } else if (sport === 'BRANNBOLL') {
+        btns = [
+            { label: '+1 Lyra', delta: 1, cls: 'btn-outline' },
+            { label: '+2 Bränd', delta: 2, cls: 'btn-green' },
+            { label: '+6 Frivarv', delta: 6, cls: 'btn-gold' },
+            { label: '-1', delta: -1, cls: 'btn-red' }
+        ];
+    } else {
+        // Generic / Padel / Fotboll
+        btns = [
+            { label: '+1 Mål', delta: 1, cls: 'btn-green' },
+            { label: '-1', delta: -1, cls: 'btn-red' }
+        ];
+    }
+
+    homeBox.innerHTML = btns.map(b =>
+        `<button class="btn btn-sm ${b.cls}" onclick="andraPoang('home', ${b.delta})">${b.label}</button>`
+    ).join('');
+
+    awayBox.innerHTML = btns.map(b =>
+        `<button class="btn btn-sm ${b.cls}" onclick="andraPoang('away', ${b.delta})">${b.label}</button>`
+    ).join('');
+}
+
+function sparaOchAvslutaMatch() {
+    if (!activeScoreMatch) return;
+    if (activeScoreMatch.matchPhase !== 'GROUP' && liveHomeScore === liveAwayScore) {
+        alert('En slutspelsmatch kan inte sluta oavgjort. Registrera vinstmålet eller avgörande straff innan matchen avslutas.');
+        return;
+    }
+    activeScoreMatch.homeScore = liveHomeScore;
+    activeScoreMatch.awayScore = liveAwayScore;
+    activeScoreMatch.isFinished = true;
+
+    saveLocalTournament();
+    stangScoreboard();
+    renderaAktivVy();
+}
+
+// Syntetiserad domarvissla med Web Audio API
+function spelaVissla() {
+    try {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(2400, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(1600, audioCtx.currentTime + 0.3);
+        gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+        gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.4);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.4);
+    } catch(e) {}
+}
+
+// ==========================================
+//  UTSKRIFT / EXPORT
+// ==========================================
+function skrivUtSpelschema() {
+    window.print();
+}
+
+function exporteraCSV() {
+    if (!tournamentState.schedule || tournamentState.schedule.length === 0) return;
+
+    let csv = "ID,Fas,Starttid,Plan,Hemmalag,Bortalag,Resultat,Status\n";
+    tournamentState.schedule.forEach(m => {
+        const res = m.isFinished ? `${m.homeScore}-${m.awayScore}` : "Ej spelad";
+        const status = m.isFinished ? "Klar" : "Kommande";
+        csv += `"${m.id}","${m.matchPhase}","${m.startTime}","${m.pitch}","${m.homeTeam}","${m.awayTeam}","${res}","${status}"\n`;
+    });
+
+    const blob = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `SkolIF_Turnering_Spelschema.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+}
+
+function toggleFullscreen() {
+    if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(() => {});
+    } else {
+        if (document.exitFullscreen) document.exitFullscreen();
+    }
+}
+
+// ==========================================
+//  MODAL HELPERS
+// ==========================================
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+document.querySelectorAll('.modal-overlay').forEach(overlay => {
+    overlay.addEventListener('click', e => {
+        if (e.target === overlay) overlay.classList.remove('open');
+    });
+});
+
+function escapeHtml(str) {
+    if (!str) return '';
+    return String(str).replace(/[&<>'"]/g, tag => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
+    }[tag] || tag));
+}
+
+// ==========================================
+//  INIT
+// ==========================================
+loadLocalTournament();
+if (tournamentState.schedule && tournamentState.schedule.length > 0) {
+    visaAktivVy();
+} else {
+    visaStartVy();
+}
+</script>
 </body>
 </html>

@@ -46,8 +46,8 @@
         <a href="#" class="logo">Skol IF Appen</a>
         <div class="nav-links">
             <a href="kiosk.html">Skol IF Kassa</a>
-            <a href="#redskapsboden">Redskapsboden</a>
-            <a href="#turnering">Skapa Turnering</a>
+            <a href="redskapsboden.html">Redskapsboden</a>
+            <a href="turnering.html" id="navTurneringLink">Skapa Turnering</a>
         </div>
     </nav>
 
@@ -71,17 +71,28 @@
 </div>
 
             <!-- REDSKAPSBODEN KORTET -->
-            <div class="card" id="redskapsboden" onclick="window.location.href='redskapsboden.html'" style="cursor: pointer;">
+            <div class="card" id="redskapsboden" onclick="gaTillBod()" style="cursor: pointer;">
                 <div class="card-icon">📦</div>
                 <h3>Redskapsboden</h3>
                 <p>Håll ordning på rasternas utrustning. Registrera utlånade bollar och racketar på sekunder så att allt hittar tillbaka till boden.</p>
+                
+                <div style="margin-top: 20px;">
+                    <button id="bodBtn" onclick="klickaPaBodKnapp(event)" class="cta-button" style="width: 100%; max-width: 250px;">Logga in med Google</button>
+                    <div id="bodOfflineText" style="margin-top: 10px;">
+                        <a href="redskapsboden.html" onclick="event.stopPropagation();" style="font-size: 0.82rem; color: #2E7D32; font-weight: 600; text-decoration: underline;">Eller öppna direkt utan inloggning →</a>
+                    </div>
+                </div>
             </div>
 
             <!-- TURNERING KORTET -->
             <div class="card" id="turnering" onclick="window.location.href='turnering.html'" style="cursor: pointer;">
                 <div class="card-icon">🏆</div>
-                <h3>Skapa Turnering</h3>
-                <p>Arrangera rastturneringar utan papperskaos. Skapa spelscheman automatiskt och följ tabeller och slutspelsträd live.</p>
+                <h3 id="turneringTitel">Skapa Turnering</h3>
+                <p id="turneringDesc">Arrangera rastturneringar utan papperskaos. Skapa spelscheman automatiskt och följ tabeller och slutspelsträd live.</p>
+                
+                <div style="margin-top: 20px;">
+                    <button id="turneringBtn" onclick="event.stopPropagation(); window.location.href='turnering.html';" class="cta-button" style="width: 100%; max-width: 250px;">Skapa Turnering</button>
+                </div>
             </div>
         </section>
 
@@ -120,49 +131,126 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
-        // 1. Hela rutan leder till kiosk.html (visar landningssidan om man är utloggad)
+        // 1. Kassa-navigation
         function gaTillKiosk() {
             window.location.href = "kiosk.html";
         }
 
-        // 2. Bestämmer vad knappen gör beroende på inloggningsstatus
         function klickaPaKnapp(event) {
-            // Stoppa så att klicket på knappen inte "läcker ut" till rutan bakom
             event.stopPropagation(); 
-
             const arInloggad = document.getElementById("kioskBtn").dataset.inloggad === "true";
-            
             if (arInloggad) {
                 window.location.href = "kiosk.html";
             } else {
-                loggaInMedGoogle();
+                loggaInMedGoogle("kiosk.html");
             }
         }
 
-        // 3. Lyssna på om användaren är inloggad och uppdatera knappen
-        firebase.auth().onAuthStateChanged((user) => {
-            const btn = document.getElementById("kioskBtn");
-            if (user) {
-                btn.innerText = "Öppna Kassan";
-                btn.dataset.inloggad = "true";
+        // 2. Redskapsboden-navigation
+        function gaTillBod() {
+            window.location.href = "redskapsboden.html";
+        }
+
+        function klickaPaBodKnapp(event) {
+            event.stopPropagation();
+            const arInloggad = document.getElementById("bodBtn").dataset.inloggad === "true";
+            if (arInloggad) {
+                window.location.href = "redskapsboden.html";
             } else {
-                btn.innerText = "Logga in med Google";
-                btn.dataset.inloggad = "false";
+                loggaInMedGoogle("redskapsboden.html");
+            }
+        }
+
+        // 3. Lyssna på inloggningsstatus och uppdatera knapparna
+        firebase.auth().onAuthStateChanged((user) => {
+            const kioskBtn = document.getElementById("kioskBtn");
+            const bodBtn = document.getElementById("bodBtn");
+            const bodOfflineText = document.getElementById("bodOfflineText");
+
+            if (user) {
+                if (kioskBtn) {
+                    kioskBtn.innerText = "Öppna Kassan";
+                    kioskBtn.dataset.inloggad = "true";
+                }
+                if (bodBtn) {
+                    bodBtn.innerText = "Öppna Redskapsboden";
+                    bodBtn.dataset.inloggad = "true";
+                }
+                if (bodOfflineText) {
+                    bodOfflineText.style.display = "none";
+                }
+            } else {
+                if (kioskBtn) {
+                    kioskBtn.innerText = "Logga in med Google";
+                    kioskBtn.dataset.inloggad = "false";
+                }
+                if (bodBtn) {
+                    bodBtn.innerText = "Logga in med Google";
+                    bodBtn.dataset.inloggad = "false";
+                }
+                if (bodOfflineText) {
+                    bodOfflineText.style.display = "block";
+                }
             }
         });
 
-        // 4. Vanlig Google-inloggning
-        function loggaInMedGoogle() {
+        // 4. Google-inloggning med destination
+        let isLoggingIn = false;
+        function loggaInMedGoogle(destination = "kiosk.html") {
+            if (isLoggingIn) return;
+            isLoggingIn = true;
             const provider = new firebase.auth.GoogleAuthProvider();
             firebase.auth().signInWithPopup(provider)
                 .then((result) => {
-                    window.location.href = "kiosk.html";
+                    window.location.href = destination;
                 })
                 .catch((error) => {
-                    console.error("Fel vid inloggning:", error);
-                    alert("Det gick inte att logga in. Kontrollera popup-blockerare.");
+                    if (error.code !== 'auth/cancelled-popup-request') {
+                        console.error("Fel vid inloggning:", error);
+                        alert("Det gick inte att logga in. Kontrollera popup-blockerare.");
+                    }
+                })
+                .finally(() => {
+                    isLoggingIn = false;
                 });
         }
+
+        // 5. Uppdatera status för Turnering (Skapa Turnering vs Öppna Turnering)
+        function uppdateraTurneringStatus() {
+            const btn = document.getElementById("turneringBtn");
+            const titel = document.getElementById("turneringTitel");
+            const navLink = document.getElementById("navTurneringLink");
+            const desc = document.getElementById("turneringDesc");
+            if (!btn) return;
+
+            try {
+                const raw = localStorage.getItem('skolif_turnering_data');
+                if (raw) {
+                    const data = JSON.parse(raw);
+                    if (data && data.schedule && data.schedule.length > 0) {
+                        btn.innerText = "Öppna Turnering";
+                        if (titel) titel.innerText = "Pågående Turnering";
+                        if (navLink) navLink.innerText = "Pågående Turnering";
+                        if (desc) {
+                            const lagAntal = (data.groups || []).reduce((acc, g) => acc + (g.teams || []).length, 0);
+                            desc.innerText = `Du har en pågående turnering${lagAntal > 0 ? ` med ${lagAntal} lag` : ''}. Klicka för att återgå till spelschema, tabeller och resultat.`;
+                        }
+                        return;
+                    }
+                }
+            } catch(e) {}
+
+            btn.innerText = "Skapa Turnering";
+            if (titel) titel.innerText = "Skapa Turnering";
+            if (navLink) navLink.innerText = "Skapa Turnering";
+            if (desc) {
+                desc.innerText = "Arrangera rastturneringar utan papperskaos. Skapa spelscheman automatiskt och följ tabeller och slutspelsträd live.";
+            }
+        }
+
+        uppdateraTurneringStatus();
+        window.addEventListener('focus', uppdateraTurneringStatus);
+        window.addEventListener('pageshow', uppdateraTurneringStatus);
     </script>
 </body>
 </html>

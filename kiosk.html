@@ -224,10 +224,13 @@
             <div class="header-section">
                 <div>
                     <h2>Kassavy & Saldon</h2>
-                    <p style="color: #666; font-size: 0.9rem;">Ansluten via Google-konto</p>
+                    <p id="kassaStatusText" style="color: #666; font-size: 0.9rem;">Ansluten via Google-konto</p>
                 </div>
                 <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 8px;">
-                    <button onclick="loggaUt()" class="logout-btn">Logga ut</button>
+                    <div style="display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end;">
+                        <button onclick="oppnaDelaKassaModal()" style="background: #1976D2; color: white; border: none; padding: 7px 14px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 5px;">👥 Behöriga kollegor</button>
+                        <button onclick="loggaUt()" class="logout-btn">Logga ut</button>
+                    </div>
                     <div id="anvandareEmail" class="badge">Inloggad</div>
                 </div>
             </div>
@@ -549,6 +552,32 @@
         </div>
     </div>
 
+    <!-- MODAL FÖR BEHÖRIGA KOLLEGOR / DELA KASSA -->
+    <div id="delaKassaModal" class="modal-overlay" style="z-index: 1100;">
+        <div class="modal-content" style="max-width: 480px; padding: 25px 30px;">
+            <button class="close-btn" onclick="stangDelaKassaModal()">✕</button>
+            <div class="modal-header" style="margin-bottom: 16px;">
+                <div class="modal-title">
+                    <h3 style="display: flex; align-items: center; gap: 8px;">👥 Behöriga kollegor</h3>
+                </div>
+            </div>
+
+            <p style="font-size: 0.88rem; color: #555; margin-bottom: 16px; line-height: 1.5;">
+                Lägg till dina kollegors Gmail-adresser. När de loggar in i Android-appen eller på webben får de direkt tillgång till denna kassa och alla köp och saldon synkas i realtid!
+            </p>
+
+            <div style="display: flex; gap: 8px; margin-bottom: 20px;">
+                <input type="text" id="kassaBjudEmail" class="custom-input" placeholder="kollega@gmail.com" style="flex: 1;" onkeydown="if(event.key==='Enter') laggTillBehorigKassa()">
+                <button type="button" onclick="laggTillBehorigKassa()" class="btn-insattning" style="padding: 10px 16px; border-radius: 10px; white-space: nowrap;">+ Lägg till</button>
+            </div>
+
+            <div style="font-weight: 700; font-size: 0.9rem; color: #333; margin-bottom: 8px;">Användare med behörighet:</div>
+            <div id="kassaBehorigaLista" style="font-size: 0.85rem; color: #555; max-height: 200px; overflow-y: auto;">
+                <em>Laddar behörigheter...</em>
+            </div>
+        </div>
+    </div>
+
     <!-- Firebase SDK v8 (App, Auth, Firestore) -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
@@ -570,6 +599,8 @@
         const db = firebase.firestore();
 
         let aktivUserId = null;
+        let kassaDocData = null;
+        let liveKassaListener = null;
         let allaEleverCache = [];
         let allaVarorCache = [];
         let allaTransaktionerCache = [];
@@ -577,18 +608,117 @@
         let aktivElevId = null;
 
         // Lyssna på inloggningsstatus
-        auth.onAuthStateChanged((user) => {
+        auth.onAuthStateChanged(async (user) => {
             if (user) {
-                aktivUserId = user.uid;
                 document.getElementById("loginView").style.display = "none";
                 document.getElementById("kioskView").style.display = "block";
-                document.getElementById("anvandareEmail").innerText = user.email;
-                startaLiveLyssnare(user.uid);
+                document.getElementById("anvandareEmail").innerText = user.email || "";
+                await initKassaForUser(user);
             } else {
+                if (liveKassaListener) {
+                    liveKassaListener();
+                    liveKassaListener = null;
+                }
+                aktivUserId = null;
+                kassaDocData = null;
+                allaEleverCache = [];
+                allaVarorCache = [];
+                allaTransaktionerCache = [];
+                aktivElevId = null;
+
                 document.getElementById("loginView").style.display = "flex";
                 document.getElementById("kioskView").style.display = "none";
+                document.getElementById("varorLista").innerHTML = "";
+                document.getElementById("elevLista").innerHTML = "";
+                const statusEl = document.getElementById("kassaStatusText");
+                if (statusEl) statusEl.innerText = "Ansluten via Google-konto";
             }
         });
+
+        async function initKassaForUser(user) {
+            const userEmail = (user.email || "").trim().toLowerCase();
+            const statusEl = document.getElementById("kassaStatusText");
+            if (statusEl) statusEl.innerHTML = `🔄 Ansluter till kassan...`;
+
+            if (!userEmail) {
+                // Fallback om e-post saknas
+                aktivUserId = user.uid;
+                startaLiveLyssnare(user.uid);
+                return;
+            }
+
+            try {
+                // 1. Kolla om det redan finns en kassa kopplad direkt till e-postadressen
+                const egenRef = db.collection("skolif_kassa").doc(userEmail);
+                const egenSnap = await egenRef.get();
+
+                if (egenSnap.exists) {
+                    aktivUserId = userEmail;
+                    startaLiveLyssnare(userEmail);
+                    return;
+                }
+
+                // 2. Om inte: kolla om det finns en gammal kassa under user.uid (automatisk migrering)
+                if (user.uid) {
+                    try {
+                        const gammalRef = db.collection("skolif_kassa").doc(user.uid);
+                        const gammalSnap = await gammalRef.get();
+                        if (gammalSnap.exists) {
+                            const gammalData = gammalSnap.data() || {};
+                            const migreradData = {
+                                kassaId: userEmail,
+                                namn: gammalData.namn || `Skol-IF Kassa (${userEmail})`,
+                                skapare: userEmail,
+                                behoriga_anvandare: [userEmail],
+                                elever: gammalData.elever || "[]",
+                                varor: gammalData.varor || "[]",
+                                transaktioner: gammalData.transaktioner || "[]",
+                                senastUppdaterad: Date.now()
+                            };
+                            await egenRef.set(migreradData);
+                            console.log("Kassa auto-migrerades från uid till email:", userEmail);
+                            aktivUserId = userEmail;
+                            startaLiveLyssnare(userEmail);
+                            return;
+                        }
+                    } catch (migrErr) {
+                        console.warn("Kunde inte kontrollera äldre kassa (uid):", migrErr);
+                    }
+                }
+
+                // 3. Kolla om användaren har bjudits in till en kollegas kassa
+                const q = db.collection("skolif_kassa").where("behoriga_anvandare", "array-contains", userEmail);
+                const deladeSnap = await q.get();
+
+                if (!deladeSnap.empty) {
+                    const kollegaDoc = deladeSnap.docs[0];
+                    const kollegaDocId = kollegaDoc.id;
+                    aktivUserId = kollegaDocId;
+                    startaLiveLyssnare(kollegaDocId);
+                    return;
+                }
+
+                // 4. Ingen kassa fanns – skapa en ny tom kassa kopplad till e-postadressen
+                const nyKassa = {
+                    kassaId: userEmail,
+                    namn: `Skol-IF Kassa (${userEmail})`,
+                    skapare: userEmail,
+                    behoriga_anvandare: [userEmail],
+                    elever: "[]",
+                    varor: "[]",
+                    transaktioner: "[]",
+                    senastUppdaterad: Date.now()
+                };
+                await egenRef.set(nyKassa);
+                aktivUserId = userEmail;
+                startaLiveLyssnare(userEmail);
+
+            } catch (err) {
+                console.error("Fel vid initKassaForUser:", err);
+                aktivUserId = userEmail || user.uid;
+                startaLiveLyssnare(aktivUserId);
+            }
+        }
 
         function loggaInMedGoogle() {
             const provider = new firebase.auth.GoogleAuthProvider();
@@ -600,7 +730,13 @@
 
         function loggaUt() {
             if (confirm("Är du säker på att du vill logga ut?")) {
+                if (liveKassaListener) {
+                    liveKassaListener();
+                    liveKassaListener = null;
+                }
                 auth.signOut().then(() => {
+                    aktivUserId = null;
+                    kassaDocData = null;
                     allaEleverCache = [];
                     allaVarorCache = [];
                     allaTransaktionerCache = [];
@@ -613,13 +749,40 @@
             }
         }
 
-        function startaLiveLyssnare(uid) {
-            db.collection("skolif_kassa").doc(uid).onSnapshot((doc) => {
+        function startaLiveLyssnare(docId) {
+            if (liveKassaListener) {
+                liveKassaListener();
+                liveKassaListener = null;
+            }
+
+            liveKassaListener = db.collection("skolif_kassa").doc(docId).onSnapshot((doc) => {
                 if (doc.exists) {
-                    const data = doc.data();
+                    const data = doc.data() || {};
+                    kassaDocData = data;
+
+                    // Säkerställ behörighetsfält
+                    if (!Array.isArray(kassaDocData.behoriga_anvandare)) {
+                        kassaDocData.behoriga_anvandare = [docId];
+                    }
+                    if (!kassaDocData.skapare) {
+                        kassaDocData.skapare = docId;
+                    }
+
                     allaEleverCache = JSON.parse(data.elever || "[]");
                     allaVarorCache = JSON.parse(data.varor || "[]");
                     allaTransaktionerCache = JSON.parse(data.transaktioner || "[]");
+
+                    // Uppdatera header-status
+                    const statusEl = document.getElementById("kassaStatusText");
+                    if (statusEl) {
+                        const currentUserEmail = (auth.currentUser && auth.currentUser.email) ? auth.currentUser.email.toLowerCase() : "";
+                        if (docId === currentUserEmail) {
+                            statusEl.innerHTML = `☁️ Synkad i realtid &bull; Egen kassa`;
+                        } else {
+                            const skapare = kassaDocData.skapare || docId;
+                            statusEl.innerHTML = `☁️ Synkad i realtid &bull; Delad kassa från <strong>${skapare}</strong>`;
+                        }
+                    }
 
                     uppdateraStatistik(allaEleverCache);
                     visaVaror(allaVarorCache);
@@ -633,8 +796,128 @@
                             ritaUppHistorik();
                         }
                     }
+
+                    renderaBehorigaKassaLista();
                 }
+            }, (error) => {
+                console.error("Fel i live-lyssnare:", error);
             });
+        }
+
+        // ==========================================
+        //  HANTERING AV BEHÖRIGA KOLLEGOR
+        // ==========================================
+        function oppnaDelaKassaModal() {
+            renderaBehorigaKassaLista();
+            document.getElementById("delaKassaModal").style.display = "flex";
+        }
+
+        function stangDelaKassaModal() {
+            document.getElementById("delaKassaModal").style.display = "none";
+            const input = document.getElementById("kassaBjudEmail");
+            if (input) input.value = "";
+        }
+
+        function renderaBehorigaKassaLista() {
+            const container = document.getElementById("kassaBehorigaLista");
+            if (!container) return;
+
+            const behoriga = (kassaDocData && Array.isArray(kassaDocData.behoriga_anvandare))
+                ? kassaDocData.behoriga_anvandare
+                : (aktivUserId ? [aktivUserId] : []);
+
+            if (behoriga.length === 0) {
+                container.innerHTML = '<div style="color: #888; font-style: italic;">Inga behöriga inlästa än.</div>';
+                return;
+            }
+
+            const skapare = (kassaDocData && kassaDocData.skapare) ? kassaDocData.skapare.toLowerCase() : (aktivUserId || "").toLowerCase();
+            const currentUserEmail = (auth.currentUser && auth.currentUser.email) ? auth.currentUser.email.toLowerCase() : "";
+
+            let html = '<ul style="list-style: none; padding: 0; margin: 0;">';
+            behoriga.forEach(email => {
+                const emClean = (email || "").trim().toLowerCase();
+                const isCreator = (emClean === skapare);
+                const isSelf = (emClean === currentUserEmail);
+
+                html += `
+                    <li style="display: flex; justify-content: space-between; align-items: center; padding: 8px 10px; border-bottom: 1px solid #F0F0F0; border-radius: 6px; margin-bottom: 4px; background: #FAFAFA;">
+                        <span>
+                            👤 <strong>${escapeHtmlKassa(email)}</strong>
+                            ${isCreator ? '<span style="color: #1976D2; font-size: 0.75rem; margin-left: 6px; font-weight: 700;">(Ägare)</span>' : ''}
+                            ${isSelf ? '<span style="color: #2E7D32; font-size: 0.75rem; margin-left: 6px; font-weight: 700;">(Du)</span>' : ''}
+                        </span>
+                        ${!isCreator && (isCreatorUser() || isSelf) ? `
+                            <button type="button" onclick="taBortBehorigKassa('${escapeHtmlKassa(email)}')" style="background: #FFEBEE; color: #C62828; border: 1px solid #FFCDD2; border-radius: 6px; padding: 4px 10px; font-size: 0.75rem; font-weight: 700; cursor: pointer; transition: 0.2s;" onmouseover="this.style.background='#FFCDD2'" onmouseout="this.style.background='#FFEBEE'">Ta bort</button>
+                        ` : ''}
+                    </li>
+                `;
+            });
+            html += '</ul>';
+            container.innerHTML = html;
+        }
+
+        function isCreatorUser() {
+            if (!auth.currentUser || !auth.currentUser.email) return false;
+            const current = auth.currentUser.email.toLowerCase();
+            const skapare = (kassaDocData && kassaDocData.skapare) ? kassaDocData.skapare.toLowerCase() : (aktivUserId || "").toLowerCase();
+            return current === skapare;
+        }
+
+        async function laggTillBehorigKassa() {
+            const input = document.getElementById("kassaBjudEmail");
+            if (!input) return;
+            const email = input.value.trim().toLowerCase();
+
+            if (!email || !email.includes("@")) {
+                alert("Ange en giltig Gmail-adress!");
+                return;
+            }
+
+            if (!aktivUserId) {
+                alert("Ingen kassa är aktiv just nu.");
+                return;
+            }
+
+            try {
+                await db.collection("skolif_kassa").doc(aktivUserId).set({
+                    behoriga_anvandare: firebase.firestore.FieldValue.arrayUnion(email),
+                    senastUppdaterad: Date.now()
+                }, { merge: true });
+
+                input.value = "";
+                visaSaldoVarning(`✅ ${email} har lagts till som behörig!`);
+            } catch (err) {
+                console.error("Kunde inte lägga till behörig:", err);
+                alert("Kunde inte lägga till behörig: " + err.message);
+            }
+        }
+
+        async function taBortBehorigKassa(email) {
+            if (!confirm(`Vill du ta bort behörigheten för ${email}?`)) return;
+            if (!aktivUserId) return;
+
+            try {
+                await db.collection("skolif_kassa").doc(aktivUserId).set({
+                    behoriga_anvandare: firebase.firestore.FieldValue.arrayRemove(email),
+                    senastUppdaterad: Date.now()
+                }, { merge: true });
+
+                visaSaldoVarning(`🗑️ Behörighet borttagen för ${email}`);
+            } catch (err) {
+                console.error("Kunde inte ta bort behörig:", err);
+                alert("Kunde inte ta bort behörig: " + err.message);
+            }
+        }
+
+        function escapeHtmlKassa(text) {
+            if (!text) return "";
+            return text.toString()
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
         }
 
         function oppnaAdminModal() {
