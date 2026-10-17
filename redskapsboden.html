@@ -93,6 +93,72 @@
         }
         .tab-btn.active { color: #2E7D32; border-bottom-color: #4CAF50; }
 
+        /* ====== BODEN LAYOUT (ARTIKLAR & UTLÅNINGAR SAMLADE) ====== */
+        .boden-layout {
+            display: grid;
+            grid-template-columns: 1fr 380px;
+            gap: 24px;
+            align-items: start;
+            margin-bottom: 30px;
+        }
+        @media (max-width: 1024px) {
+            .boden-layout { grid-template-columns: 1fr 340px; gap: 18px; }
+        }
+        @media (max-width: 820px) {
+            .boden-layout { grid-template-columns: 1fr; gap: 20px; }
+        }
+        .boden-sidebar {
+            background: #FAFCFA;
+            border: 2px solid #E8F5E9;
+            border-radius: 16px;
+            padding: 18px;
+            position: sticky;
+            top: 20px;
+            max-height: calc(100vh - 40px);
+            overflow-y: auto;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+        }
+        .badge-count {
+            background: #E65100;
+            color: white;
+            font-size: 0.75rem;
+            font-weight: 700;
+            padding: 2px 8px;
+            border-radius: 12px;
+            display: inline-block;
+        }
+
+        /* ====== MOBIL-SUBTABS ====== */
+        .mobile-subtabs {
+            display: none;
+            gap: 8px;
+            margin-bottom: 16px;
+            background: #E8F5E9;
+            padding: 4px;
+            border-radius: 12px;
+        }
+        @media (max-width: 820px) {
+            .mobile-subtabs { display: flex; }
+        }
+        .subtab-btn {
+            flex: 1;
+            padding: 9px 12px;
+            border: none;
+            background: transparent;
+            font-weight: 700;
+            font-size: 0.85rem;
+            border-radius: 8px;
+            cursor: pointer;
+            color: #2E7D32;
+            transition: all 0.2s;
+            font-family: 'Poppins', sans-serif;
+        }
+        .subtab-btn.active {
+            background: white;
+            color: #1E3A24;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+        }
+
         /* ====== ARTIKLAR ====== */
         .artiklar-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 14px; margin-bottom: 25px; }
         .artikel-card {
@@ -102,7 +168,7 @@
         }
         .artikel-card:hover { border-color: #4CAF50; transform: translateY(-2px); box-shadow: 0 6px 20px rgba(76,175,80,0.15); }
         .artikel-card.utlånad { border-color: #FF9800; background: #FFFDF9; }
-        .artikel-card.slut { border-color: #E0E0E0; background: #F9F9F9; opacity: 0.8; }
+        .artikel-card.slut { border-color: #E0E0E0; background: #F9F9F9; opacity: 0.85; }
         .artikel-emoji { font-size: 2.2rem; margin-bottom: 6px; }
         .artikel-namn { font-weight: 700; font-size: 0.95rem; color: #333; }
         .artikel-antal {
@@ -117,18 +183,81 @@
         }
         .artikel-edit-btn:hover { opacity: 1; }
 
-        /* ====== UTLÅNINGAR ====== */
-        .utlaningar-list { display: flex; flex-direction: column; gap: 10px; }
-        .utlaning-card {
-            background: white; padding: 16px 20px; border-radius: 14px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.04); display: flex;
-            justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;
-            border-left: 5px solid #FF9800;
+        /* Snabbknappar på kort */
+        .btn-quick-loan {
+            width: 100%;
+            margin-top: 10px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 6px 10px;
+            font-size: 0.82rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
         }
-        .utlaning-info { flex: 1; min-width: 150px; }
-        .utlaning-namn { font-weight: 700; font-size: 1.05rem; }
-        .utlaning-detalj { font-size: 0.85rem; color: #555; margin-top: 3px; font-weight: 600; }
-        .utlaning-artikelnamn { color: #2E7D32; font-size: 0.82rem; }
+        .btn-quick-loan:hover { background: #388E3C; }
+        .btn-quick-loan:disabled { background: #E0E0E0; color: #888; cursor: not-allowed; }
+
+        .card-lan-box {
+            margin-top: 10px;
+            padding-top: 8px;
+            border-top: 1px dashed #E0E0E0;
+            text-align: left;
+        }
+        .card-lan-header {
+            font-size: 0.72rem;
+            font-weight: 700;
+            color: #E65100;
+            text-transform: uppercase;
+            margin-bottom: 5px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .card-lan-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #FFF8E1;
+            border: 1px solid #FFE082;
+            padding: 4px 8px;
+            border-radius: 6px;
+            margin-bottom: 4px;
+            font-size: 0.76rem;
+            color: #333;
+        }
+        .btn-quick-return {
+            background: #2E7D32;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            padding: 2px 7px;
+            font-size: 0.72rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background 0.2s;
+            white-space: nowrap;
+        }
+        .btn-quick-return:hover { background: #1B5E20; }
+
+        /* ====== UTLÅNINGAR ====== */
+        .utlaningar-list { display: flex; flex-direction: column; gap: 8px; }
+        .utlaning-card {
+            background: white; padding: 12px 14px; border-radius: 12px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.03); display: flex;
+            justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;
+            border-left: 5px solid #FF9800; border: 1px solid #F0F0F0; border-left: 5px solid #FF9800;
+        }
+        .utlaning-info { flex: 1; min-width: 140px; }
+        .utlaning-namn { font-weight: 700; font-size: 0.95rem; }
+        .utlaning-detalj { font-size: 0.82rem; color: #555; margin-top: 2px; }
+        .utlaning-artikelnamn { color: #2E7D32; font-weight: 600; }
 
         /* ====== MODALS ====== */
         .modal-overlay {
@@ -273,35 +402,66 @@
 
     <!-- Tabs -->
     <div class="tabs">
-        <button class="tab-btn active" onclick="switchTab('artiklar', this)">📦 Artiklar</button>
-        <button class="tab-btn" onclick="switchTab('utlaningar', this)">🔄 Utlånade</button>
+        <button class="tab-btn active" onclick="switchTab('boden', this)">📦 Boden & Utlåningar</button>
         <button class="tab-btn" onclick="switchTab('historik', this)">📋 Historik</button>
     </div>
 
-    <!-- TAB: ARTIKLAR -->
-    <div id="tab-artiklar">
-        <div class="section-header">
-            <span class="section-title">Alla artiklar</span>
-            <button class="btn btn-green" onclick="openNyArtikelModal()">+ Ny artikel</button>
+    <!-- TAB: BODEN (ARTIKLAR & UTLÅNINGAR SAMLADE) -->
+    <div id="tab-boden">
+        <!-- Mobil-subtabs för snabbväxling på små skärmar -->
+        <div class="mobile-subtabs">
+            <button id="subtabBtnArtiklar" class="subtab-btn active" onclick="switchMobileSubtab('artiklar')">
+                📦 Artiklar (<span id="countArtiklarMobile">0</span>)
+            </button>
+            <button id="subtabBtnUtlanade" class="subtab-btn" onclick="switchMobileSubtab('utlanade')">
+                🔄 Utlånade (<span id="countUtlanadeMobile">0</span>)
+            </button>
         </div>
-        <div class="artiklar-grid" id="artiklarGrid">
-            <div class="empty-state" style="grid-column:1/-1;">
-                <div class="empty-icon">📦</div>
-                <p>Inga artiklar ännu.<br>Lägg till din första artikel!</p>
-            </div>
-        </div>
-    </div>
 
-    <!-- TAB: UTLÅNADE -->
-    <div id="tab-utlaningar" style="display:none;">
-        <div class="section-header">
-            <span class="section-title">Aktiva utlåningar</span>
-            <button class="btn btn-green" onclick="openLanaModal()">+ Registrera utlåning</button>
-        </div>
-        <div class="utlaningar-list" id="utlaningarList">
-            <div class="empty-state">
-                <div class="empty-icon">✅</div>
-                <p>Inga aktiva utlåningar just nu.</p>
+        <div class="boden-layout">
+            <!-- Vänster sektion: Artiklar i boden -->
+            <div class="boden-main" id="sektionArtiklar">
+                <div class="section-header">
+                    <div>
+                        <span class="section-title">Artiklar i boden</span>
+                        <div style="font-size:0.78rem; color:#666; margin-top:2px;">Klicka på en artikel för att låna ut</div>
+                    </div>
+                    <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                        <input type="text" id="artikelSokInput" placeholder="🔍 Sök artikel..." oninput="filtreraArtiklar()" style="padding: 7px 12px; font-size: 0.85rem; border-radius: 8px; width: 160px;">
+                        <button class="btn btn-green btn-sm" onclick="openNyArtikelModal()">+ Ny artikel</button>
+                    </div>
+                </div>
+
+                <div class="artiklar-grid" id="artiklarGrid">
+                    <div class="empty-state" style="grid-column:1/-1;">
+                        <div class="empty-icon">📦</div>
+                        <p>Inga artiklar ännu.<br>Lägg till din första artikel!</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Höger sektion: Aktiva utlåningar (Alltid synlig i split-vy på dator/platta) -->
+            <div class="boden-sidebar" id="sektionUtlanade">
+                <div class="section-header" style="margin-bottom: 10px;">
+                    <div>
+                        <span class="section-title" style="font-size: 1.05rem; display: flex; align-items: center; gap: 8px;">
+                            🔄 Just nu utlånade
+                            <span id="utlanadeBadge" class="badge-count">0</span>
+                        </span>
+                        <div style="font-size:0.75rem; color:#666; margin-top:2px;">Klicka "Återlämnad" när prylen lämnas in</div>
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 12px;">
+                    <input type="text" id="utlaningSokInput" placeholder="🔍 Sök lånare (namn/klass)..." oninput="renderUtlaningar()" style="padding: 7px 10px; font-size: 0.82rem; border-radius: 8px; width: 100%;">
+                </div>
+
+                <div class="utlaningar-list" id="utlaningarList">
+                    <div class="empty-state" style="padding: 25px 10px;">
+                        <div class="empty-icon" style="font-size: 2rem;">✅</div>
+                        <p style="font-size: 0.88rem;">Inga aktiva utlåningar just nu.<br>All utrustning finns i boden!</p>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -357,11 +517,11 @@
         </div>
         <div class="form-group">
             <label>Låntagare (namn / klass)</label>
-            <input type="text" id="lanarnamn" placeholder="T.ex. Kalle / 7A">
+            <input type="text" id="lanarnamn" placeholder="T.ex. Kalle / 7A" onkeydown="if(event.key==='Enter') sparaUtlaning()">
         </div>
         <div class="form-group">
             <label>Antal st att låna ut</label>
-            <input type="number" id="lanaAntal" min="1" value="1">
+            <input type="number" id="lanaAntal" min="1" value="1" onkeydown="if(event.key==='Enter') sparaUtlaning()">
         </div>
         <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:20px;">
             <button class="btn btn-outline" onclick="closeModal('lanaModal')">Avbryt</button>
@@ -867,6 +1027,10 @@ function openLanaModal(artikelId) {
     document.getElementById('lanarnamn').value = '';
     document.getElementById('lanaAntal').value = '1';
     openModal('lanaModal');
+    setTimeout(() => {
+        const input = document.getElementById('lanarnamn');
+        if (input) input.focus();
+    }, 120);
 }
 
 async function sparaUtlaning() {
@@ -1000,17 +1164,58 @@ function renderAll() {
     renderHistorik();
 }
 
+let aktivMobilSubtab = 'artiklar';
+
+function switchMobileSubtab(subtab) {
+    aktivMobilSubtab = subtab;
+    const sekArt = document.getElementById('sektionArtiklar');
+    const sekUtl = document.getElementById('sektionUtlanade');
+    const btnArt = document.getElementById('subtabBtnArtiklar');
+    const btnUtl = document.getElementById('subtabBtnUtlanade');
+
+    if (window.innerWidth <= 820) {
+        if (subtab === 'artiklar') {
+            if (sekArt) sekArt.style.display = 'block';
+            if (sekUtl) sekUtl.style.display = 'none';
+            if (btnArt) btnArt.classList.add('active');
+            if (btnUtl) btnUtl.classList.remove('active');
+        } else {
+            if (sekArt) sekArt.style.display = 'none';
+            if (sekUtl) sekUtl.style.display = 'block';
+            if (btnArt) btnArt.classList.remove('active');
+            if (btnUtl) btnUtl.classList.add('active');
+        }
+    } else {
+        if (sekArt) sekArt.style.display = 'block';
+        if (sekUtl) sekUtl.style.display = 'block';
+    }
+}
+
+window.addEventListener('resize', () => {
+    const sekArt = document.getElementById('sektionArtiklar');
+    const sekUtl = document.getElementById('sektionUtlanade');
+    if (!sekArt || !sekUtl) return;
+    if (window.innerWidth > 820) {
+        sekArt.style.display = 'block';
+        sekUtl.style.display = 'block';
+    } else {
+        switchMobileSubtab(aktivMobilSubtab);
+    }
+});
+
 function renderStats() {
     const totArtiklar = artiklar.length;
     let totUtlanade = 0;
     let totTillgangliga = 0;
     const unikaLanare = new Set();
+    let aktivaLanAntal = 0;
 
     artiklar.forEach(a => {
         const lanArray = Array.isArray(a.lan) ? a.lan : [];
         const utlanat = lanArray.reduce((s, l) => s + (l.antal || 0), 0);
         totUtlanade += utlanat;
         totTillgangliga += Math.max(0, (a.totaltAntal || 0) - utlanat);
+        aktivaLanAntal += lanArray.length;
         lanArray.forEach(l => {
             if (l.namn) unikaLanare.add(l.namn.trim().toLowerCase());
         });
@@ -1020,19 +1225,39 @@ function renderStats() {
     document.getElementById('statUtlanade').textContent = totUtlanade;
     document.getElementById('statTillgangliga').textContent = totTillgangliga;
     document.getElementById('statLanare').textContent = unikaLanare.size;
+
+    const countArtMob = document.getElementById('countArtiklarMobile');
+    if (countArtMob) countArtMob.textContent = totArtiklar;
+    const countUtlMob = document.getElementById('countUtlanadeMobile');
+    if (countUtlMob) countUtlMob.textContent = aktivaLanAntal;
+    const badgeSidebar = document.getElementById('utlanadeBadge');
+    if (badgeSidebar) badgeSidebar.textContent = aktivaLanAntal;
+}
+
+function filtreraArtiklar() {
+    renderArtiklar();
 }
 
 function renderArtiklar() {
     const grid = document.getElementById('artiklarGrid');
-    if (!artiklar.length) {
-        grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1;">
+    if (!grid) return;
+
+    const sokTerm = (document.getElementById('artikelSokInput')?.value || '').trim().toLowerCase();
+
+    const filtrerade = artiklar.filter(a => {
+        if (!sokTerm) return true;
+        return (a.namn && a.namn.toLowerCase().includes(sokTerm));
+    });
+
+    if (!filtrerade.length) {
+        grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1; padding: 35px 15px;">
             <div class="empty-icon">📦</div>
-            <p>Inga artiklar i boden ännu.<br>Klicka på "+ Ny artikel" för att lägga till!</p>
+            <p>${sokTerm ? 'Inga artiklar matchade sökningen.' : 'Inga artiklar i boden ännu.<br>Klicka på "+ Ny artikel" för att lägga till!'}</p>
         </div>`;
         return;
     }
 
-    grid.innerHTML = artiklar.map(a => {
+    grid.innerHTML = filtrerade.map(a => {
         const lanArray = Array.isArray(a.lan) ? a.lan : [];
         const utlanat = lanArray.reduce((s, l) => s + (l.antal || 0), 0);
         const kvar = Math.max(0, (a.totaltAntal || 0) - utlanat);
@@ -1045,38 +1270,70 @@ function renderArtiklar() {
         if (utlanat > 0) cardKlass = 'utlånad';
         if (kvar === 0 && (a.totaltAntal || 0) > 0) cardKlass = 'slut';
 
-        return `<div class="artikel-card ${cardKlass}" onclick="openLanaModal(${typeof a.id === 'string' ? `'${a.id}'` : a.id})">
-            <button class="artikel-edit-btn" title="Redigera" onclick="event.stopPropagation(); openRedigeraArtikelModal(${typeof a.id === 'string' ? `'${a.id}'` : a.id})">✏️</button>
+        const idArt = typeof a.id === 'string' ? `'${a.id}'` : a.id;
+
+        // Om artikeln har utlånade saker, visa dem direkt på kortet med snabbknapp för återlämning!
+        let lanHtml = '';
+        if (lanArray.length > 0) {
+            lanHtml = `
+            <div class="card-lan-box">
+                <div class="card-lan-header">🔄 Utlånade nu:</div>
+                ${lanArray.map(l => `
+                    <div class="card-lan-item">
+                        <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:130px;" title="${escapeHtml(l.namn)}">
+                            👤 <strong>${escapeHtml(l.namn)}</strong> (${l.antal} st)
+                        </span>
+                        <button class="btn-quick-return" onclick="event.stopPropagation(); aterlamnaHelaLanet(${idArt}, '${l.id}')" title="Återlämna ${escapeHtml(l.namn)}s lån direkt">✅ Åter</button>
+                    </div>
+                `).join('')}
+            </div>`;
+        }
+
+        return `
+        <div class="artikel-card ${cardKlass}" onclick="openLanaModal(${idArt})">
+            <button class="artikel-edit-btn" title="Redigera" onclick="event.stopPropagation(); openRedigeraArtikelModal(${idArt})">✏️</button>
             <div class="artikel-emoji">📦</div>
             <div class="artikel-namn">${escapeHtml(a.namn)}</div>
             <div class="artikel-antal ${antalKlass}">${kvar} / ${a.totaltAntal} kvar</div>
-            ${utlanat > 0 ? `<div style="font-size:0.75rem; color:#E65100; margin-top:5px; font-weight:600;">🔄 ${utlanat} st utlånad</div>` : ''}
+
+            <button class="btn-quick-loan" ${kvar <= 0 ? 'disabled' : ''} onclick="event.stopPropagation(); openLanaModal(${idArt})">
+                ${kvar <= 0 ? 'Slut i boden' : '+ Låna ut'}
+            </button>
+
+            ${lanHtml}
         </div>`;
     }).join('');
 }
 
 function renderUtlaningar() {
     const lista = document.getElementById('utlaningarList');
+    if (!lista) return;
+
+    const sokTerm = (document.getElementById('utlaningSokInput')?.value || '').trim().toLowerCase();
     const allaLan = [];
 
     artiklar.forEach(a => {
         if (Array.isArray(a.lan)) {
             a.lan.forEach(l => {
-                allaLan.push({
-                    artikelId: a.id,
-                    artikelNamn: a.namn,
-                    lanId: l.id,
-                    namn: l.namn,
-                    antal: l.antal
-                });
+                const matchNamn = l.namn && l.namn.toLowerCase().includes(sokTerm);
+                const matchArt = a.namn && a.namn.toLowerCase().includes(sokTerm);
+                if (!sokTerm || matchNamn || matchArt) {
+                    allaLan.push({
+                        artikelId: a.id,
+                        artikelNamn: a.namn,
+                        lanId: l.id,
+                        namn: l.namn,
+                        antal: l.antal
+                    });
+                }
             });
         }
     });
 
     if (!allaLan.length) {
-        lista.innerHTML = `<div class="empty-state">
-            <div class="empty-icon">✅</div>
-            <p>Inga aktiva utlåningar just nu.<br>All utrustning finns i boden!</p>
+        lista.innerHTML = `<div class="empty-state" style="padding: 24px 10px;">
+            <div class="empty-icon" style="font-size: 2rem;">✅</div>
+            <p style="font-size: 0.88rem;">${sokTerm ? 'Inga lån matchar sökningen.' : 'Inga aktiva utlåningar just nu.<br>All utrustning finns i boden!'}</p>
         </div>`;
         return;
     }
@@ -1085,14 +1342,15 @@ function renderUtlaningar() {
         const idArt = typeof l.artikelId === 'string' ? `'${l.artikelId}'` : l.artikelId;
         const idLan = `'${l.lanId}'`;
 
-        return `<div class="utlaning-card">
+        return `
+        <div class="utlaning-card">
             <div class="utlaning-info">
                 <div class="utlaning-namn">👤 ${escapeHtml(l.namn)}</div>
-                <div class="utlaning-detalj">📦 ${l.antal} st × <span class="utlaning-artikelnamn">${escapeHtml(l.artikelNamn)}</span></div>
+                <div class="utlaning-detalj">📦 <strong>${l.antal} st</strong> × <span class="utlaning-artikelnamn">${escapeHtml(l.artikelNamn)}</span></div>
             </div>
-            <div style="display:flex; gap:8px;">
-                <button class="btn btn-outline btn-sm" onclick="openAterlamnModal(${idArt}, ${idLan})">Delåterlämna</button>
-                <button class="btn btn-green btn-sm" onclick="aterlamnaHelaLanet(${idArt}, ${idLan})">✅ Återlämnad</button>
+            <div style="display:flex; gap:6px; align-items:center;">
+                ${l.antal > 1 ? `<button class="btn btn-outline btn-sm" style="padding: 4px 8px; font-size: 0.75rem;" onclick="openAterlamnModal(${idArt}, ${idLan})">Delåterlämna</button>` : ''}
+                <button class="btn btn-green btn-sm" style="padding: 5px 10px; font-size: 0.78rem;" onclick="aterlamnaHelaLanet(${idArt}, ${idLan})">✅ Återlämnad</button>
             </div>
         </div>`;
     }).join('');
@@ -1100,6 +1358,8 @@ function renderUtlaningar() {
 
 function renderHistorik() {
     const lista = document.getElementById('historikList');
+    if (!lista) return;
+
     if (!historik.length) {
         lista.innerHTML = `<div class="empty-state">
             <div class="empty-icon">📋</div>
@@ -1122,11 +1382,12 @@ function renderHistorik() {
 //  FLIKAR & HJÄLPFUNKTIONER
 // ==========================================
 function switchTab(tab, btn) {
-    ['artiklar', 'utlaningar', 'historik'].forEach(t => {
-        document.getElementById('tab-' + t).style.display = t === tab ? 'block' : 'none';
+    ['boden', 'historik'].forEach(t => {
+        const el = document.getElementById('tab-' + t);
+        if (el) el.style.display = t === tab ? 'block' : 'none';
     });
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
+    if (btn) btn.classList.add('active');
 }
 
 function setSyncBar(type, text) {
