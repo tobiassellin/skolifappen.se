@@ -1,0 +1,941 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Uppvärmningshjulet - Skol-IF Appen</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700;800;900&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif; }
+        body {
+            background-color: #0F172A;
+            color: #FFFFFF;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+        }
+
+        /* ====== NAVBAR ====== */
+        nav {
+            background: rgba(15, 23, 42, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 12px 5%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .nav-logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+            color: white;
+            font-weight: 800;
+            font-size: 1.25rem;
+        }
+        .nav-logo-icon {
+            font-size: 1.8rem;
+            animation: rotateIcon 12s linear infinite;
+            display: inline-block;
+        }
+        @keyframes rotateIcon {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        .nav-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .nav-btn {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 7px 14px;
+            border-radius: 10px;
+            font-size: 0.82rem;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .nav-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-1px);
+        }
+
+        /* ====== MAIN LAYOUT ====== */
+        .main-container {
+            flex: 1;
+            display: grid;
+            grid-template-columns: 1fr 360px;
+            gap: 24px;
+            padding: 24px 5%;
+            max-width: 1400px;
+            margin: 0 auto;
+            width: 100%;
+            align-items: start;
+        }
+
+        @media (max-width: 950px) {
+            .main-container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* ====== WHEEL SECTION ====== */
+        .wheel-stage {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .wheel-wrapper {
+            position: relative;
+            width: 480px;
+            height: 480px;
+            max-width: 90vw;
+            max-height: 90vw;
+            margin: 10px 0 24px 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            filter: drop-shadow(0 15px 35px rgba(0, 0, 0, 0.5));
+        }
+
+        #wheelCanvas {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+        }
+
+        /* Flapper / Pekare i toppen */
+        .wheel-pointer {
+            position: absolute;
+            top: -14px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 32px;
+            height: 44px;
+            background: linear-gradient(180deg, #F59E0B 0%, #D97706 100%);
+            clip-path: polygon(50% 100%, 0 0, 100% 0);
+            z-index: 10;
+            filter: drop-shadow(0 4px 8px rgba(0,0,0,0.4));
+            transition: transform 0.08s ease-out;
+            transform-origin: 50% 10%;
+        }
+        .wheel-pointer.flick {
+            transform: translateX(-50%) rotate(-18deg);
+        }
+
+        /* Mittenknapp / Nav */
+        .wheel-center-btn {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 96px;
+            height: 96px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #22C55E 0%, #15803D 100%);
+            border: 4px solid #FFFFFF;
+            box-shadow: 0 0 25px rgba(34, 197, 94, 0.6), inset 0 2px 6px rgba(255,255,255,0.4);
+            color: white;
+            font-size: 1.15rem;
+            font-weight: 900;
+            letter-spacing: 1px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            z-index: 20;
+            transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            user-select: none;
+        }
+        .wheel-center-btn:hover {
+            transform: translate(-50%, -50%) scale(1.08);
+            box-shadow: 0 0 35px rgba(34, 197, 94, 0.8), inset 0 2px 6px rgba(255,255,255,0.6);
+        }
+        .wheel-center-btn:active {
+            transform: translate(-50%, -50%) scale(0.95);
+        }
+        .wheel-center-btn.spinning {
+            pointer-events: none;
+            opacity: 0.9;
+        }
+
+        .spin-controls {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .btn-spin-big {
+            background: linear-gradient(135deg, #22C55E 0%, #16A34A 100%);
+            color: white;
+            border: none;
+            padding: 14px 38px;
+            border-radius: 30px;
+            font-size: 1.25rem;
+            font-weight: 800;
+            cursor: pointer;
+            box-shadow: 0 10px 25px rgba(34, 197, 94, 0.4);
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .btn-spin-big:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 14px 30px rgba(34, 197, 94, 0.5);
+        }
+        .btn-spin-big:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* ====== SIDEBAR / PRESETS & EDIT ====== */
+        .sidebar {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 22px;
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+
+        .section-title {
+            font-size: 0.95rem;
+            font-weight: 800;
+            color: #94A3B8;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        /* PRESET PILLS */
+        .preset-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+        .preset-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            color: #E2E8F0;
+            padding: 10px 12px;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            cursor: pointer;
+            text-align: left;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .preset-btn:hover {
+            background: rgba(255, 255, 255, 0.12);
+            border-color: rgba(255, 255, 255, 0.25);
+            transform: translateY(-1px);
+        }
+        .preset-btn.active {
+            background: rgba(34, 197, 94, 0.2);
+            border-color: #22C55E;
+            color: #4ADE80;
+        }
+
+        /* ITEMS LIST / TEXTAREA */
+        .items-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .items-count {
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: #4ADE80;
+            background: rgba(34, 197, 94, 0.15);
+            padding: 3px 10px;
+            border-radius: 12px;
+        }
+        textarea.items-input {
+            width: 100%;
+            height: 180px;
+            background: rgba(15, 23, 42, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 12px;
+            padding: 12px;
+            color: white;
+            font-size: 0.9rem;
+            line-height: 1.5;
+            resize: vertical;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        textarea.items-input:focus {
+            border-color: #22C55E;
+        }
+
+        .checkbox-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.85rem;
+            color: #CBD5E1;
+            cursor: pointer;
+            user-select: none;
+        }
+        .checkbox-row input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: #22C55E;
+            cursor: pointer;
+        }
+
+        /* ====== WINNER OVERLAY ====== */
+        .winner-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(8px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 20px;
+        }
+        .winner-modal.open {
+            display: flex;
+            animation: popIn 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        @keyframes popIn {
+            from { opacity: 0; transform: scale(0.85); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        .winner-card {
+            background: linear-gradient(145deg, #1E293B, #0F172A);
+            border: 2px solid #F59E0B;
+            box-shadow: 0 0 50px rgba(245, 158, 11, 0.35);
+            border-radius: 28px;
+            padding: 40px 32px;
+            max-width: 520px;
+            width: 100%;
+            text-align: center;
+            position: relative;
+        }
+
+        .winner-crown {
+            font-size: 3.5rem;
+            margin-bottom: 8px;
+            animation: bounce 1s infinite alternate;
+        }
+        @keyframes bounce {
+            from { transform: translateY(0); }
+            to { transform: translateY(-8px); }
+        }
+
+        .winner-sub {
+            font-size: 0.95rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: #F59E0B;
+            font-weight: 800;
+            margin-bottom: 8px;
+        }
+
+        .winner-text {
+            font-size: 2.2rem;
+            font-weight: 900;
+            color: #FFFFFF;
+            margin-bottom: 24px;
+            line-height: 1.2;
+            word-break: break-word;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.5);
+        }
+
+        .winner-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn-winner-primary {
+            background: linear-gradient(135deg, #22C55E 0%, #15803D 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 24px;
+            font-weight: 800;
+            font-size: 1rem;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(34, 197, 94, 0.4);
+            transition: transform 0.2s;
+        }
+        .btn-winner-primary:hover {
+            transform: scale(1.04);
+        }
+
+        .btn-winner-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: #E2E8F0;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 12px 22px;
+            border-radius: 24px;
+            font-weight: 700;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-winner-secondary:hover {
+            background: rgba(239, 68, 68, 0.2);
+            border-color: #EF4444;
+            color: #F87171;
+        }
+
+        /* Keyboard shortcut guide */
+        .shortcut-tip {
+            font-size: 0.78rem;
+            color: #64748B;
+            margin-top: 10px;
+            text-align: center;
+        }
+        kbd {
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 4px;
+            padding: 2px 6px;
+            font-size: 0.72rem;
+            color: #E2E8F0;
+        }
+    </style>
+</head>
+<body>
+
+<nav>
+    <a href="index.html" class="nav-logo">
+        <span class="nav-logo-icon">🎡</span>
+        <div>
+            <div>Uppvärmningshjulet</div>
+            <div style="font-size: 0.72rem; color: #94A3B8; font-weight: 500;">Skol-IF • Snurra lektionens utmaning</div>
+        </div>
+    </a>
+    <div class="nav-actions">
+        <button class="nav-btn" onclick="toggleAudio()" id="audioBtn">🔊 Ljud: På</button>
+        <button class="nav-btn" onclick="toggleFullscreen()" id="fsBtn">⛶ Fullskärm</button>
+        <a href="index.html" class="nav-btn">← Startsidan</a>
+    </div>
+</nav>
+
+<div class="main-container">
+    <!-- VÄNSTER: HJUL & SPINN-KNAPP -->
+    <div class="wheel-stage">
+        <div class="wheel-wrapper">
+            <div class="wheel-pointer" id="wheelPointer"></div>
+            <canvas id="wheelCanvas" width="900" height="900"></canvas>
+            <button type="button" class="wheel-center-btn" id="centerSpinBtn" onclick="spinWheel()" title="Klicka för att snurra!">
+                <span>SNURRA</span>
+            </button>
+        </div>
+
+        <div class="spin-controls">
+            <button type="button" class="btn-spin-big" id="bigSpinBtn" onclick="spinWheel()">
+                <span>🎡</span> SNURRA HJULET!
+            </button>
+        </div>
+        <div class="shortcut-tip">
+            Tips: Tryck på <kbd>Mellanslag</kbd> för att snurra från tangentbordet!
+        </div>
+    </div>
+
+    <!-- HÖGER: VAL AV TEMA OCH REDIGERA LISTA -->
+    <div class="sidebar">
+        <div>
+            <div class="section-title" style="margin-bottom: 10px;">
+                <span>🎯 Välj tema</span>
+            </div>
+            <div class="preset-grid">
+                <button class="preset-btn active" id="btnPresetLekar" onclick="loadPreset('lekar')">🏃‍♂️ Lekar</button>
+                <button class="preset-btn" id="btnPresetStyrka" onclick="loadPreset('styrka')">💪 Styrka</button>
+                <button class="preset-btn" id="btnPresetPuls" onclick="loadPreset('puls')">⚡ Puls & Kondition</button>
+                <button class="preset-btn" id="btnPresetElever" onclick="loadPreset('elever')">🎲 Slumpa Elev</button>
+            </div>
+        </div>
+
+        <div>
+            <div class="items-header" style="margin-bottom: 8px;">
+                <span class="section-title">📝 Övningar på hjulet</span>
+                <span class="items-count" id="itemsCountBadge">10 st</span>
+            </div>
+            <textarea class="items-input" id="itemsInput" oninput="handleInputEdit()" placeholder="Skriv en övning eller ett namn per rad..."></textarea>
+        </div>
+
+        <div>
+            <label class="checkbox-row" title="Tar automatiskt bort övningen ur hjulet när den vunnit, så man slipper få samma övning två gånger!">
+                <input type="checkbox" id="eliminateCheckbox">
+                <span>Eliminera övning efter vinst</span>
+            </label>
+        </div>
+    </div>
+</div>
+
+<!-- WINNER MODAL -->
+<div class="winner-modal" id="winnerModal">
+    <div class="winner-card">
+        <div class="winner-crown">🎉</div>
+        <div class="winner-sub">HJULET HAR TALAT!</div>
+        <div class="winner-text" id="winnerText">10 Burpees</div>
+
+        <div class="winner-actions">
+            <button class="btn-winner-primary" onclick="closeWinnerModal()">🚀 Kör igång!</button>
+            <button class="btn-winner-secondary" id="removeWinnerBtn" onclick="removeWinnerAndClose()">Ta bort ur hjulet</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ==========================================
+    //  FÄRDIGA TEMAN / PRESETS
+    // ==========================================
+    const PRESETS = {
+        lekar: [
+            "Kinesiska muren",
+            "Svanskull",
+            "Skeppsbrott",
+            "Spökboll",
+            "Skräddaren",
+            "Fruktsallad",
+            "Tunnelkull",
+            "Jägarboll",
+            "Gladiatorerna",
+            "Bollkull"
+        ],
+        styrka: [
+            "30s Jägarvila",
+            "10 Burpees",
+            "15 Armhävningar",
+            "30s Planka",
+            "Björngång tvärs hallen",
+            "15 Squat jumps",
+            "20 Sit-ups",
+            "30s Skridskohopp",
+            "10 Grodhopp",
+            "Kräftgång fram & tillbaka"
+        ],
+        puls: [
+            "2 varv runt hallen",
+            "30s Höga knän",
+            "30s Spurt på stället",
+            "Linjelopp (3 rusher)",
+            "20 Stjärnhopp",
+            "30s Hälkickar",
+            "10 Upphopp & rulla",
+            "Sidohopp över linje 30s"
+        ],
+        elever: [
+            "Kalle Andersson",
+            "Lisa Lindqvist",
+            "Ahmed Hassan",
+            "Sara Nilsson",
+            "Erik Berg",
+            "Maja Svensson",
+            "Leo Carlsson",
+            "Emma Holm",
+            "Viktor Ek",
+            "Alva Lind",
+            "Oskar Lund",
+            "Lilly Norén"
+        ]
+    };
+
+    // Palett med klara, moderna färger
+    const SLICE_COLORS = [
+        "#10B981", // Emerald
+        "#3B82F6", // Blue
+        "#F59E0B", // Amber
+        "#EC4899", // Pink
+        "#8B5CF6", // Purple
+        "#06B6D4", // Cyan
+        "#EF4444", // Red
+        "#14B8A6", // Teal
+        "#F97316", // Orange
+        "#6366F1", // Indigo
+        "#84CC16", // Lime
+        "#E11D48"  // Rose
+    ];
+
+    // ==========================================
+    //  STATE
+    // ==========================================
+    let items = [...PRESETS.lekar];
+    let currentAngle = 0; // i radianer
+    let isSpinning = false;
+    let audioEnabled = true;
+    let lastWinner = "";
+    let lastTickSegment = -1;
+
+    // Web Audio Synthesizer för tick & fanfar
+    let audioCtx = null;
+    function getAudioContext() {
+        if (!audioCtx) {
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            audioCtx = new AudioContext();
+        }
+        if (audioCtx.state === 'suspended') {
+            audioCtx.resume();
+        }
+        return audioCtx;
+    }
+
+    function playTick() {
+        if (!audioEnabled) return;
+        try {
+            const ctx = getAudioContext();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(600, ctx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(120, ctx.currentTime + 0.04);
+            gain.gain.setValueAtTime(0.3, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.04);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start();
+            osc.stop(ctx.currentTime + 0.04);
+        } catch(e) {}
+    }
+
+    function playFanfare() {
+        if (!audioEnabled) return;
+        try {
+            const ctx = getAudioContext();
+            const notes = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6
+            notes.forEach((freq, idx) => {
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                const startTime = ctx.currentTime + (idx * 0.1);
+                const duration = idx === notes.length - 1 ? 0.6 : 0.15;
+
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(freq, startTime);
+                gain.gain.setValueAtTime(0.4, startTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, startTime + duration);
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.start(startTime);
+                osc.stop(startTime + duration);
+            });
+        } catch(e) {}
+    }
+
+    function toggleAudio() {
+        audioEnabled = !audioEnabled;
+        document.getElementById('audioBtn').textContent = audioEnabled ? "🔊 Ljud: På" : "🔇 Ljud: Av";
+    }
+
+    function toggleFullscreen() {
+        if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen().catch(() => {});
+            document.getElementById('fsBtn').textContent = "✕ Avsluta fullskärm";
+        } else {
+            if (document.exitFullscreen) document.exitFullscreen();
+            document.getElementById('fsBtn').textContent = "⛶ Fullskärm";
+        }
+    }
+
+    // ==========================================
+    //  INIT & RITNING AV HJULET
+    // ==========================================
+    const canvas = document.getElementById('wheelCanvas');
+    const ctx = canvas.getContext('2d');
+
+    window.addEventListener('DOMContentLoaded', () => {
+        document.getElementById('itemsInput').value = items.join('\n');
+        updateCountBadge();
+        drawWheel();
+
+        // Mellanslag för att snurra
+        window.addEventListener('keydown', (e) => {
+            if (e.code === 'Space' && !['TEXTAREA', 'INPUT'].includes(document.activeElement.tagName)) {
+                e.preventDefault();
+                spinWheel();
+            }
+        });
+    });
+
+    function loadPreset(key) {
+        if (isSpinning) return;
+        document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+        const btnId = 'btnPreset' + key.charAt(0).toUpperCase() + key.slice(1);
+        const btn = document.getElementById(btnId);
+        if (btn) btn.classList.add('active');
+
+        items = [...PRESETS[key]];
+        document.getElementById('itemsInput').value = items.join('\n');
+        updateCountBadge();
+        drawWheel();
+    }
+
+    function handleInputEdit() {
+        if (isSpinning) return;
+        const text = document.getElementById('itemsInput').value;
+        items = text.split('\n').map(s => s.trim()).filter(s => s.length > 0);
+        updateCountBadge();
+        drawWheel();
+    }
+
+    function updateCountBadge() {
+        document.getElementById('itemsCountBadge').textContent = items.length + " st";
+        const hasItems = items.length > 0;
+        document.getElementById('bigSpinBtn').disabled = !hasItems || isSpinning;
+        document.getElementById('centerSpinBtn').disabled = !hasItems || isSpinning;
+    }
+
+    function drawWheel() {
+        const width = canvas.width;
+        const height = canvas.height;
+        const centerX = width / 2;
+        const centerY = height / 2;
+        const radius = (width / 2) - 16;
+
+        ctx.clearRect(0, 0, width, height);
+
+        if (items.length === 0) {
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+            ctx.fillStyle = "#1E293B";
+            ctx.fill();
+            ctx.lineWidth = 10;
+            ctx.strokeStyle = "#334155";
+            ctx.stroke();
+
+            ctx.fillStyle = "#94A3B8";
+            ctx.font = "bold 32px Poppins, sans-serif";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillText("Skriv in övningar till höger!", centerX, centerY);
+            ctx.restore();
+            return;
+        }
+
+        const numSlices = items.length;
+        const arc = (2 * Math.PI) / numSlices;
+
+        // Yttre dekorativ guld/silver ram
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, radius + 10, 0, 2 * Math.PI);
+        ctx.lineWidth = 14;
+        ctx.strokeStyle = "#F59E0B";
+        ctx.stroke();
+        ctx.restore();
+
+        // Rita varje tårtbit
+        for (let i = 0; i < numSlices; i++) {
+            const angle = currentAngle + (i * arc);
+            const color = SLICE_COLORS[i % SLICE_COLORS.length];
+
+            ctx.save();
+            ctx.beginPath();
+            ctx.moveTo(centerX, centerY);
+            ctx.arc(centerX, centerY, radius, angle, angle + arc);
+            ctx.fillStyle = color;
+            ctx.fill();
+
+            // Kantlinje mellan bitar
+            ctx.lineWidth = 3;
+            ctx.strokeStyle = "rgba(255, 255, 255, 0.4)";
+            ctx.stroke();
+            ctx.restore();
+
+            // Text på tårtbit
+            ctx.save();
+            ctx.translate(centerX, centerY);
+            ctx.rotate(angle + (arc / 2));
+            ctx.textAlign = "right";
+            ctx.fillStyle = "#FFFFFF";
+            ctx.font = "bold 26px Poppins, sans-serif";
+            ctx.shadowColor = "rgba(0,0,0,0.6)";
+            ctx.shadowBlur = 6;
+
+            // Korta av text om den är extremt lång
+            let label = items[i];
+            if (label.length > 22) {
+                label = label.substring(0, 20) + "...";
+            }
+            ctx.fillText(label, radius - 35, 10);
+            ctx.restore();
+        }
+
+        // Yttre pärlor/nitar runt hjulet
+        for (let i = 0; i < numSlices; i++) {
+            const angle = currentAngle + (i * arc);
+            const dotX = centerX + Math.cos(angle) * (radius - 2);
+            const dotY = centerY + Math.sin(angle) * (radius - 2);
+
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(dotX, dotY, 7, 0, 2 * Math.PI);
+            ctx.fillStyle = "#FFFFFF";
+            ctx.shadowColor = "#F59E0B";
+            ctx.shadowBlur = 8;
+            ctx.fill();
+            ctx.restore();
+        }
+    }
+
+    // ==========================================
+    //  SPIN-ANIMATION & FYSIK
+    // ==========================================
+    function spinWheel() {
+        if (isSpinning || items.length === 0) return;
+
+        isSpinning = true;
+        updateCountBadge();
+        document.getElementById('centerSpinBtn').classList.add('spinning');
+
+        // Slumpa antal varv (mellan 5 och 9 varv) plus en slumpad vinkel
+        const totalRotations = (5 + Math.random() * 4) * (2 * Math.PI);
+        const randomExtra = Math.random() * (2 * Math.PI);
+        const targetAngle = currentAngle + totalRotations + randomExtra;
+        const startAngle = currentAngle;
+        const duration = 5000 + Math.random() * 1200; // ~5.5s
+        const startTime = performance.now();
+
+        const pointer = document.getElementById('wheelPointer');
+
+        function easeOutCubic(t) {
+            return 1 - Math.pow(1 - t, 3);
+        }
+
+        function frame(now) {
+            const elapsed = now - startTime;
+            const progress = Math.min(1, elapsed / duration);
+            const eased = easeOutCubic(progress);
+
+            currentAngle = startAngle + (targetAngle - startAngle) * eased;
+            drawWheel();
+
+            // Beräkna vilken tårtbit som passerar pekaren (pekaren sitter kl 12 / -PI/2)
+            const numSlices = items.length;
+            const arc = (2 * Math.PI) / numSlices;
+            // Normalisera vinkel vid pekaren
+            const pointerAngle = (1.5 * Math.PI - (currentAngle % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
+            const currentSegment = Math.floor(pointerAngle / arc);
+
+            if (currentSegment !== lastTickSegment) {
+                lastTickSegment = currentSegment;
+                playTick();
+                pointer.classList.add('flick');
+                setTimeout(() => pointer.classList.remove('flick'), 60);
+            }
+
+            if (progress < 1) {
+                requestAnimationFrame(frame);
+            } else {
+                // Hjulet har stannat!
+                isSpinning = false;
+                document.getElementById('centerSpinBtn').classList.remove('spinning');
+                updateCountBadge();
+
+                const winnerIndex = currentSegment % items.length;
+                lastWinner = items[winnerIndex];
+
+                triggerVictory(lastWinner);
+            }
+        }
+
+        requestAnimationFrame(frame);
+    }
+
+    // ==========================================
+    //  VINNARE & FIRANDE
+    // ==========================================
+    function triggerVictory(winner) {
+        playFanfare();
+
+        // Konfetti-kanon!
+        if (typeof confetti === 'function') {
+            confetti({
+                particleCount: 80,
+                spread: 70,
+                origin: { y: 0.6 }
+            });
+            setTimeout(() => {
+                confetti({
+                    particleCount: 50,
+                    angle: 60,
+                    spread: 55,
+                    origin: { x: 0 }
+                });
+                confetti({
+                    particleCount: 50,
+                    angle: 120,
+                    spread: 55,
+                    origin: { x: 1 }
+                });
+            }, 300);
+        }
+
+        // Öppna vinnarrutan
+        document.getElementById('winnerText').textContent = winner;
+        document.getElementById('winnerModal').classList.add('open');
+    }
+
+    function closeWinnerModal() {
+        document.getElementById('winnerModal').classList.remove('open');
+
+        // Om "Eliminera efter vinst" är ikryssat
+        const autoEliminate = document.getElementById('eliminateCheckbox').checked;
+        if (autoEliminate && lastWinner) {
+            removeWinner(lastWinner);
+        }
+    }
+
+    function removeWinnerAndClose() {
+        document.getElementById('winnerModal').classList.remove('open');
+        if (lastWinner) {
+            removeWinner(lastWinner);
+        }
+    }
+
+    function removeWinner(winnerName) {
+        const idx = items.indexOf(winnerName);
+        if (idx !== -1) {
+            items.splice(idx, 1);
+            document.getElementById('itemsInput').value = items.join('\n');
+            updateCountBadge();
+            drawWheel();
+        }
+    }
+</script>
+
+</body>
+</html>
+

@@ -11,9 +11,101 @@
         body { background-color: #F8F9FA; color: #333; line-height: 1.6; }
         nav { background-color: #4CAF50; padding: 1rem 5%; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1); flex-wrap: wrap; }
         .logo { color: white; font-size: 1.5rem; font-weight: 800; text-decoration: none; letter-spacing: 1px; }
-        .nav-links { display: flex; gap: 20px; }
+        .nav-links { display: flex; gap: 22px; align-items: center; }
         .nav-links a { color: white; text-decoration: none; font-weight: 600; transition: color 0.3s; font-size: 1rem; }
         .nav-links a:hover { color: #C8E6C9; }
+
+        /* ====== DROPDOWN FÖR IDROTTSLÄRAREN ====== */
+        .nav-dropdown {
+            position: relative;
+            display: inline-block;
+        }
+
+        .nav-dropdown-btn {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1rem;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 0;
+            transition: color 0.3s;
+        }
+
+        .nav-dropdown-btn:hover,
+        .nav-dropdown:hover .nav-dropdown-btn,
+        .nav-dropdown.active .nav-dropdown-btn {
+            color: #C8E6C9;
+        }
+
+        .nav-dropdown-arrow {
+            font-size: 0.72rem;
+            transition: transform 0.25s ease;
+            display: inline-block;
+        }
+
+        .nav-dropdown:hover .nav-dropdown-arrow,
+        .nav-dropdown.active .nav-dropdown-arrow {
+            transform: rotate(180deg);
+        }
+
+        .nav-dropdown-menu {
+            display: none;
+            position: absolute;
+            top: 100%;
+            right: 0;
+            background: white;
+            min-width: 210px;
+            border-radius: 14px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+            border: 1px solid #EBEFEA;
+            padding: 8px 0;
+            z-index: 1000;
+            margin-top: 8px;
+        }
+
+        .nav-dropdown-menu::before {
+            content: '';
+            position: absolute;
+            top: -10px;
+            left: 0;
+            right: 0;
+            height: 10px;
+        }
+
+        .nav-dropdown:hover .nav-dropdown-menu,
+        .nav-dropdown.active .nav-dropdown-menu {
+            display: block;
+            animation: fadeInDropdown 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes fadeInDropdown {
+            from { opacity: 0; transform: translateY(-8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .nav-dropdown-menu a {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 18px;
+            color: #1E3A24 !important;
+            font-size: 0.92rem;
+            font-weight: 600;
+            text-decoration: none;
+            transition: background 0.15s, color 0.15s, padding-left 0.15s;
+        }
+
+        .nav-dropdown-menu a:hover {
+            background: #E8F5E9;
+            color: #2E7D32 !important;
+            padding-left: 22px;
+        }
+
         .hero { text-align: center; padding: 100px 20px; background-color: #ffffff; border-bottom: 1px solid #eee; }
         .hero h1 { font-size: 3rem; color: #2E7D32; margin-bottom: 20px; }
         .hero p { font-size: 1.2rem; color: #666; max-width: 600px; margin: 0 auto 30px auto; }
@@ -53,6 +145,8 @@
 
         @media (max-width: 768px) {
             nav { flex-direction: column; gap: 15px; }
+            .nav-links { flex-wrap: wrap; justify-content: center; gap: 16px; }
+            .nav-dropdown-menu { left: 50%; right: auto; transform: translateX(-50%); }
             .hero h1 { font-size: 2.2rem; }
             .features { flex-direction: column; align-items: center; }
             .card { width: 100%; max-width: 350px; }
@@ -67,10 +161,18 @@
             <a href="kiosk.html">Skol IF Kassa</a>
             <a href="redskapsboden.html">Redskapsboden</a>
             <a href="turnering.html" id="navTurneringLink">Skapa Turnering</a>
-            <a href="lopning.html">⏱️ Löprundan</a>
-            <a href="tabata.html">🔔 Tabatatimer</a>
-            <a href="beeptest.html">📢 Beep-test</a>
-            <a href="lagdelaren.html">🎲 Lagdelaren</a>
+            <div class="nav-dropdown" id="idrottDropdown">
+                <button type="button" class="nav-dropdown-btn" onclick="toggleNavDropdown(event)">
+                    Idrottsläraren <span class="nav-dropdown-arrow">▼</span>
+                </button>
+                <div class="nav-dropdown-menu">
+                    <a href="lopning.html"><span>⏱️</span> Löprundan</a>
+                    <a href="tabata.html"><span>🔔</span> Tabatatimer</a>
+                    <a href="beeptest.html"><span>📢</span> Beep-test</a>
+                    <a href="lagdelaren.html"><span>🎲</span> Lagdelaren</a>
+                    <a href="hjulet.html"><span>🎡</span> Uppvärmningshjulet</a>
+                </div>
+            </div>
         </div>
     </nav>
 
@@ -162,6 +264,15 @@
                     <h4>Lagdelaren</h4>
                     <p>Blanda klassen blixtsnabbt i slumpade lag med västfärger och storskärmsvy.</p>
                     <span class="tool-link">Öppna lagdelaren →</span>
+                </a>
+
+                <!-- UPPVÄRMNINGSHJULET (AKTIV) -->
+                <a href="hjulet.html" class="tool-card">
+                    <div class="tool-badge new">Ny!</div>
+                    <div class="tool-icon">🎡</div>
+                    <h4>Uppvärmningshjulet</h4>
+                    <p>Snurra fram lektionens uppvärmningslek, styrkestation eller slumpa elev på storskärm.</p>
+                    <span class="tool-link">Snurra hjulet →</span>
                 </a>
 
                 <!-- RESULTATTAVLA / MATCHKLOCKA (KOMMANDE) -->
@@ -330,6 +441,18 @@
         uppdateraTurneringStatus();
         window.addEventListener('focus', uppdateraTurneringStatus);
         window.addEventListener('pageshow', uppdateraTurneringStatus);
+
+        // 6. Dropdown för Idrottsläraren i menyn
+        function toggleNavDropdown(event) {
+            event.stopPropagation();
+            const dropdown = document.getElementById("idrottDropdown");
+            if (dropdown) dropdown.classList.toggle("active");
+        }
+
+        document.addEventListener("click", () => {
+            const dropdown = document.getElementById("idrottDropdown");
+            if (dropdown) dropdown.classList.remove("active");
+        });
     </script>
 </body>
 </html>

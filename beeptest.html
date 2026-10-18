@@ -407,11 +407,177 @@
         }
         .resultat-tabell tr:hover { background: #FAFAFA; }
 
+        /* ====== DIPLOM UTSKRIFT & PREVIEW ====== */
+        .diplom-modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6); display: none; justify-content: center;
+            align-items: center; z-index: 2000; padding: 20px;
+        }
+        .diplom-modal-overlay.open { display: flex; }
+        .diplom-modal-box {
+            background: #F8F9FA; width: 100%; max-width: 880px; max-height: 95vh;
+            border-radius: 20px; box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+            display: flex; flex-direction: column; overflow: hidden;
+        }
+        .diplom-modal-header {
+            padding: 16px 24px; background: white; border-bottom: 1px solid #EBEFEA;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .diplom-modal-body {
+            padding: 20px; overflow-y: auto; display: flex; flex-direction: column; align-items: center; gap: 16px;
+        }
+        .diplom-modal-controls {
+            display: flex; gap: 12px; align-items: center; flex-wrap: wrap; width: 100%; justify-content: space-between;
+            background: white; padding: 12px 18px; border-radius: 12px; border: 1px solid #E0E6E1;
+        }
+
+        /* DIPLOM CERTIFIKAT STIL (A4 Liggande proportioner) */
+        #diplomPrintArea { display: none; }
+
+        .diplom-card {
+            width: 100%;
+            max-width: 760px;
+            aspect-ratio: 1.414 / 1;
+            background: #FFFFFF;
+            border: 8px solid #2E7D32;
+            outline: 3px solid #D4AF37;
+            outline-offset: -6px;
+            border-radius: 6px;
+            padding: 28px 36px;
+            box-sizing: border-box;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+            background-image: radial-gradient(circle at center, rgba(232, 245, 233, 0.35) 0%, rgba(255, 255, 255, 1) 75%);
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+
+        .diplom-corner {
+            position: absolute;
+            font-size: 1.3rem;
+            color: #D4AF37;
+            user-select: none;
+            line-height: 1;
+        }
+        .corner-tl { top: 6px; left: 8px; }
+        .corner-tr { top: 6px; right: 8px; }
+        .corner-bl { bottom: 6px; left: 8px; }
+        .corner-br { bottom: 6px; right: 8px; }
+
+        .diplom-header-badge { font-size: 2.2rem; line-height: 1; margin-bottom: 2px; }
+        .diplom-rubrik {
+            font-size: 2.2rem;
+            font-weight: 900;
+            letter-spacing: 5px;
+            color: #1E3A24;
+            text-transform: uppercase;
+            margin: 0;
+            line-height: 1.1;
+        }
+        .diplom-sub {
+            font-size: 0.8rem;
+            color: #2E7D32;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-weight: 700;
+            margin-top: 4px;
+        }
+        .diplom-tilldelas { font-size: 0.95rem; color: #555; font-style: italic; margin-top: 8px; }
+        .diplom-elevnamn {
+            font-size: 2.1rem;
+            font-weight: 800;
+            color: #1E3A24;
+            border-bottom: 2px solid #D4AF37;
+            display: inline-block;
+            padding: 0 30px 4px 30px;
+            margin: 4px auto 8px auto;
+            max-width: 90%;
+        }
+        .diplom-beskrivning { font-size: 0.95rem; color: #333; max-width: 620px; margin: 0 auto; }
+        .diplom-metrics-row {
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+            margin: 12px 0;
+        }
+        .diplom-metric-pill {
+            background: #F4F7F5;
+            border: 1px solid #D4AF37;
+            border-radius: 10px;
+            padding: 6px 16px;
+            text-align: center;
+            min-width: 100px;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+        .diplom-metric-label { font-size: 0.68rem; text-transform: uppercase; color: #666; font-weight: 700; }
+        .diplom-metric-val { font-size: 1.25rem; font-weight: 800; color: #1E3A24; }
+        .diplom-motto { font-size: 0.85rem; color: #2E7D32; margin: 4px auto; font-style: italic; }
+        .diplom-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            padding-top: 10px;
+            border-top: 1px dashed #DDD;
+            font-size: 0.82rem;
+            color: #666;
+            margin-top: 4px;
+        }
+        .diplom-signatur-linje {
+            border-top: 1px solid #333;
+            width: 170px;
+            margin-top: 22px;
+            padding-top: 4px;
+            font-weight: 600;
+            color: #333;
+            text-align: center;
+        }
+
         /* Utskriftslayout */
         @media print {
-            nav, .beep-actions, .nav-actions, .btn { display: none !important; }
-            body, .container { background: white; padding: 0; }
-            .card { box-shadow: none; border: none; }
+            body.printing-diplomas * {
+                visibility: hidden;
+            }
+            body.printing-diplomas #diplomPrintArea,
+            body.printing-diplomas #diplomPrintArea * {
+                visibility: visible;
+            }
+            body.printing-diplomas #diplomPrintArea {
+                display: block !important;
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                margin: 0;
+                padding: 0;
+            }
+            body.printing-diplomas .diplom-card {
+                page-break-after: always;
+                page-break-inside: avoid;
+                break-after: page;
+                margin: 0 auto;
+                box-shadow: none;
+                width: 100%;
+                max-width: 100%;
+                height: 94vh;
+                box-sizing: border-box;
+            }
+            body:not(.printing-diplomas) nav, 
+            body:not(.printing-diplomas) .beep-actions, 
+            body:not(.printing-diplomas) .nav-actions, 
+            body:not(.printing-diplomas) .btn { 
+                display: none !important; 
+            }
+            body:not(.printing-diplomas) body, body:not(.printing-diplomas) .container { 
+                background: white; padding: 0; 
+            }
+            body:not(.printing-diplomas) .card { 
+                box-shadow: none; border: none; 
+            }
         }
     </style>
 </head>
@@ -443,6 +609,10 @@
         <div class="setup-header">
             <h1>📢 Nytt Beep-test (20 meter)</h1>
             <p>Mata in klassen. När testet startar spelas de officiella ljudsignalerna synkat och du klickar bara på eleverna när de inte hinner fram!</p>
+            <div style="background: #F0FDF4; border: 1px solid #BBF7D0; border-radius: 12px; padding: 10px 16px; margin: 14px auto 0 auto; max-width: 650px; display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 0.84rem; color: #166534; text-align: left;">
+                <span style="font-size: 1.3rem; flex-shrink: 0;">🌱</span>
+                <span><strong>Pedagogisk notering:</strong> Testet är till för elevernas egen träningsförståelse och individuella utveckling – inte för betygssättning.</span>
+            </div>
         </div>
 
         <div class="card">
@@ -589,9 +759,10 @@
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px;">
                 <h3 style="color: #1E3A24; font-weight: 800;">Klassens resultat</h3>
                 <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                    <button class="btn btn-orange btn-sm" onclick="oppnaDiplomModal()">📜 Skriv ut diplom</button>
                     <button class="btn btn-outline btn-sm" onclick="laddaNerCSV()">📥 Ladda ner Excel (CSV)</button>
                     <button class="btn btn-outline btn-sm" onclick="kopieraResultat()">📋 Kopiera text</button>
-                    <button class="btn btn-green btn-sm" onclick="window.print()">🖨️ Skriv ut</button>
+                    <button class="btn btn-green btn-sm" onclick="window.print()">🖨️ Skriv ut tabell</button>
                 </div>
             </div>
 
@@ -611,6 +782,11 @@
                 </table>
             </div>
 
+            <div style="margin-top: 14px; padding: 10px 14px; background: #F8FAF9; border: 1px solid #EBEFEA; border-radius: 10px; font-size: 0.82rem; color: #555; display: flex; align-items: center; gap: 10px;">
+                <span style="font-size: 1.2rem; flex-shrink: 0;">🌱</span>
+                <span><strong>Pedagogisk påminnelse:</strong> Resultaten är till för elevernas egen träningsglädje och personliga utveckling – inte för betygssättning.</span>
+            </div>
+
             <div style="margin-top: 25px; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #EEEEEE; padding-top: 18px; flex-wrap: wrap; gap: 10px;">
                 <button class="btn btn-outline" onclick="gaTillbakaTillTest()">← Fortsätt testet</button>
                 <button class="btn btn-green" onclick="nyttTest()">➕ Nytt test</button>
@@ -619,6 +795,38 @@
     </div>
 
 </div>
+
+<!-- MODAL: SKRIV UT DIPLOM -->
+<div class="diplom-modal-overlay" id="diplomModal">
+    <div class="diplom-modal-box">
+        <div class="diplom-modal-header">
+            <div style="font-weight: 800; font-size: 1.2rem; color: #1E3A24; display: flex; align-items: center; gap: 8px;">
+                <span>📜</span> Personliga diplom till eleverna
+            </div>
+            <button class="modal-close" style="position: static; background: none; border: none; font-size: 1.3rem; cursor: pointer; color: #999;" onclick="stangDiplomModal()">✕</button>
+        </div>
+        <div class="diplom-modal-body">
+            <div class="diplom-modal-controls">
+                <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                    <label style="font-size: 0.85rem; font-weight: 700; color: #333; margin: 0;">Välj elev / utskrift:</label>
+                    <select id="diplomElevSelect" onchange="uppdateraDiplomPreview()" style="padding: 8px 12px; border-radius: 8px; border: 2px solid #E0E6E1; font-weight: 600; font-size: 0.9rem;">
+                    </select>
+                </div>
+                <div style="display: flex; gap: 8px;">
+                    <button type="button" class="btn btn-green btn-sm" onclick="skrivUtDiplom()">🖨️ Skriv ut diplom</button>
+                    <button type="button" class="btn btn-outline btn-sm" onclick="stangDiplomModal()">Stäng</button>
+                </div>
+            </div>
+
+            <!-- Förhandsgranskning -->
+            <div style="font-size: 0.8rem; color: #777; margin-bottom: -8px;">👁️ Förhandsgranskning (skrivs ut i elegant A4-format):</div>
+            <div id="diplomPreviewContainer" style="width: 100%; display: flex; justify-content: center;"></div>
+        </div>
+    </div>
+</div>
+
+<!-- UTSKRIFTSOMRÅDE FÖR DIPLOM -->
+<div id="diplomPrintArea"></div>
 
 
 <script>
@@ -1277,6 +1485,138 @@
         navigator.clipboard.writeText(txt).then(() => {
             alert("✅ Resultaten kopierades till urklipp!");
         }).catch(err => alert("Kunde inte kopiera: " + err));
+    }
+
+    // ==========================================
+    //  DIPLOMGENERATOR
+    // ==========================================
+    function oppnaDiplomModal() {
+        const modal = document.getElementById('diplomModal');
+        const select = document.getElementById('diplomElevSelect');
+        const klara = [...elever].filter(e => e.status === 'KLAR').sort((a,b) => b.meter - a.meter);
+
+        if (klara.length === 0) {
+            alert("Det finns inga slutförda elever än att skriva ut diplom för!");
+            return;
+        }
+
+        select.innerHTML = `<option value="ALLA">🌟 Skriv ut diplom för ALLA (${klara.length} elever)</option>` +
+            klara.map((e, idx) => `<option value="${e.id}">#${idx+1} ${escapeHtml(e.namn)} (Nivå ${e.niva}.${e.vanda} - ${e.meter}m)</option>`).join('');
+
+        uppdateraDiplomPreview();
+        modal.classList.add('open');
+    }
+
+    function stangDiplomModal() {
+        document.getElementById('diplomModal').classList.remove('open');
+    }
+
+    function uppdateraDiplomPreview() {
+        const select = document.getElementById('diplomElevSelect');
+        const container = document.getElementById('diplomPreviewContainer');
+        const val = select.value;
+        const klara = [...elever].filter(e => e.status === 'KLAR').sort((a,b) => b.meter - a.meter);
+        const datumStr = new Date().toLocaleDateString('sv-SE', { year: 'numeric', month: 'long', day: 'numeric' });
+
+        let elevAttVisa = klara[0];
+        if (val !== 'ALLA') {
+            elevAttVisa = klara.find(e => String(e.id) === String(val)) || klara[0];
+        }
+
+        if (!elevAttVisa) {
+            container.innerHTML = "<p>Ingen elev vald</p>";
+            return;
+        }
+
+        container.innerHTML = genereraEttDiplomHTML(elevAttVisa, datumStr);
+    }
+
+    function genereraEttDiplomHTML(e, datumStr) {
+        return `
+            <div class="diplom-card">
+                <div class="diplom-corner corner-tl">✦</div>
+                <div class="diplom-corner corner-tr">✦</div>
+                <div class="diplom-corner corner-bl">✦</div>
+                <div class="diplom-corner corner-br">✦</div>
+
+                <div class="diplom-header">
+                    <div class="diplom-header-badge">📢</div>
+                    <h1 class="diplom-rubrik">DIPLOM</h1>
+                    <div class="diplom-sub">SKOL-IF • 20M BEEP-TEST</div>
+                </div>
+
+                <div class="diplom-tilldelas">Detta hedersdiplom tilldelas stolt</div>
+                <div class="diplom-elevnamn">${escapeHtml(e.namn)}</div>
+
+                <div class="diplom-beskrivning">
+                    för en fantastisk och stark kämpainsats i <strong>${escapeHtml(klassNamn)} - Beep-test</strong>!
+                </div>
+
+                <div class="diplom-metrics-row">
+                    <div class="diplom-metric-pill">
+                        <div class="diplom-metric-label">Nivå & Vända</div>
+                        <div class="diplom-metric-val">Nivå ${e.niva}.${e.vanda}</div>
+                    </div>
+                    <div class="diplom-metric-pill">
+                        <div class="diplom-metric-label">Sträcka</div>
+                        <div class="diplom-metric-val">${e.meter} m</div>
+                    </div>
+                    ${e.speed ? `
+                    <div class="diplom-metric-pill">
+                        <div class="diplom-metric-label">Sluthastighet</div>
+                        <div class="diplom-metric-val">${e.speed.toFixed(1)} km/h</div>
+                    </div>` : ''}
+                    ${e.vo2 ? `
+                    <div class="diplom-metric-pill">
+                        <div class="diplom-metric-label">VO2-max</div>
+                        <div class="diplom-metric-val">${e.vo2}</div>
+                    </div>` : ''}
+                </div>
+
+                <div class="diplom-motto">🌱 <em>Rörelseglädje & individuell utveckling</em></div>
+
+                <div class="diplom-footer">
+                    <div>
+                        <div style="font-weight: 700; color: #1E3A24;">Datum:</div>
+                        <div>${datumStr}</div>
+                    </div>
+                    <div>
+                        <div class="diplom-signatur-linje">Ansvarig Idrottslärare / Skol-IF</div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    function skrivUtDiplom() {
+        const select = document.getElementById('diplomElevSelect');
+        const printArea = document.getElementById('diplomPrintArea');
+        const val = select.value;
+        const klara = [...elever].filter(e => e.status === 'KLAR').sort((a,b) => b.meter - a.meter);
+        const datumStr = new Date().toLocaleDateString('sv-SE', { year: 'numeric', month: 'long', day: 'numeric' });
+
+        let eleverAttSkrivaUt = [];
+        if (val === 'ALLA') {
+            eleverAttSkrivaUt = klara;
+        } else {
+            const vald = klara.find(e => String(e.id) === String(val));
+            if (vald) eleverAttSkrivaUt = [vald];
+        }
+
+        printArea.innerHTML = eleverAttSkrivaUt.map(e => genereraEttDiplomHTML(e, datumStr)).join('');
+
+        document.body.classList.add('printing-diplomas');
+
+        const rensaPrint = () => {
+            document.body.classList.remove('printing-diplomas');
+            window.removeEventListener('afterprint', rensaPrint);
+        };
+        window.addEventListener('afterprint', rensaPrint);
+
+        setTimeout(() => {
+            window.print();
+            setTimeout(() => document.body.classList.remove('printing-diplomas'), 2000);
+        }, 150);
     }
 
     function escapeHtml(text) {
