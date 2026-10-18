@@ -32,6 +32,25 @@
         .kod-input { padding: 12px; width: 100%; max-width: 200px; border: 2px solid #ddd; border-radius: 8px; text-transform: uppercase; text-align: center; font-size: 1.2rem; font-weight: bold; margin-bottom: 15px; outline: none; }
         .kod-input:focus { border-color: #4CAF50; }
 
+        /* ====== IDROTTSLÄRARENS VERKTYGSLÅDA ====== */
+        .teacher-tools-section { margin: 10px 5% 50px 5%; }
+        .tools-header { text-align: center; margin-bottom: 25px; }
+        .tools-badge { background: #E8F5E9; color: #2E7D32; font-weight: 700; font-size: 0.8rem; padding: 5px 14px; border-radius: 20px; text-transform: uppercase; letter-spacing: 0.5px; display: inline-block; }
+        .tools-header h2 { color: #1E3A24; font-size: 1.8rem; font-weight: 800; margin-top: 8px; }
+        .tools-header p { color: #666; font-size: 0.95rem; max-width: 550px; margin: 6px auto 0 auto; }
+        .tools-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 16px; }
+        .tool-card { background: white; border-radius: 14px; padding: 22px 18px; box-shadow: 0 4px 12px rgba(0,0,0,0.04); border: 2px solid #EBEFEA; transition: all 0.25s; cursor: pointer; position: relative; display: flex; flex-direction: column; justify-content: space-between; text-decoration: none; color: inherit; }
+        .tool-card:hover { transform: translateY(-4px); border-color: #4CAF50; box-shadow: 0 8px 24px rgba(76, 175, 80, 0.15); }
+        .tool-card.coming-soon { opacity: 0.75; cursor: default; }
+        .tool-card.coming-soon:hover { transform: none; border-color: #EBEFEA; box-shadow: 0 4px 12px rgba(0,0,0,0.04); }
+        .tool-badge { position: absolute; top: 12px; right: 12px; font-size: 0.7rem; font-weight: 700; padding: 2px 8px; border-radius: 10px; background: #EEEEEE; color: #666; }
+        .tool-badge.new { background: #E8F5E9; color: #2E7D32; }
+        .tool-icon { font-size: 2.2rem; margin-bottom: 12px; }
+        .tool-card h4 { font-size: 1.1rem; font-weight: 700; color: #1E3A24; margin-bottom: 6px; }
+        .tool-card p { font-size: 0.85rem; color: #666; line-height: 1.4; margin-bottom: 14px; }
+        .tool-link { font-size: 0.82rem; font-weight: 700; color: #2E7D32; display: flex; align-items: center; gap: 4px; }
+        .tool-link.disabled { color: #999; }
+
         @media (max-width: 768px) {
             nav { flex-direction: column; gap: 15px; }
             .hero h1 { font-size: 2.2rem; }
@@ -48,6 +67,10 @@
             <a href="kiosk.html">Skol IF Kassa</a>
             <a href="redskapsboden.html">Redskapsboden</a>
             <a href="turnering.html" id="navTurneringLink">Skapa Turnering</a>
+            <a href="lopning.html">⏱️ Löprundan</a>
+            <a href="tabata.html">🔔 Tabatatimer</a>
+            <a href="beeptest.html">📢 Beep-test</a>
+            <a href="lagdelaren.html">🎲 Lagdelaren</a>
         </div>
     </nav>
 
@@ -92,6 +115,62 @@
                 
                 <div style="margin-top: 20px;">
                     <button id="turneringBtn" onclick="event.stopPropagation(); window.location.href='turnering.html';" class="cta-button" style="width: 100%; max-width: 250px;">Skapa Turnering</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- IDROTTSLÄRARENS VERKTYGSLÅDA -->
+        <section class="teacher-tools-section">
+            <div class="tools-header">
+                <span class="tools-badge">Lektionsverktyg</span>
+                <h2>Idrottslärarens Verktygslåda</h2>
+                <p>Smidiga och blixtsnabba digitala verktyg direkt i webbläsaren för lektionen och idrottshallen.</p>
+            </div>
+
+            <div class="tools-grid">
+                <!-- LÖPRUNDAN (AKTIV) -->
+                <a href="lopning.html" class="tool-card">
+                    <div class="tool-badge new">Ny!</div>
+                    <div class="tool-icon">⏱️</div>
+                    <h4>Löprundan</h4>
+                    <p>Klasstidtagning vid terränglopp och skoljoggen. Klicka in elever när de springer i mål.</p>
+                    <span class="tool-link">Öppna tidtagare →</span>
+                </a>
+
+                <!-- TABATATIMER (AKTIV) -->
+                <a href="tabata.html" class="tool-card">
+                    <div class="tool-badge new">Ny!</div>
+                    <div class="tool-icon">🔔</div>
+                    <h4>Tabatatimer</h4>
+                    <p>Intervallklocka för hallen med storskärm, färger och ljudsignaler för cirkelträning.</p>
+                    <span class="tool-link">Öppna timer →</span>
+                </a>
+
+                <!-- BEEP-TEST (AKTIV) -->
+                <a href="beeptest.html" class="tool-card">
+                    <div class="tool-badge new">Ny!</div>
+                    <div class="tool-icon">📢</div>
+                    <h4>Beep-test</h4>
+                    <p>Officiellt 20m konditionstest med synkat beepljud och direkt klickutslagning.</p>
+                    <span class="tool-link">Öppna test →</span>
+                </a>
+
+                <!-- LAGDELAREN (AKTIV) -->
+                <a href="lagdelaren.html" class="tool-card">
+                    <div class="tool-badge new">Ny!</div>
+                    <div class="tool-icon">🎲</div>
+                    <h4>Lagdelaren</h4>
+                    <p>Blanda klassen blixtsnabbt i slumpade lag med västfärger och storskärmsvy.</p>
+                    <span class="tool-link">Öppna lagdelaren →</span>
+                </a>
+
+                <!-- RESULTATTAVLA / MATCHKLOCKA (KOMMANDE) -->
+                <div class="tool-card coming-soon">
+                    <div class="tool-badge">Förslag</div>
+                    <div class="tool-icon">🔢</div>
+                    <h4>Matchklocka & Tavla</h4>
+                    <p>Storskärm med poängställning, periodklocka och matchsignal för innebandy och bollsport.</p>
+                    <span class="tool-link disabled">Planerad...</span>
                 </div>
             </div>
         </section>

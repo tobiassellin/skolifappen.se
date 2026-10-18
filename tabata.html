@@ -1,0 +1,976 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tabata & Intervalltimer | Skol-IF</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #0F172A;
+            color: #F8FAFC;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+            transition: background-color 0.4s ease;
+        }
+
+        /* ====== FÄRGTEMAN FÖR FASER ====== */
+        body.phase-idle { background-color: #0F172A; }
+        body.phase-prepare { background-color: #7C2D12; }
+        body.phase-work { background-color: #14532D; }
+        body.phase-rest { background-color: #7F1D1D; }
+        body.phase-setrest { background-color: #1E3A8A; }
+        body.phase-cooldown { background-color: #134E4A; }
+        body.phase-finished { background-color: #1E1B4B; }
+
+        /* ====== NAV ====== */
+        nav {
+            background: rgba(15, 23, 42, 0.75);
+            backdrop-filter: blur(10px);
+            padding: 12px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .nav-logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 800;
+            font-size: 1.25rem;
+            color: white;
+            text-decoration: none;
+        }
+        .nav-logo-icon {
+            background: rgba(255,255,255,0.1);
+            width: 38px;
+            height: 38px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.3rem;
+        }
+        .nav-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .nav-btn {
+            background: rgba(255,255,255,0.12);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.15);
+            padding: 8px 14px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s;
+            font-family: 'Poppins', sans-serif;
+        }
+        .nav-btn:hover { background: rgba(255,255,255,0.22); }
+
+        /* ====== MAIN CONTAINER ====== */
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px 16px 60px 16px;
+            width: 100%;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* ====== STORA TIMER-DISPLAYEN ====== */
+        .timer-display-card {
+            width: 100%;
+            max-width: 580px;
+            text-align: center;
+            margin-bottom: 25px;
+            position: relative;
+        }
+
+        .phase-badge {
+            display: inline-block;
+            font-size: 1.4rem;
+            font-weight: 900;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            padding: 6px 24px;
+            border-radius: 30px;
+            margin-bottom: 15px;
+            background: rgba(255,255,255,0.15);
+            color: #FFD54F;
+            text-shadow: 0 2px 8px rgba(0,0,0,0.4);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+            transition: all 0.3s ease;
+        }
+
+        /* Cirkulär Timer */
+        .timer-circle-wrap {
+            position: relative;
+            width: 320px;
+            height: 320px;
+            margin: 0 auto 20px auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        @media (max-width: 480px) {
+            .timer-circle-wrap { width: 280px; height: 280px; }
+        }
+
+        .timer-svg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            transform: rotate(-90deg);
+        }
+        .timer-track {
+            fill: none;
+            stroke: rgba(255,255,255,0.1);
+            stroke-width: 14;
+        }
+        .timer-progress {
+            fill: none;
+            stroke: #22C55E;
+            stroke-width: 14;
+            stroke-linecap: round;
+            stroke-dasharray: 880;
+            stroke-dashoffset: 0;
+            transition: stroke-dashoffset 0.2s linear, stroke 0.3s ease;
+        }
+
+        .timer-center-content {
+            position: relative;
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        .timer-digits {
+            font-size: 5.5rem;
+            font-weight: 900;
+            font-variant-numeric: tabular-nums;
+            line-height: 1;
+            letter-spacing: -2px;
+            color: #FFFFFF;
+            text-shadow: 0 4px 20px rgba(0,0,0,0.5);
+        }
+        @media (max-width: 480px) {
+            .timer-digits { font-size: 4.5rem; }
+        }
+
+        .timer-subtext {
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: rgba(255,255,255,0.9);
+            margin-top: 8px;
+            letter-spacing: 0.5px;
+        }
+
+        .total-time-bar {
+            font-size: 0.95rem;
+            color: rgba(255,255,255,0.7);
+            font-weight: 600;
+        }
+
+        /* ====== KONTROLLER ====== */
+        .controls-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            margin-bottom: 30px;
+            width: 100%;
+            max-width: 450px;
+        }
+
+        .btn-play {
+            width: 86px;
+            height: 86px;
+            border-radius: 50%;
+            background: #F59E0B;
+            border: none;
+            color: #0F172A;
+            font-size: 2.4rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 10px 25px rgba(245, 158, 11, 0.4);
+            transition: all 0.2s;
+        }
+        .btn-play:hover { transform: scale(1.06); background: #FBBF24; }
+        .btn-play:active { transform: scale(0.96); }
+
+        .btn-sec {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.12);
+            border: 1px solid rgba(255,255,255,0.15);
+            color: white;
+            font-size: 1.4rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-sec:hover { background: rgba(255,255,255,0.25); transform: scale(1.05); }
+
+        /* ====== SNABBVAL / PRESETS ====== */
+        .presets-section {
+            width: 100%;
+            max-width: 680px;
+            margin-bottom: 25px;
+        }
+        .presets-title {
+            text-align: center;
+            font-size: 0.85rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: rgba(255,255,255,0.6);
+            margin-bottom: 12px;
+        }
+        .presets-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+            gap: 10px;
+        }
+        .preset-card {
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.12);
+            border-radius: 12px;
+            padding: 12px 10px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .preset-card:hover {
+            background: rgba(255,255,255,0.14);
+            border-color: #F59E0B;
+            transform: translateY(-2px);
+        }
+        .preset-card.active {
+            background: rgba(245, 158, 11, 0.2);
+            border-color: #F59E0B;
+        }
+        .preset-icon { font-size: 1.4rem; margin-bottom: 4px; }
+        .preset-name { font-weight: 700; font-size: 0.85rem; color: white; }
+        .preset-detail { font-size: 0.72rem; color: rgba(255,255,255,0.6); margin-top: 2px; }
+
+        /* ====== INSTÄLLNINGS-PANEL ====== */
+        .settings-card {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 16px;
+            padding: 20px;
+            width: 100%;
+            max-width: 680px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+        }
+        .settings-title {
+            font-size: 1rem;
+            font-weight: 800;
+            color: white;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .settings-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 14px;
+        }
+        .setting-item {
+            background: rgba(0,0,0,0.25);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 12px;
+            padding: 12px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .setting-label {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+        .setting-name { font-weight: 700; font-size: 0.9rem; color: white; display: flex; align-items: center; gap: 6px; }
+        .setting-desc { font-size: 0.75rem; color: rgba(255,255,255,0.5); }
+
+        .stepper {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .btn-step {
+            width: 34px;
+            height: 34px;
+            border-radius: 8px;
+            background: rgba(255,255,255,0.12);
+            border: 1px solid rgba(255,255,255,0.15);
+            color: white;
+            font-size: 1.1rem;
+            font-weight: 800;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        .btn-step:hover { background: rgba(255,255,255,0.25); }
+        .stepper-val {
+            font-weight: 800;
+            font-size: 1.05rem;
+            min-width: 48px;
+            text-align: center;
+            font-variant-numeric: tabular-nums;
+            color: #FFD54F;
+        }
+
+        /* Fullskärmsläge */
+        :fullscreen body { background-color: #0F172A; }
+        :fullscreen nav { display: none; }
+        :fullscreen .settings-card, :fullscreen .presets-section { display: none; }
+        :fullscreen .container { height: 100vh; padding: 0; }
+        :fullscreen .timer-display-card { max-width: 90vw; }
+        :fullscreen .timer-circle-wrap { width: min(65vw, 65vh); height: min(65vw, 65vh); }
+        :fullscreen .timer-digits { font-size: min(18vw, 18vh); }
+        :fullscreen .phase-badge { font-size: min(5vw, 5vh); padding: 10px 40px; }
+        :fullscreen .timer-subtext { font-size: min(4vw, 4vh); }
+        :fullscreen .btn-play { width: 110px; height: 110px; font-size: 3rem; }
+    </style>
+</head>
+<body class="phase-idle">
+
+<nav>
+    <a href="index.html" class="nav-logo">
+        <div class="nav-logo-icon">🔔</div>
+        <div>
+            <div>Tabatatimer</div>
+            <div style="font-size: 0.72rem; color: rgba(255,255,255,0.6); font-weight: 500;">Intervall- & Cirkelklocka</div>
+        </div>
+    </a>
+    <div class="nav-actions">
+        <button class="nav-btn" onclick="toggleFullscreen()" id="fsBtn" title="Helskärm / Projektorläge">⛶ Fullskärm</button>
+        <button class="nav-btn" onclick="toggleAudio()" id="audioBtn" title="Ljud på/av">🔊 Ljud: På</button>
+        <a href="index.html" class="nav-btn">← Startsidan</a>
+    </div>
+</nav>
+
+<div class="container">
+
+    <!-- TIMER DISPLAY -->
+    <div class="timer-display-card">
+        <div class="phase-badge" id="phaseBadge">REDO</div>
+
+        <div class="timer-circle-wrap">
+            <svg class="timer-svg" viewBox="0 0 300 300">
+                <circle class="timer-track" cx="150" cy="150" r="140"></circle>
+                <circle class="timer-progress" id="timerProgress" cx="150" cy="150" r="140"></circle>
+            </svg>
+
+            <div class="timer-center-content">
+                <div class="timer-digits" id="timerDigits">00:00</div>
+                <div class="timer-subtext" id="timerSubtext">8 stationer • 1 set</div>
+            </div>
+        </div>
+
+        <div class="total-time-bar" id="totalTimeBar">Total passlängd: 04:00</div>
+    </div>
+
+    <!-- KONTROLLER -->
+    <div class="controls-row">
+        <button class="btn-sec" onclick="resetTimer()" title="Nollställ timer">⏹️</button>
+        <button class="btn-play" id="playBtn" onclick="togglePlay()" title="Starta / Pausa">▶</button>
+        <button class="btn-sec" onclick="skipToNextPhase()" title="Hoppa till nästa fas">⏭️</button>
+    </div>
+
+    <!-- SNABBVAL / PRESETS -->
+    <div class="presets-section" id="presetsSection">
+        <div class="presets-title">Snabblägen</div>
+        <div class="presets-grid">
+            <div class="preset-card active" onclick="applyPreset('tabata')">
+                <div class="preset-icon">🔥</div>
+                <div class="preset-name">Klassisk Tabata</div>
+                <div class="preset-detail">20s / 10s • 8 vändor</div>
+            </div>
+            <div class="preset-card" onclick="applyPreset('cirkel')">
+                <div class="preset-icon">🏋️</div>
+                <div class="preset-name">Cirkelträning</div>
+                <div class="preset-detail">45s / 15s • 8 stationer</div>
+            </div>
+            <div class="preset-card" onclick="applyPreset('emom')">
+                <div class="preset-icon">⏱️</div>
+                <div class="preset-name">EMOM</div>
+                <div class="preset-detail">50s / 10s • 10 varv</div>
+            </div>
+            <div class="preset-card" onclick="applyPreset('hiit')">
+                <div class="preset-icon">⚡</div>
+                <div class="preset-name">HIIT Sprint</div>
+                <div class="preset-detail">30s / 30s • 8 varv</div>
+            </div>
+            <div class="preset-card" onclick="applyPreset('boxning')">
+                <div class="preset-icon">🥊</div>
+                <div class="preset-name">Boxningsrond</div>
+                <div class="preset-detail">3 min / 1 min • 5 set</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- INSTÄLLNINGAR -->
+    <div class="settings-card" id="settingsSection">
+        <div class="settings-title">
+            <span>⚙️ Anpassa intervaller</span>
+            <span style="font-size: 0.8rem; font-weight: 500; color: rgba(255,255,255,0.6);" id="presetStatusText">Klassisk Tabata</span>
+        </div>
+
+        <div class="settings-grid">
+            <!-- Förberedelse -->
+            <div class="setting-item">
+                <div class="setting-label">
+                    <span class="setting-name">🏃‍♂️ Förberedelse</span>
+                    <span class="setting-desc">Tid att göra sig redo</span>
+                </div>
+                <div class="stepper">
+                    <button class="btn-step" onclick="changeSetting('prepare', -5)">-</button>
+                    <span class="stepper-val" id="valPrepare">10s</span>
+                    <button class="btn-step" onclick="changeSetting('prepare', 5)">+</button>
+                </div>
+            </div>
+
+            <!-- Arbete -->
+            <div class="setting-item">
+                <div class="setting-label">
+                    <span class="setting-name">💪 Arbetstid</span>
+                    <span class="setting-desc">Kör på för fullt</span>
+                </div>
+                <div class="stepper">
+                    <button class="btn-step" onclick="changeSetting('work', -5)">-</button>
+                    <span class="stepper-val" id="valWork">20s</span>
+                    <button class="btn-step" onclick="changeSetting('work', 5)">+</button>
+                </div>
+            </div>
+
+            <!-- Vila -->
+            <div class="setting-item">
+                <div class="setting-label">
+                    <span class="setting-name">🧘 Vila</span>
+                    <span class="setting-desc">Återhämta andan</span>
+                </div>
+                <div class="stepper">
+                    <button class="btn-step" onclick="changeSetting('rest', -5)">-</button>
+                    <span class="stepper-val" id="valRest">10s</span>
+                    <button class="btn-step" onclick="changeSetting('rest', 5)">+</button>
+                </div>
+            </div>
+
+            <!-- Stationer / Cykler -->
+            <div class="setting-item">
+                <div class="setting-label">
+                    <span class="setting-name">🔄 Stationer / Varv</span>
+                    <span class="setting-desc">Intervaller per set</span>
+                </div>
+                <div class="stepper">
+                    <button class="btn-step" onclick="changeSetting('stations', -1)">-</button>
+                    <span class="stepper-val" id="valStations">8</span>
+                    <button class="btn-step" onclick="changeSetting('stations', 1)">+</button>
+                </div>
+            </div>
+
+            <!-- Antal Sets -->
+            <div class="setting-item">
+                <div class="setting-label">
+                    <span class="setting-name">📚 Antal Sets</span>
+                    <span class="setting-desc">Omgångar av hela varvet</span>
+                </div>
+                <div class="stepper">
+                    <button class="btn-step" onclick="changeSetting('sets', -1)">-</button>
+                    <span class="stepper-val" id="valSets">1</span>
+                    <button class="btn-step" onclick="changeSetting('sets', 1)">+</button>
+                </div>
+            </div>
+
+            <!-- Set-vila -->
+            <div class="setting-item">
+                <div class="setting-label">
+                    <span class="setting-name">🥤 Set-vila</span>
+                    <span class="setting-desc">Längre paus mellan sets</span>
+                </div>
+                <div class="stepper">
+                    <button class="btn-step" onclick="changeSetting('setRest', -10)">-</button>
+                    <span class="stepper-val" id="valSetRest">60s</span>
+                    <button class="btn-step" onclick="changeSetting('setRest', 10)">+</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    // ==========================================
+    //  TIMER STATE
+    // ==========================================
+    const TimerState = {
+        IDLE: 'IDLE',
+        PREPARE: 'PREPARE',
+        WORK: 'WORK',
+        REST: 'REST',
+        SET_REST: 'SET_REST',
+        FINISHED: 'FINISHED'
+    };
+
+    let settings = {
+        prepare: 10,
+        work: 20,
+        rest: 10,
+        stations: 8,
+        sets: 1,
+        setRest: 60
+    };
+
+    let currentState = TimerState.IDLE;
+    let isRunning = false;
+    let timeRemaining = 0;
+    let phaseTotalTime = 0;
+    let currentStation = 1;
+    let currentSet = 1;
+
+    let timerInterval = null;
+    let audioEnabled = true;
+    let wakeLock = null;
+
+    const CIRCLE_CIRCUMFERENCE = 2 * Math.PI * 140; // ~879.6
+
+    // ==========================================
+    //  INITIERING
+    // ==========================================
+    window.addEventListener('DOMContentLoaded', () => {
+        applyPreset('tabata');
+        updateUI();
+    });
+
+    // ==========================================
+    //  KONTROLLER (PLAY / PAUSE / RESET)
+    // ==========================================
+    function togglePlay() {
+        if (isRunning) {
+            pauseTimer();
+        } else {
+            startTimer();
+        }
+    }
+
+    function startTimer() {
+        if (currentState === TimerState.IDLE || currentState === TimerState.FINISHED) {
+            currentSet = 1;
+            currentStation = 1;
+
+            if (settings.prepare > 0) {
+                setPhase(TimerState.PREPARE, settings.prepare);
+            } else {
+                setPhase(TimerState.WORK, settings.work);
+            }
+        }
+
+        isRunning = true;
+        document.getElementById('playBtn').innerHTML = "⏸";
+        document.getElementById('playBtn').title = "Pausa";
+
+        requestWakeLock();
+        startInterval();
+    }
+
+    function pauseTimer() {
+        isRunning = false;
+        clearInterval(timerInterval);
+        document.getElementById('playBtn').innerHTML = "▶";
+        document.getElementById('playBtn').title = "Starta";
+        releaseWakeLock();
+    }
+
+    function resetTimer() {
+        pauseTimer();
+        currentState = TimerState.IDLE;
+        timeRemaining = 0;
+        phaseTotalTime = 0;
+        currentStation = 1;
+        currentSet = 1;
+        updateUI();
+    }
+
+    function skipToNextPhase() {
+        if (currentState === TimerState.IDLE) return;
+        transitionToNextPhase();
+    }
+
+    function startInterval() {
+        clearInterval(timerInterval);
+        timerInterval = setInterval(() => {
+            if (!isRunning) return;
+
+            if (timeRemaining > 0) {
+                // Pip vid 3, 2, 1 sekunder kvar
+                if (timeRemaining <= 3 && timeRemaining > 0) {
+                    playBeep(750, 0.12);
+                }
+
+                timeRemaining--;
+                updateDisplayDigits();
+                updateProgressCircle();
+
+                if (timeRemaining === 0) {
+                    transitionToNextPhase();
+                }
+            }
+        }, 1000);
+    }
+
+    function setPhase(newPhase, duration) {
+        currentState = newPhase;
+        timeRemaining = duration;
+        phaseTotalTime = duration;
+
+        // Ljudsignaler
+        if (newPhase === TimerState.WORK) {
+            playWhistle();
+        } else if (newPhase === TimerState.REST || newPhase === TimerState.SET_REST) {
+            playBeep(440, 0.25);
+        } else if (newPhase === TimerState.FINISHED) {
+            playFanfare();
+        }
+
+        updateUI();
+    }
+
+    function transitionToNextPhase() {
+        switch (currentState) {
+            case TimerState.PREPARE:
+                setPhase(TimerState.WORK, settings.work);
+                break;
+
+            case TimerState.WORK:
+                if (currentStation < settings.stations) {
+                    setPhase(TimerState.REST, settings.rest);
+                } else if (currentSet < settings.sets) {
+                    setPhase(TimerState.SET_REST, settings.setRest);
+                } else {
+                    setPhase(TimerState.FINISHED, 0);
+                    pauseTimer();
+                }
+                break;
+
+            case TimerState.REST:
+                currentStation++;
+                setPhase(TimerState.WORK, settings.work);
+                break;
+
+            case TimerState.SET_REST:
+                currentSet++;
+                currentStation = 1;
+                setPhase(TimerState.WORK, settings.work);
+                break;
+
+            default:
+                break;
+        }
+    }
+
+    // ==========================================
+    //  UI UPPDATERING
+    // ==========================================
+    function updateUI() {
+        const body = document.body;
+        body.className = '';
+
+        const badge = document.getElementById('phaseBadge');
+        const progress = document.getElementById('timerProgress');
+
+        switch (currentState) {
+            case TimerState.IDLE:
+                body.classList.add('phase-idle');
+                badge.textContent = "REDO";
+                badge.style.color = "#FFD54F";
+                progress.style.stroke = "#64748B";
+                break;
+
+            case TimerState.PREPARE:
+                body.classList.add('phase-prepare');
+                badge.textContent = "GÖR DIG REDO!";
+                badge.style.color = "#FB923C";
+                progress.style.stroke = "#F97316";
+                break;
+
+            case TimerState.WORK:
+                body.classList.add('phase-work');
+                badge.textContent = "ARBETE!";
+                badge.style.color = "#4ADE80";
+                progress.style.stroke = "#22C55E";
+                break;
+
+            case TimerState.REST:
+                body.classList.add('phase-rest');
+                badge.textContent = "VILA";
+                badge.style.color = "#F87171";
+                progress.style.stroke = "#EF4444";
+                break;
+
+            case TimerState.SET_REST:
+                body.classList.add('phase-setrest');
+                badge.textContent = "SET-VILA";
+                badge.style.color = "#60A5FA";
+                progress.style.stroke = "#3B82F6";
+                break;
+
+            case TimerState.FINISHED:
+                body.classList.add('phase-finished');
+                badge.textContent = "KLAR! BRA JOBBAT! 🎉";
+                badge.style.color = "#FDE047";
+                progress.style.stroke = "#EAB308";
+                break;
+        }
+
+        updateDisplayDigits();
+        updateProgressCircle();
+        updateSubtext();
+        updateTotalTime();
+    }
+
+    function updateDisplayDigits() {
+        const minutes = Math.floor(timeRemaining / 60);
+        const seconds = timeRemaining % 60;
+        const formatted = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+        document.getElementById('timerDigits').textContent = formatted;
+    }
+
+    function updateProgressCircle() {
+        const circle = document.getElementById('timerProgress');
+        if (phaseTotalTime <= 0) {
+            circle.style.strokeDashoffset = 0;
+            return;
+        }
+
+        const fraction = timeRemaining / phaseTotalTime;
+        const offset = CIRCLE_CIRCUMFERENCE * (1 - fraction);
+        circle.style.strokeDashoffset = offset;
+    }
+
+    function updateSubtext() {
+        const sub = document.getElementById('timerSubtext');
+        if (currentState === TimerState.IDLE) {
+            sub.textContent = `${settings.stations} stationer • ${settings.sets} set`;
+        } else if (currentState === TimerState.FINISHED) {
+            sub.textContent = `Hela passet slutfört!`;
+        } else {
+            sub.textContent = `Set ${currentSet}/${settings.sets} • Station ${currentStation}/${settings.stations}`;
+        }
+    }
+
+    function updateTotalTime() {
+        const totalWorkSec = settings.work * settings.stations * settings.sets;
+        const totalRestSec = settings.rest * Math.max(0, settings.stations - 1) * settings.sets;
+        const totalSetRestSec = settings.setRest * Math.max(0, settings.sets - 1);
+        const totalSec = settings.prepare + totalWorkSec + totalRestSec + totalSetRestSec;
+
+        const m = Math.floor(totalSec / 60);
+        const s = totalSec % 60;
+        document.getElementById('totalTimeBar').textContent = `Total passlängd: ${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    }
+
+    // ==========================================
+    //  PRESETS & INSTÄLLNINGAR
+    // ==========================================
+    function applyPreset(preset) {
+        document.querySelectorAll('.preset-card').forEach(c => c.classList.remove('active'));
+
+        if (preset === 'tabata') {
+            settings = { prepare: 10, work: 20, rest: 10, stations: 8, sets: 1, setRest: 60 };
+            document.getElementById('presetStatusText').textContent = "Klassisk Tabata (4 min)";
+            document.querySelectorAll('.preset-card')[0].classList.add('active');
+        } else if (preset === 'cirkel') {
+            settings = { prepare: 10, work: 45, rest: 15, stations: 8, sets: 2, setRest: 90 };
+            document.getElementById('presetStatusText').textContent = "Cirkelträning (17 min)";
+            document.querySelectorAll('.preset-card')[1].classList.add('active');
+        } else if (preset === 'emom') {
+            settings = { prepare: 10, work: 50, rest: 10, stations: 10, sets: 1, setRest: 60 };
+            document.getElementById('presetStatusText').textContent = "EMOM (10 min)";
+            document.querySelectorAll('.preset-card')[2].classList.add('active');
+        } else if (preset === 'hiit') {
+            settings = { prepare: 10, work: 30, rest: 30, stations: 8, sets: 1, setRest: 60 };
+            document.getElementById('presetStatusText').textContent = "HIIT Sprint (8 min)";
+            document.querySelectorAll('.preset-card')[3].classList.add('active');
+        } else if (preset === 'boxning') {
+            settings = { prepare: 10, work: 180, rest: 60, stations: 5, sets: 1, setRest: 60 };
+            document.getElementById('presetStatusText').textContent = "Boxningsrond (20 min)";
+            document.querySelectorAll('.preset-card')[4].classList.add('active');
+        }
+
+        renderSettingsInputs();
+        resetTimer();
+    }
+
+    function changeSetting(key, delta) {
+        if (isRunning) return;
+
+        let min = 5;
+        if (key === 'stations' || key === 'sets') min = 1;
+        if (key === 'prepare' || key === 'setRest') min = 0;
+
+        settings[key] = Math.max(min, settings[key] + delta);
+        document.getElementById('presetStatusText').textContent = "Eget anpassat upplägg";
+        document.querySelectorAll('.preset-card').forEach(c => c.classList.remove('active'));
+
+        renderSettingsInputs();
+        resetTimer();
+    }
+
+    function renderSettingsInputs() {
+        document.getElementById('valPrepare').textContent = settings.prepare + 's';
+        document.getElementById('valWork').textContent = settings.work + 's';
+        document.getElementById('valRest').textContent = settings.rest + 's';
+        document.getElementById('valStations').textContent = settings.stations;
+        document.getElementById('valSets').textContent = settings.sets;
+        document.getElementById('valSetRest').textContent = settings.setRest + 's';
+        updateTotalTime();
+    }
+
+    // ==========================================
+    //  FULLSKÄRM & WAKE LOCK
+    // ==========================================
+    function toggleFullscreen() {
+        if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen().catch(err => {
+                console.warn("Kunde inte gå till fullskärm", err);
+            });
+            document.getElementById('fsBtn').textContent = "✕ Avsluta fullskärm";
+        } else {
+            if (document.exitFullscreen) {
+                document.exitFullscreen();
+            }
+            document.getElementById('fsBtn').textContent = "⛶ Fullskärm";
+        }
+    }
+
+    document.addEventListener('fullscreenchange', () => {
+        if (!document.fullscreenElement) {
+            document.getElementById('fsBtn').textContent = "⛶ Fullskärm";
+        }
+    });
+
+    async function requestWakeLock() {
+        try {
+            if ('wakeLock' in navigator) {
+                wakeLock = await navigator.wakeLock.request('screen');
+            }
+        } catch(e) {}
+    }
+
+    function releaseWakeLock() {
+        if (wakeLock) {
+            wakeLock.release().catch(() => {});
+            wakeLock = null;
+        }
+    }
+
+    // ==========================================
+    //  WEB AUDIO SYNTHESIZER (LJUD)
+    // ==========================================
+    let audioCtx = null;
+    function getAudioContext() {
+        if (!audioCtx) {
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            audioCtx = new AudioContext();
+        }
+        if (audioCtx.state === 'suspended') {
+            audioCtx.resume();
+        }
+        return audioCtx;
+    }
+
+    function toggleAudio() {
+        audioEnabled = !audioEnabled;
+        document.getElementById('audioBtn').textContent = audioEnabled ? "🔊 Ljud: På" : "🔇 Ljud: Av";
+    }
+
+    function playBeep(freq = 600, duration = 0.15) {
+        if (!audioEnabled) return;
+        try {
+            const ctx = getAudioContext();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(freq, ctx.currentTime);
+
+            gain.gain.setValueAtTime(0.3, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + duration);
+
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+
+            osc.start();
+            osc.stop(ctx.currentTime + duration);
+        } catch(e) {}
+    }
+
+    function playWhistle() {
+        if (!audioEnabled) return;
+        try {
+            const ctx = getAudioContext();
+            // Hög visselsignal vid start av arbete
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(1400, ctx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(1800, ctx.currentTime + 0.1);
+            osc.frequency.exponentialRampToValueAtTime(1200, ctx.currentTime + 0.35);
+
+            gain.gain.setValueAtTime(0.5, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.35);
+
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+
+            osc.start();
+            osc.stop(ctx.currentTime + 0.35);
+        } catch(e) {}
+    }
+
+    function playFanfare() {
+        if (!audioEnabled) return;
+        try {
+            // Tre uppåtgående toner vid avslut
+            setTimeout(() => playBeep(523, 0.18), 0);
+            setTimeout(() => playBeep(659, 0.18), 180);
+            setTimeout(() => playBeep(784, 0.4), 360);
+        } catch(e) {}
+    }
+</script>
+
+</body>
+</html>
+

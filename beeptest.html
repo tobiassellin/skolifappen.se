@@ -1,0 +1,1382 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Beep-test (20m) | Skol-IF</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #F4F7F5;
+            color: #333;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* ====== NAV ====== */
+        nav {
+            background: white;
+            padding: 14px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .nav-logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 800;
+            font-size: 1.25rem;
+            color: #1E3A24;
+            text-decoration: none;
+        }
+        .nav-logo-icon {
+            background: #E8F5E9;
+            width: 38px;
+            height: 38px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.3rem;
+        }
+        .nav-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .nav-btn {
+            background: #F0F4F1;
+            color: #2E7D32;
+            border: none;
+            padding: 8px 14px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s;
+            font-family: 'Poppins', sans-serif;
+        }
+        .nav-btn:hover { background: #E0EBE2; }
+
+        /* ====== CONTAINER ====== */
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 20px 16px 60px 16px;
+            width: 100%;
+            flex: 1;
+        }
+
+        /* ====== BUTTONS ====== */
+        .btn {
+            padding: 10px 18px;
+            border: none;
+            border-radius: 10px;
+            font-weight: 700;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            font-family: 'Poppins', sans-serif;
+        }
+        .btn-green { background: #2E7D32; color: white; }
+        .btn-green:hover { background: #256628; }
+        .btn-green-lg {
+            background: #2E7D32;
+            color: white;
+            font-size: 1.15rem;
+            padding: 14px 28px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(46, 125, 50, 0.3);
+        }
+        .btn-green-lg:hover { background: #256628; transform: translateY(-1px); }
+        .btn-orange { background: #FF9800; color: white; }
+        .btn-orange:hover { background: #E68A00; }
+        .btn-red { background: #D32F2F; color: white; }
+        .btn-red:hover { background: #B71C1C; }
+        .btn-outline { background: white; color: #2E7D32; border: 2px solid #2E7D32; }
+        .btn-outline:hover { background: #E8F5E9; }
+        .btn-sm { padding: 5px 10px; font-size: 0.78rem; border-radius: 6px; }
+
+        /* ====== CARDS ====== */
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.04);
+            border: 1px solid #EBEFEA;
+            margin-bottom: 20px;
+        }
+
+        /* ====== SETUP VIEW ====== */
+        #setupView { max-width: 750px; margin: 0 auto; }
+        .setup-header { text-align: center; margin-bottom: 24px; }
+        .setup-header h1 { font-size: 2rem; font-weight: 900; color: #1E3A24; margin-bottom: 6px; }
+        .setup-header p { color: #666; font-size: 0.95rem; }
+
+        .form-group { margin-bottom: 16px; }
+        .form-group label {
+            display: block;
+            font-weight: 700;
+            font-size: 0.85rem;
+            color: #333;
+            margin-bottom: 6px;
+        }
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%;
+            padding: 12px 14px;
+            border: 2px solid #E0E6E1;
+            border-radius: 10px;
+            font-size: 0.95rem;
+            font-family: 'Poppins', sans-serif;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        .form-group input:focus, .form-group textarea:focus { border-color: #2E7D32; }
+
+        /* ====== TEST VIEW ====== */
+        #testView { display: none; }
+
+        /* HERO DISPLAY */
+        .beep-hero {
+            background: linear-gradient(135deg, #0F172A 0%, #1E3A8A 100%);
+            color: white;
+            border-radius: 20px;
+            padding: 24px 28px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(15, 23, 42, 0.35);
+        }
+        .beep-hero.active-level-up {
+            animation: levelUpFlash 0.6s ease;
+        }
+        @keyframes levelUpFlash {
+            0% { background: #F59E0B; }
+            100% { background: linear-gradient(135deg, #0F172A 0%, #1E3A8A 100%); }
+        }
+        .beep-hero.active-shuttle-beep {
+            animation: shuttleBeepFlash 0.35s ease-out;
+        }
+        @keyframes shuttleBeepFlash {
+            0% { filter: brightness(1.3); box-shadow: 0 0 35px rgba(74, 222, 128, 0.7); }
+            100% { filter: brightness(1.0); box-shadow: 0 10px 30px rgba(15, 23, 42, 0.35); }
+        }
+
+        .beep-top-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 18px;
+        }
+        .beep-title {
+            font-size: 1.15rem;
+            font-weight: 800;
+            color: #93C5FD;
+        }
+
+        /* 3 STORA METRICS */
+        .beep-metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            margin-bottom: 18px;
+            text-align: center;
+        }
+        @media (max-width: 650px) {
+            .beep-metrics-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+
+        .metric-card {
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.12);
+            border-radius: 12px;
+            padding: 12px 10px;
+        }
+        .metric-label {
+            font-size: 0.72rem;
+            color: rgba(255,255,255,0.7);
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .metric-value {
+            font-size: 2.4rem;
+            font-weight: 900;
+            line-height: 1.1;
+            margin-top: 4px;
+            color: #FFFFFF;
+            font-variant-numeric: tabular-nums;
+        }
+        .metric-value.highlight { color: #FBBF24; }
+        .metric-unit { font-size: 0.85rem; font-weight: 600; opacity: 0.8; }
+
+        /* Förloppsindikator för aktuell vända */
+        .shuttle-bar-wrap {
+            background: rgba(255,255,255,0.15);
+            height: 10px;
+            border-radius: 5px;
+            overflow: hidden;
+            margin-bottom: 16px;
+        }
+        .shuttle-bar-progress {
+            background: #22C55E;
+            height: 100%;
+            width: 100%;
+            transition: width 0.1s linear;
+        }
+
+        .beep-actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        /* LAYOUT: ELEVLISTA & UTE */
+        .test-grid {
+            display: grid;
+            grid-template-columns: 1fr 340px;
+            gap: 20px;
+            align-items: start;
+        }
+        @media (max-width: 900px) {
+            .test-grid { grid-template-columns: 1fr; }
+        }
+
+        .elever-section {
+            background: white;
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.04);
+            border: 1px solid #EBEFEA;
+        }
+        .elever-section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 14px;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .elever-title {
+            font-weight: 800;
+            font-size: 1.1rem;
+            color: #1E3A24;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .badge-active {
+            background: #E8F5E9;
+            color: #2E7D32;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 700;
+        }
+
+        /* Elev-brickor (klicka när de kliver av) */
+        .elever-tiles {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+            gap: 10px;
+            max-height: 550px;
+            overflow-y: auto;
+            padding: 4px;
+        }
+        .elev-tile {
+            background: #F8FAFC;
+            border: 2px solid #E2E8F0;
+            border-radius: 12px;
+            padding: 12px 14px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            min-height: 85px;
+            cursor: pointer;
+            transition: all 0.15s;
+            position: relative;
+            user-select: none;
+        }
+        .elev-tile:hover {
+            border-color: #22C55E;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(34, 197, 94, 0.15);
+        }
+        .elev-tile:active {
+            transform: scale(0.97);
+        }
+        .elev-tile-name {
+            font-weight: 700;
+            font-size: 0.95rem;
+            color: #1E293B;
+            word-break: break-word;
+            line-height: 1.25;
+        }
+        .elev-tile-status {
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: #15803D;
+            background: #DCFCE7;
+            padding: 3px 8px;
+            border-radius: 6px;
+            margin-top: 8px;
+            text-align: center;
+        }
+        .elev-tile.warned {
+            border-color: #F59E0B;
+            background: #FFFBEB;
+        }
+        .elev-tile.warned .elev-tile-status {
+            background: #FEF3C7;
+            color: #B45309;
+        }
+
+        /* Sidopanel: Klara / Utslagna */
+        .avhopp-section {
+            background: white;
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.04);
+            border: 1px solid #EBEFEA;
+            position: sticky;
+            top: 80px;
+            max-height: calc(100vh - 100px);
+            display: flex;
+            flex-direction: column;
+        }
+        .avhopp-list {
+            overflow-y: auto;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            padding-right: 4px;
+        }
+        .avhopp-card {
+            background: #F8FAFC;
+            border: 1px solid #E2E8F0;
+            border-radius: 10px;
+            padding: 10px 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+        }
+        .avhopp-name { font-weight: 700; font-size: 0.9rem; color: #334155; }
+        .avhopp-res { font-weight: 800; font-size: 0.85rem; color: #2E7D32; }
+        .avhopp-vo2 { font-size: 0.72rem; color: #64748B; margin-top: 1px; }
+
+        /* ====== SUMMARY VIEW ====== */
+        #summaryView { display: none; max-width: 900px; margin: 0 auto; }
+        .summary-header { text-align: center; margin-bottom: 24px; }
+        .summary-header h1 { font-size: 2.2rem; font-weight: 900; color: #1E3A24; margin-bottom: 6px; }
+
+        .resultat-tabell {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 16px;
+        }
+        .resultat-tabell th, .resultat-tabell td {
+            padding: 10px 14px;
+            text-align: left;
+            border-bottom: 1px solid #EEEEEE;
+        }
+        .resultat-tabell th {
+            background: #F4F7F5;
+            color: #555;
+            font-size: 0.82rem;
+            text-transform: uppercase;
+        }
+        .resultat-tabell tr:hover { background: #FAFAFA; }
+
+        /* Utskriftslayout */
+        @media print {
+            nav, .beep-actions, .nav-actions, .btn { display: none !important; }
+            body, .container { background: white; padding: 0; }
+            .card { box-shadow: none; border: none; }
+        }
+    </style>
+</head>
+<body>
+
+<audio id="beepAudio" src="beeptest.mp3" preload="auto"></audio>
+
+<nav>
+    <a href="index.html" class="nav-logo">
+        <div class="nav-logo-icon">📢</div>
+        <div>
+            <div>Beep-test</div>
+            <div style="font-size: 0.72rem; color: #666; font-weight: 500;">Officiellt 20m Konditionstest</div>
+        </div>
+    </a>
+    <div class="nav-actions">
+        <button class="nav-btn" onclick="toggleAudio()" id="audioBtn" title="Ljud på/av">🔊 Ljud: På</button>
+        <button class="nav-btn" onclick="toggleFullscreen()" id="fsBtn" title="Helskärmsläge">⛶ Fullskärm</button>
+        <a href="index.html" class="nav-btn">← Startsidan</a>
+    </div>
+</nav>
+
+<div class="container">
+
+    <!-- ========================================== -->
+    <!-- VY 1: FÖRBEREDELSER (SETUP)                -->
+    <!-- ========================================== -->
+    <div id="setupView">
+        <div class="setup-header">
+            <h1>📢 Nytt Beep-test (20 meter)</h1>
+            <p>Mata in klassen. När testet startar spelas de officiella ljudsignalerna synkat och du klickar bara på eleverna när de inte hinner fram!</p>
+        </div>
+
+        <div class="card">
+            <div class="form-group">
+                <label>Klassens namn / Grupp</label>
+                <input type="text" id="klassNamnInput" placeholder="T.ex. Klass 8B" value="Klass 8B">
+            </div>
+
+            <div class="form-group">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                    <label style="margin: 0;">Elever som deltar (ett namn per rad eller separera med komma)</label>
+                    <span id="deltagarCount" style="font-size: 0.8rem; font-weight: 700; color: #2E7D32;">0 elever</span>
+                </div>
+                <textarea id="eleverInput" rows="7" placeholder="Kalle Andersson&#10;Lisa Lindqvist&#10;Ahmed Hassan&#10;Sara Nilsson&#10;..." oninput="uppdateraDeltagarCount()"></textarea>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 6px; flex-wrap: wrap; gap: 8px;">
+                    <div style="font-size: 0.78rem; color: #777;">Tips: Klistra in direkt från Vklass, Schoolsoft eller Excel!</div>
+                    <div style="display: flex; gap: 6px;">
+                        <button type="button" class="btn btn-outline btn-sm" onclick="laddaExempelKlass()">Ladda exempelklass</button>
+                        <button type="button" class="btn btn-sm" style="background:#EEEEEE; color:#555;" onclick="rensaDeltagare()">Rensa</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- OFFISIELLT LJUDSPÅR INFO & TESTA -->
+            <div class="form-group" style="margin-top: 18px;">
+                <div style="background: #E8F5E9; border: 1px solid #C8E6C9; border-radius: 12px; padding: 14px 18px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+                    <div style="display: flex; align-items: center; gap: 14px;">
+                        <span style="font-size: 1.8rem;">🎧</span>
+                        <div>
+                            <div style="font-weight: 800; color: #1E3A24; font-size: 0.95rem;">Officiellt Beep Test ljudspår (20m)</div>
+                            <div style="font-size: 0.8rem; color: #555;">Inbyggda röstinstruktioner. Första löprundan (Nivå 1.1) startar vid första pipet (13,25s). Alla 247 vändor är millisekund-synkade mot ljudspåret!</div>
+                        </div>
+                    </div>
+                    <button type="button" class="btn btn-outline btn-sm" id="testLjudBtn" onclick="testaLjudsparet()">▶️ Provlyssna 5s</button>
+                </div>
+            </div>
+
+            <div style="margin-top: 24px; display: flex; justify-content: flex-end;">
+                <button type="button" class="btn btn-green-lg" style="width: 100%;" onclick="startaBeepTest()">🚀 Starta Beep-testet!</button>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- ========================================== -->
+    <!-- VY 2: TEST PÅGÅR                           -->
+    <!-- ========================================== -->
+    <div id="testView">
+        <div class="beep-hero" id="beepHero">
+            <div class="beep-top-row">
+                <div class="beep-title" id="testHeroTitel">Klass 8B • 20m Beep-test</div>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <span id="statusBadge" style="background: rgba(34, 197, 94, 0.2); color: #4ADE80; font-weight: 800; font-size: 0.8rem; padding: 4px 12px; border-radius: 20px;">🟢 PÅGÅR</span>
+                </div>
+            </div>
+
+            <!-- METRICS -->
+            <div class="beep-metrics-grid">
+                <div class="metric-card">
+                    <div class="metric-label">Nivå</div>
+                    <div class="metric-value highlight" id="dispNiva">1</div>
+                    <div class="metric-unit">av 21</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Vända</div>
+                    <div class="metric-value" id="dispVanda">1 <span class="metric-unit" id="dispMaxVandor">/ 7</span></div>
+                    <div class="metric-unit" id="dispTotalVandor">Totalt: 1</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Hastighet</div>
+                    <div class="metric-value" id="dispHastighet">8.0</div>
+                    <div class="metric-unit">km/h</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Nästa Pip</div>
+                    <div class="metric-value highlight" id="dispTidKvar">9.0s</div>
+                    <div class="metric-unit" id="dispTotalTid">Total tid: 00:00</div>
+                </div>
+            </div>
+
+            <!-- Förloppsindikator för aktuell vända -->
+            <div class="shuttle-bar-wrap">
+                <div class="shuttle-bar-progress" id="shuttleBar"></div>
+            </div>
+
+            <div class="beep-actions">
+                <div style="font-size: 0.85rem; color: rgba(255,255,255,0.8);">
+                    Sprungit: <strong id="dispTotalMeter" style="color: white;">0 m</strong>
+                </div>
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn btn-orange btn-sm" id="pausBtn" onclick="togglePaus()">⏸️ Pausa</button>
+                    <button class="btn btn-red btn-sm" onclick="avslutaTestBekrafta()">🏁 Avsluta test</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="test-grid">
+            <!-- Vänster: Kvar i testet -->
+            <div class="elever-section">
+                <div class="elever-section-header">
+                    <div class="elever-title">
+                        🏃‍♂️ Springer just nu
+                        <span class="badge-active" id="badgeSpringer">0 kvar</span>
+                    </div>
+                    <div style="font-size: 0.78rem; color: #666;">
+                        Klicka på eleven i samma sekund hen kliver av!
+                    </div>
+                </div>
+
+                <div class="elever-tiles" id="eleverTilesContainer">
+                    <!-- Brickor genereras här -->
+                </div>
+            </div>
+
+            <!-- Höger: Klara / Avhoppade -->
+            <div class="avhopp-section">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                    <div style="font-weight: 800; font-size: 1.05rem; color: #1E3A24;">
+                        ✅ Slutförda (<span id="countKlara">0</span>)
+                    </div>
+                </div>
+
+                <div class="avhopp-list" id="avhoppListContainer">
+                    <div style="text-align: center; color: #888; padding: 40px 10px; font-size: 0.85rem;">
+                        När en elev inte hinner fram klickar du på brickan till vänster för att registrera nivån!
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- ========================================== -->
+    <!-- VY 3: RESULTAT & EXPORT                    -->
+    <!-- ========================================== -->
+    <div id="summaryView">
+        <div class="summary-header">
+            <span style="background: #E8F5E9; color: #2E7D32; font-weight: 700; font-size: 0.8rem; padding: 5px 14px; border-radius: 20px;">Slutresultat</span>
+            <h1 id="summaryTitel">Klass 8B - Beep-test</h1>
+            <p id="summaryInfoText" style="color: #666; font-size: 0.95rem;">20m Shuttle Run Test</p>
+        </div>
+
+        <div class="card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px;">
+                <h3 style="color: #1E3A24; font-weight: 800;">Klassens resultat</h3>
+                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                    <button class="btn btn-outline btn-sm" onclick="laddaNerCSV()">📥 Ladda ner Excel (CSV)</button>
+                    <button class="btn btn-outline btn-sm" onclick="kopieraResultat()">📋 Kopiera text</button>
+                    <button class="btn btn-green btn-sm" onclick="window.print()">🖨️ Skriv ut</button>
+                </div>
+            </div>
+
+            <div style="overflow-x: auto;">
+                <table class="resultat-tabell">
+                    <thead>
+                        <tr>
+                            <th style="width: 50px;">Plats</th>
+                            <th>Elev</th>
+                            <th>Nivå & Vända</th>
+                            <th>Sträcka</th>
+                            <th>Hastighet</th>
+                            <th>VO2-max (uppskattat)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="resultatTabellBody"></tbody>
+                </table>
+            </div>
+
+            <div style="margin-top: 25px; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #EEEEEE; padding-top: 18px; flex-wrap: wrap; gap: 10px;">
+                <button class="btn btn-outline" onclick="gaTillbakaTillTest()">← Fortsätt testet</button>
+                <button class="btn btn-green" onclick="nyttTest()">➕ Nytt test</button>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+
+<script>
+    // ==========================================
+    //  OFFICIELL 20M BEEP-TEST DATA & LJUDSPÅR-TIMESTAMPS
+    //  Exakt avlästa millisekund-stämplar från beeptest.mp3
+    // ==========================================
+    const LEVEL_COUNTS = [
+        { level: 1,  shuttles: 7, speed: 8.0 },
+        { level: 2,  shuttles: 8, speed: 9.0 },
+        { level: 3,  shuttles: 8, speed: 9.5 },
+        { level: 4,  shuttles: 9, speed: 10.0 },
+        { level: 5,  shuttles: 9, speed: 10.5 },
+        { level: 6,  shuttles: 10, speed: 11.0 },
+        { level: 7,  shuttles: 10, speed: 11.5 },
+        { level: 8,  shuttles: 11, speed: 12.0 },
+        { level: 9,  shuttles: 11, speed: 12.5 },
+        { level: 10, shuttles: 11, speed: 13.0 },
+        { level: 11, shuttles: 12, speed: 13.5 },
+        { level: 12, shuttles: 12, speed: 14.0 },
+        { level: 13, shuttles: 13, speed: 14.5 },
+        { level: 14, shuttles: 13, speed: 15.0 },
+        { level: 15, shuttles: 13, speed: 15.5 },
+        { level: 16, shuttles: 14, speed: 16.0 },
+        { level: 17, shuttles: 14, speed: 16.5 },
+        { level: 18, shuttles: 15, speed: 17.0 },
+        { level: 19, shuttles: 15, speed: 17.5 },
+        { level: 20, shuttles: 16, speed: 18.0 },
+        { level: 21, shuttles: 16, speed: 18.5 }
+    ];
+
+    // Alla 248 piptider (start & vändningar) exakt avlästa från ljudspåret
+    const BEEP_TIMESTAMPS = [
+        13.25, 22.28, 31.28, 40.32, 49.29, 58.33, 67.34, 76.32, 84.33, 92.34, 
+        100.35, 108.34, 116.36, 124.35, 132.38, 140.37, 147.99, 155.54, 163.11, 170.70, 
+        178.28, 185.86, 193.42, 201.01, 208.20, 215.40, 222.61, 229.82, 237.02, 244.26, 
+        251.46, 258.64, 265.85, 272.76, 279.64, 286.54, 293.37, 300.27, 307.14, 314.02, 
+        320.89, 327.82, 334.34, 340.88, 347.42, 353.95, 360.50, 367.03, 373.59, 380.10, 
+        386.65, 393.18, 399.48, 405.74, 412.01, 418.30, 424.59, 430.84, 437.16, 443.44, 
+        449.70, 455.99, 461.99, 468.00, 474.01, 480.06, 486.02, 492.05, 498.07, 504.08, 
+        510.08, 516.10, 522.11, 527.88, 533.65, 539.41, 545.21, 550.99, 556.73, 562.50, 
+        568.31, 574.04, 579.84, 585.61, 591.21, 596.73, 602.28, 607.84, 613.38, 618.91, 
+        624.47, 630.01, 635.53, 641.10, 646.59, 651.93, 657.27, 662.63, 667.97, 673.32, 
+        678.65, 683.98, 689.32, 694.64, 699.99, 705.35, 710.68, 715.78, 720.90, 726.06, 
+        731.21, 736.36, 741.50, 746.67, 751.81, 756.96, 762.10, 767.25, 772.40, 777.39, 
+        782.36, 787.32, 792.30, 797.30, 802.27, 807.24, 812.20, 817.18, 822.16, 827.14, 
+        832.10, 837.10, 841.92, 846.71, 851.53, 856.35, 861.16, 866.00, 870.81, 875.64, 
+        880.44, 885.26, 890.06, 894.90, 899.73, 904.36, 909.02, 913.67, 918.32, 922.98, 
+        927.63, 932.29, 936.95, 941.59, 946.26, 950.91, 955.57, 960.23, 964.74, 969.26, 
+        973.76, 978.28, 982.80, 987.32, 991.84, 996.34, 1000.86, 1005.38, 1009.89, 1014.41, 
+        1018.93, 1023.49, 1027.85, 1032.22, 1036.61, 1040.98, 1045.36, 1049.74, 1054.12, 1058.49, 
+        1062.87, 1067.25, 1071.62, 1076.01, 1080.39, 1084.78, 1089.05, 1093.28, 1097.51, 1101.73, 
+        1105.95, 1110.18, 1114.41, 1118.63, 1122.86, 1127.09, 1131.31, 1135.54, 1139.76, 1143.99, 
+        1148.22, 1152.30, 1156.41, 1160.52, 1164.62, 1168.73, 1172.83, 1176.94, 1181.04, 1185.15, 
+        1189.26, 1193.36, 1197.46, 1201.57, 1205.69, 1209.80, 1213.84, 1217.85, 1221.87, 1225.89, 
+        1229.91, 1233.91, 1237.95, 1241.95, 1245.97, 1249.99, 1254.01, 1258.02, 1262.04, 1266.04, 
+        1270.07, 1274.06, 1277.95, 1281.83, 1285.71, 1289.63, 1293.51, 1297.43, 1301.32, 1305.20, 
+        1309.11, 1312.99, 1316.90, 1320.80, 1324.69, 1328.59, 1332.51, 1336.39
+    ];
+
+    // Bygg komplett vänd-tidslinje baserad på exakta piptider
+    let shuttleTimeline = [];
+    function buildTimeline() {
+        shuttleTimeline = [];
+        let beepIdx = 0;
+        let cumulativeShuttles = 0;
+
+        for (const lvl of LEVEL_COUNTS) {
+            for (let s = 1; s <= lvl.shuttles; s++) {
+                cumulativeShuttles++;
+                const startTime = BEEP_TIMESTAMPS[beepIdx];
+                const endTime = BEEP_TIMESTAMPS[beepIdx + 1];
+                const duration = Math.max(0.1, Number((endTime - startTime).toFixed(2)));
+
+                shuttleTimeline.push({
+                    level: lvl.level,
+                    shuttle: s,
+                    maxShuttles: lvl.shuttles,
+                    startTime: startTime,
+                    endTime: endTime,
+                    duration: duration,
+                    speed: lvl.speed,
+                    cumulativeShuttles: cumulativeShuttles,
+                    totalDistance: cumulativeShuttles * 20
+                });
+                beepIdx++;
+            }
+        }
+    }
+
+    // ==========================================
+    //  STATE
+    // ==========================================
+    const OFFICIAL_INTRO_SECONDS = BEEP_TIMESTAMPS[0]; // 13.25s
+    let introSeconds = OFFICIAL_INTRO_SECONDS;
+    let isAudioPlaying = false;
+    let provlyssnaTimer = null;
+
+    let klassNamn = "";
+    let elever = []; // { id, namn, status: 'SPRINGER' | 'KLAR', niva: 0, vanda: 0, meter: 0, speed: 0, vo2: 0, placering: 0 }
+    let isRunning = false;
+    let isIntro = true;
+    let testStartTime = 0;
+    let pauseTime = 0;
+    let totalPausedMs = 0;
+    let animFrameId = null;
+
+    let currentTimelineIndex = 0;
+    let audioEnabled = true;
+    let wakeLock = null;
+
+    // ==========================================
+    //  INITIERING & LJUDPROV
+    // ==========================================
+    window.addEventListener('DOMContentLoaded', () => {
+        uppdateraDeltagarCount();
+    });
+
+    function testaLjudsparet() {
+        const audioEl = document.getElementById('beepAudio');
+        const btn = document.getElementById('testLjudBtn');
+        if (!audioEl) return;
+
+        if (provlyssnaTimer) {
+            clearTimeout(provlyssnaTimer);
+            provlyssnaTimer = null;
+            audioEl.pause();
+            audioEl.currentTime = 0;
+            btn.innerHTML = "▶️ Provlyssna 5s";
+            return;
+        }
+
+        audioEl.currentTime = 0;
+        audioEl.muted = false;
+        audioEl.play().then(() => {
+            btn.innerHTML = "⏹️ Stoppa";
+            provlyssnaTimer = setTimeout(() => {
+                audioEl.pause();
+                audioEl.currentTime = 0;
+                btn.innerHTML = "▶️ Provlyssna 5s";
+                provlyssnaTimer = null;
+            }, 5000);
+        }).catch(err => {
+            alert("Kunde inte spela upp ljudet i webbläsaren: " + err);
+        });
+    }
+
+    function uppdateraDeltagarCount() {
+        const text = document.getElementById('eleverInput').value;
+        const namn = parsaNamn(text);
+        document.getElementById('deltagarCount').textContent = namn.length + " elever";
+    }
+
+    function parsaNamn(text) {
+        if (!text) return [];
+        return text.split(/[\n,;]+/)
+            .map(s => s.trim())
+            .filter(s => s.length > 0);
+    }
+
+    function rensaDeltagare() {
+        document.getElementById('eleverInput').value = '';
+        uppdateraDeltagarCount();
+    }
+
+    function laddaExempelKlass() {
+        const exempel = [
+            "Kalle Andersson",
+            "Lisa Lindqvist",
+            "Ahmed Hassan",
+            "Sara Nilsson",
+            "Erik Berg",
+            "Maja Svensson",
+            "Leo Carlsson",
+            "Emma Holm",
+            "Viktor Ek",
+            "Alva Lind",
+            "Oskar Lund",
+            "Lilly Norén"
+        ];
+        document.getElementById('eleverInput').value = exempel.join("\n");
+        uppdateraDeltagarCount();
+    }
+
+    // ==========================================
+    //  STARTA BEEP-TEST
+    // ==========================================
+    function startaBeepTest() {
+        if (provlyssnaTimer) {
+            clearTimeout(provlyssnaTimer);
+            provlyssnaTimer = null;
+            const btn = document.getElementById('testLjudBtn');
+            if (btn) btn.innerHTML = "▶️ Provlyssna 5s";
+        }
+
+        klassNamn = document.getElementById('klassNamnInput').value.trim() || "Klass";
+        const namnLista = parsaNamn(document.getElementById('eleverInput').value);
+
+        if (namnLista.length === 0) {
+            alert("Lägg till minst en elev innan du startar testet!");
+            return;
+        }
+
+        introSeconds = OFFICIAL_INTRO_SECONDS;
+        buildTimeline();
+
+        elever = namnLista.map((namn, idx) => ({
+            id: idx + 1,
+            namn: namn,
+            status: 'SPRINGER',
+            niva: 0,
+            vanda: 0,
+            meter: 0,
+            speed: 0,
+            vo2: 0,
+            placering: 0
+        }));
+
+        currentTimelineIndex = 0;
+        lastBeepIndex = -1;
+        lastLevelAnnounced = 0;
+        testStartTime = Date.now();
+        pauseTime = 0;
+        totalPausedMs = 0;
+        isRunning = true;
+        isIntro = true;
+
+        document.getElementById('setupView').style.display = 'none';
+        document.getElementById('testView').style.display = 'block';
+        document.getElementById('summaryView').style.display = 'none';
+        document.getElementById('testHeroTitel').textContent = `${klassNamn} • 20m Beep-test`;
+
+        requestWakeLock();
+        renderaElever();
+        renderaAvhopp();
+
+        // Starta det officiella ljudspåret
+        const audioEl = document.getElementById('beepAudio');
+        if (audioEl) {
+            audioEl.currentTime = 0;
+            audioEl.muted = !audioEnabled;
+            const playPromise = audioEl.play();
+            if (playPromise !== undefined) {
+                playPromise.then(() => {
+                    isAudioPlaying = true;
+                    testStartTime = Date.now() - (audioEl.currentTime * 1000);
+                }).catch(err => {
+                    console.warn("Autoplay blockad eller ljudfil saknas, använder fallback synt:", err);
+                    isAudioPlaying = false;
+                });
+            }
+        }
+
+        tick();
+    }
+
+    let lastBeepIndex = -1;
+    let lastLevelAnnounced = 0;
+
+    function getElapsedSeconds() {
+        const audioEl = document.getElementById('beepAudio');
+        if (audioEl && !audioEl.paused && !audioEl.ended) {
+            return audioEl.currentTime;
+        }
+        const now = Date.now();
+        return (now - testStartTime - totalPausedMs) / 1000.0;
+    }
+
+    function tick() {
+        if (!isRunning) return;
+
+        const elapsedSeconds = getElapsedSeconds();
+
+        // Intro fas (0 till 13.25s: Röstinstruktioner pågår i ljudspåret)
+        if (elapsedSeconds < introSeconds) {
+            isIntro = true;
+            const timeToStart = Math.max(0, introSeconds - elapsedSeconds);
+
+            document.getElementById('statusBadge').innerHTML = "🟡 FÖRBEREDELSE (RÖSTINSTRUKTIONER)";
+            document.getElementById('statusBadge').style.color = "#FBBF24";
+            document.getElementById('dispNiva').textContent = "1";
+            document.getElementById('dispVanda').innerHTML = `1 <span class="metric-unit">/ 7</span>`;
+            document.getElementById('dispTotalVandor').textContent = "Startar vid första pipet...";
+            document.getElementById('dispHastighet').textContent = "8.0";
+            document.getElementById('dispTidKvar').textContent = timeToStart.toFixed(1) + "s";
+            document.getElementById('dispTotalTid').textContent = "00:00";
+            document.getElementById('dispTotalMeter').textContent = "0 m";
+
+            const progressPct = (elapsedSeconds / introSeconds) * 100;
+            document.getElementById('shuttleBar').style.width = Math.min(100, Math.max(0, progressPct)) + "%";
+            document.getElementById('shuttleBar').style.background = "#FBBF24";
+
+            animFrameId = requestAnimationFrame(tick);
+            return;
+        }
+
+        // Officiella testet pågår (från första pipet vid 13.25s)
+        isIntro = false;
+        document.getElementById('statusBadge').innerHTML = "🟢 TEST PÅGÅR";
+        document.getElementById('statusBadge').style.color = "#4ADE80";
+
+        // Hitta aktiv vända baserat på exakt ljudspårs-timestamp
+        const activeIndex = shuttleTimeline.findIndex(s =>
+            elapsedSeconds >= s.startTime && elapsedSeconds < s.endTime
+        );
+
+        if (activeIndex !== -1) {
+            const active = shuttleTimeline[activeIndex];
+            currentTimelineIndex = activeIndex;
+
+            // Trigger visuell flash och ev fallback-pip när vi kliver in i en ny vända
+            if (activeIndex !== lastBeepIndex) {
+                lastBeepIndex = activeIndex;
+
+                if (active.level !== lastLevelAnnounced) {
+                    lastLevelAnnounced = active.level;
+                    triggerHeroFlash();
+                    if (!isAudioPlaying) playLevelUpSignal();
+                } else {
+                    triggerShuttleFlash();
+                    if (!isAudioPlaying) playShuttleBeep();
+                }
+            }
+
+            const elapsedInShuttle = elapsedSeconds - active.startTime;
+            const timeKvarInShuttle = Math.max(0, active.endTime - elapsedSeconds);
+
+            document.getElementById('dispNiva').textContent = active.level;
+            document.getElementById('dispVanda').innerHTML = `${active.shuttle} <span class="metric-unit">/ ${active.maxShuttles}</span>`;
+            document.getElementById('dispTotalVandor').textContent = `Vända #${active.cumulativeShuttles}`;
+            document.getElementById('dispHastighet').textContent = active.speed.toFixed(1);
+            document.getElementById('dispTidKvar').textContent = timeKvarInShuttle.toFixed(1) + "s";
+
+            // Total tid sedan introt (13.25s) tog slut
+            const testSecs = Math.max(0, Math.floor(elapsedSeconds - introSeconds));
+            const m = Math.floor(testSecs / 60);
+            const s = testSecs % 60;
+            document.getElementById('dispTotalTid').textContent = `Total tid: ${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+            document.getElementById('dispTotalMeter').textContent = active.totalDistance + " m";
+
+            // Förloppsindikator för aktuell vända
+            const pct = (elapsedInShuttle / active.duration) * 100;
+            document.getElementById('shuttleBar').style.width = Math.min(100, Math.max(0, pct)) + "%";
+            document.getElementById('shuttleBar').style.background = "#22C55E";
+
+        } else if (elapsedSeconds >= shuttleTimeline[shuttleTimeline.length - 1].endTime) {
+            // Testet nådde slutet (Nivå 21 slutförd!)
+            avslutaTest();
+            return;
+        }
+
+        animFrameId = requestAnimationFrame(tick);
+    }
+
+    let lastIntroBeep = -1;
+
+    function triggerHeroFlash() {
+        const hero = document.getElementById('beepHero');
+        hero.classList.remove('active-level-up');
+        void hero.offsetWidth;
+        hero.classList.add('active-level-up');
+    }
+
+    function triggerShuttleFlash() {
+        const hero = document.getElementById('beepHero');
+        hero.classList.remove('active-shuttle-beep');
+        void hero.offsetWidth;
+        hero.classList.add('active-shuttle-beep');
+    }
+
+    // ==========================================
+    //  ELEVUTSLAGNING (1-KLICK!)
+    // ==========================================
+    function elevKlevAv(elevId) {
+        const elev = elever.find(e => e.id === elevId);
+        if (!elev || elev.status !== 'SPRINGER') return;
+
+        // Om vi fortfarande är i intro, kan de inte kliva av med resultat
+        if (isIntro) {
+            alert("Testet har inte börjat än! Vänta tills klockan startar.");
+            return;
+        }
+
+        const active = shuttleTimeline[currentTimelineIndex] || shuttleTimeline[0];
+
+        elev.status = 'KLAR';
+        elev.niva = active.level;
+        elev.vanda = active.shuttle;
+        elev.meter = active.totalDistance;
+        elev.speed = active.speed;
+        elev.vo2 = beraknaVO2Max(active.speed);
+
+        // Räkna ut placering (de som kliver av sist får bäst placering)
+        const kvar = elever.filter(e => e.status === 'SPRINGER').length;
+        elev.placering = kvar + 1;
+
+        playBeep(400, 0.2); // Nedtonat pip för avhopp
+
+        renderaElever();
+        renderaAvhopp();
+
+        // Om sista eleven klev av
+        if (kvar === 0) {
+            setTimeout(() => {
+                if (confirm("Alla elever har slutfört testet! Vill du se slutresultaten?")) {
+                    avslutaTest();
+                }
+            }, 600);
+        }
+    }
+
+    function angraElev(elevId) {
+        const elev = elever.find(e => e.id === elevId);
+        if (!elev || elev.status !== 'KLAR') return;
+
+        elev.status = 'SPRINGER';
+        elev.niva = 0;
+        elev.vanda = 0;
+        elev.meter = 0;
+        elev.speed = 0;
+        elev.vo2 = 0;
+        elev.placering = 0;
+
+        renderaElever();
+        renderaAvhopp();
+    }
+
+    function beraknaVO2Max(speedKmH) {
+        // Léger & Lambert formel för 20m shuttle run
+        // VO2max = -24.4 + (6.0 * speed)
+        const vo2 = -24.4 + (6.0 * speedKmH);
+        return Math.max(20, Math.round(vo2 * 10) / 10);
+    }
+
+    // ==========================================
+    //  RENDERING AV AKTIVT TEST
+    // ==========================================
+    function renderaElever() {
+        const container = document.getElementById('eleverTilesContainer');
+        const springer = elever.filter(e => e.status === 'SPRINGER');
+
+        document.getElementById('badgeSpringer').textContent = springer.length + " kvar";
+
+        if (springer.length === 0) {
+            container.innerHTML = `
+            <div style="grid-column: 1/-1; text-align: center; color: #888; padding: 40px 10px;">
+                🎉 Alla elever har slutfört testet! Klicka på "Avsluta test" ovan för sammanställning.
+            </div>`;
+            return;
+        }
+
+        container.innerHTML = springer.map(e => `
+            <div class="elev-tile" onclick="elevKlevAv(${e.id})" title="Klicka i samma sekund ${escapeHtml(e.namn)} kliver av!">
+                <div class="elev-tile-name">${escapeHtml(e.namn)}</div>
+                <div class="elev-tile-status">🏃 Springer</div>
+            </div>
+        `).join('');
+    }
+
+    function renderaAvhopp() {
+        const container = document.getElementById('avhoppListContainer');
+        const klara = elever.filter(e => e.status === 'KLAR').sort((a,b) => b.meter - a.meter);
+
+        document.getElementById('countKlara').textContent = klara.length;
+
+        if (klara.length === 0) {
+            container.innerHTML = `
+            <div style="text-align: center; color: #888; padding: 40px 10px; font-size: 0.85rem;">
+                När en elev inte hinner fram klickar du på brickan till vänster för att registrera nivån!
+            </div>`;
+            return;
+        }
+
+        container.innerHTML = klara.map(e => `
+            <div class="avhopp-card">
+                <div>
+                    <div class="avhopp-name">👤 ${escapeHtml(e.namn)}</div>
+                    <div class="avhopp-vo2">${e.meter} m • ~${e.vo2} ml/kg/min</div>
+                </div>
+                <div style="text-align: right; display: flex; align-items: center; gap: 8px;">
+                    <div>
+                        <div class="avhopp-res">Nivå ${e.niva}.${e.vanda}</div>
+                    </div>
+                    <button class="btn btn-outline btn-sm" style="padding: 2px 6px; font-size: 0.72rem;" onclick="angraElev(${e.id})" title="Ångra och sätt tillbaka på banan">↩️</button>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    // ==========================================
+    //  KONTROLLER (PAUS / AVSLUTA)
+    // ==========================================
+    function togglePaus() {
+        const audioEl = document.getElementById('beepAudio');
+        if (isRunning) {
+            isRunning = false;
+            cancelAnimationFrame(animFrameId);
+            pauseTime = Date.now();
+            if (audioEl && !audioEl.paused) {
+                audioEl.pause();
+            }
+            document.getElementById('pausBtn').innerHTML = "▶️ Återuppta";
+            document.getElementById('pausBtn').className = "btn btn-green btn-sm";
+            document.getElementById('statusBadge').innerHTML = "⏸️ PAUSAD";
+            document.getElementById('statusBadge').style.color = "#FBBF24";
+            releaseWakeLock();
+        } else {
+            isRunning = true;
+            totalPausedMs += (Date.now() - pauseTime);
+            if (audioEl && audioEl.paused) {
+                audioEl.play().then(() => {
+                    isAudioPlaying = true;
+                    testStartTime = Date.now() - (audioEl.currentTime * 1000);
+                }).catch(() => {});
+            }
+            document.getElementById('pausBtn').innerHTML = "⏸️ Pausa";
+            document.getElementById('pausBtn').className = "btn btn-orange btn-sm";
+            requestWakeLock();
+            tick();
+        }
+    }
+
+    function avslutaTestBekrafta() {
+        const kvar = elever.filter(e => e.status === 'SPRINGER').length;
+        let msg = "Vill du avsluta testet och visa slutresultaten?";
+        if (kvar > 0) {
+            msg += `\n\n⚠️ Obs: Det finns fortfarande ${kvar} elever kvar som springer!`;
+        }
+        if (confirm(msg)) {
+            // Ge resterande elever aktuell nivå
+            const active = shuttleTimeline[currentTimelineIndex] || shuttleTimeline[0];
+            elever.filter(e => e.status === 'SPRINGER').forEach(e => {
+                e.status = 'KLAR';
+                e.niva = active.level;
+                e.vanda = active.shuttle;
+                e.meter = active.totalDistance;
+                e.speed = active.speed;
+                e.vo2 = beraknaVO2Max(active.speed);
+                e.placering = 1;
+            });
+            avslutaTest();
+        }
+    }
+
+    function avslutaTest() {
+        isRunning = false;
+        cancelAnimationFrame(animFrameId);
+        releaseWakeLock();
+
+        const audioEl = document.getElementById('beepAudio');
+        if (audioEl) {
+            audioEl.pause();
+            audioEl.currentTime = 0;
+            isAudioPlaying = false;
+        }
+
+        document.getElementById('setupView').style.display = 'none';
+        document.getElementById('testView').style.display = 'none';
+        document.getElementById('summaryView').style.display = 'block';
+
+        renderaSlutresultat();
+    }
+
+    function gaTillbakaTillTest() {
+        document.getElementById('summaryView').style.display = 'none';
+        document.getElementById('testView').style.display = 'block';
+        isRunning = true;
+
+        const audioEl = document.getElementById('beepAudio');
+        if (audioEl && audioEl.paused) {
+            audioEl.play().then(() => {
+                isAudioPlaying = true;
+                testStartTime = Date.now() - (audioEl.currentTime * 1000);
+            }).catch(() => {});
+        }
+
+        requestWakeLock();
+        tick();
+    }
+
+    function nyttTest() {
+        if (confirm("Vill du starta ett helt nytt Beep-test?")) {
+            isRunning = false;
+            cancelAnimationFrame(animFrameId);
+            releaseWakeLock();
+
+            const audioEl = document.getElementById('beepAudio');
+            if (audioEl) {
+                audioEl.pause();
+                audioEl.currentTime = 0;
+                isAudioPlaying = false;
+            }
+
+            document.getElementById('summaryView').style.display = 'none';
+            document.getElementById('testView').style.display = 'none';
+            document.getElementById('setupView').style.display = 'block';
+        }
+    }
+
+    function renderaSlutresultat() {
+        document.getElementById('summaryTitel').textContent = `${klassNamn} - Beep-test`;
+        const klara = [...elever].sort((a,b) => b.meter - a.meter);
+
+        // Beräkna placeringar
+        klara.forEach((e, idx) => { e.placering = idx + 1; });
+
+        document.getElementById('summaryInfoText').textContent =
+            `${klara.length} elever deltog • Bästa resultat: Nivå ${klara[0]?.niva}.${klara[0]?.vanda} (${klara[0]?.meter} m)`;
+
+        const tbody = document.getElementById('resultatTabellBody');
+        tbody.innerHTML = klara.map((e, idx) => `
+            <tr>
+                <td><strong>#${idx + 1}</strong></td>
+                <td><strong>${escapeHtml(e.namn)}</strong></td>
+                <td><strong style="color: #2E7D32;">Nivå ${e.niva}.${e.vanda}</strong></td>
+                <td>${e.meter} m</td>
+                <td>${e.speed ? e.speed.toFixed(1) + " km/h" : "-"}</td>
+                <td><strong>${e.vo2}</strong> ml/kg/min</td>
+            </tr>
+        `).join('');
+    }
+
+    // ==========================================
+    //  EXPORT & DELA
+    // ==========================================
+    function laddaNerCSV() {
+        const klara = [...elever].sort((a,b) => b.meter - a.meter);
+        if (klara.length === 0) return;
+
+        let csv = "Placering;Elev;Niva;Vanda;Distans_meter;Hastighet_kmh;Uppskattat_VO2max\r\n";
+        klara.forEach((e, idx) => {
+            csv += `${idx + 1};"${e.namn.replace(/"/g, '""')}";${e.niva};${e.vanda};${e.meter};${e.speed};${e.vo2}\r\n`;
+        });
+
+        const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `BeepTest_${klassNamn.replace(/\s+/g, '_')}_${new Date().toISOString().slice(0,10)}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+    }
+
+    function kopieraResultat() {
+        const klara = [...elever].sort((a,b) => b.meter - a.meter);
+        if (klara.length === 0) return;
+
+        let txt = `📢 Beep-test resultat för ${klassNamn}\n`;
+        txt += `Datum: ${new Date().toLocaleDateString('sv-SE')}\n\n`;
+
+        klara.forEach((e, idx) => {
+            txt += `${idx + 1}. ${e.namn} - Nivå ${e.niva}.${e.vanda} (${e.meter} m, VO2: ${e.vo2})\n`;
+        });
+
+        navigator.clipboard.writeText(txt).then(() => {
+            alert("✅ Resultaten kopierades till urklipp!");
+        }).catch(err => alert("Kunde inte kopiera: " + err));
+    }
+
+    function escapeHtml(text) {
+        if (!text) return "";
+        return text.toString()
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
+
+    // ==========================================
+    //  FULLSKÄRM & WAKE LOCK
+    // ==========================================
+    function toggleFullscreen() {
+        if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen().catch(() => {});
+            document.getElementById('fsBtn').textContent = "✕ Avsluta fullskärm";
+        } else {
+            if (document.exitFullscreen) document.exitFullscreen();
+            document.getElementById('fsBtn').textContent = "⛶ Fullskärm";
+        }
+    }
+
+    async function requestWakeLock() {
+        try {
+            if ('wakeLock' in navigator) {
+                wakeLock = await navigator.wakeLock.request('screen');
+            }
+        } catch(e) {}
+    }
+
+    function releaseWakeLock() {
+        if (wakeLock) {
+            wakeLock.release().catch(() => {});
+            wakeLock = null;
+        }
+    }
+
+    // ==========================================
+    //  WEB AUDIO SYNTHESIZER FÖR BEEP-TEST
+    // ==========================================
+    let audioCtx = null;
+    function getAudioContext() {
+        if (!audioCtx) {
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            audioCtx = new AudioContext();
+        }
+        if (audioCtx.state === 'suspended') {
+            audioCtx.resume();
+        }
+        return audioCtx;
+    }
+
+    function toggleAudio() {
+        audioEnabled = !audioEnabled;
+        const audioEl = document.getElementById('beepAudio');
+        if (audioEl) {
+            audioEl.muted = !audioEnabled;
+        }
+        document.getElementById('audioBtn').textContent = audioEnabled ? "🔊 Ljud: På" : "🔇 Ljud: Av";
+    }
+
+    function playBeep(freq = 880, duration = 0.2) {
+        if (!audioEnabled) return;
+        try {
+            const ctx = getAudioContext();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(freq, ctx.currentTime);
+
+            gain.gain.setValueAtTime(0.5, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + duration);
+
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+
+            osc.start();
+            osc.stop(ctx.currentTime + duration);
+        } catch(e) {}
+    }
+
+    function playShuttleBeep() {
+        // Enkelt tydligt vändningspip (880 Hz, A5)
+        playBeep(880, 0.22);
+    }
+
+    function playLevelUpSignal() {
+        // Dubbelpip / Högre signal vid ny nivå (1320 Hz)
+        if (!audioEnabled) return;
+        try {
+            playBeep(1100, 0.15);
+            setTimeout(() => playBeep(1400, 0.35), 180);
+        } catch(e) {}
+    }
+</script>
+
+</body>
+</html>
+
