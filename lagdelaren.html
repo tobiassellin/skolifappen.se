@@ -476,6 +476,8 @@
         </div>
     </a>
     <div class="nav-actions">
+        <button class="nav-btn" onclick="SkolIFKlasser.openModal()">📋 Mina Klasser</button>
+        <button class="nav-btn" data-skolif-auth-btn>👤 Logga in</button>
         <button class="nav-btn" onclick="toggleFullscreen()" id="fsBtn" title="Fullskärm på storskärm/projektor">⛶ Fullskärm</button>
         <a href="index.html" class="nav-btn">← Startsidan</a>
     </div>
@@ -506,13 +508,8 @@
                     </div>
                 </div>
 
-                <!-- Sparade klasser -->
-                <div style="margin-bottom: 12px;">
-                    <div style="font-size: 0.78rem; font-weight: 700; color: #666; margin-bottom: 6px; text-transform: uppercase;">Mina sparade klasser:</div>
-                    <div class="saved-classes-bar" id="savedClassesContainer">
-                        <!-- Sparade klasser genereras här -->
-                    </div>
-                </div>
+                <!-- Sparade klasser (Molnsynkade via klasser.js) -->
+                <div data-skolif-classbar></div>
 
                 <div class="form-group" id="inputAreaGroup">
                     <textarea id="eleverInput" rows="6" placeholder="Klistra in eller skriv elever här...&#10;Kalle Andersson&#10;Lisa Lindqvist&#10;Ahmed Hassan&#10;Sara Nilsson" oninput="parsaInputTillElever()"></textarea>
@@ -609,6 +606,14 @@
 
 
 <!-- ========================================== -->
+<!-- FIREBASE & MINA KLASSER I MOLNET           -->
+<!-- ========================================== -->
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+<script src="klasser.js"></script>
+
+<!-- ========================================== -->
 <!-- JAVASCRIPT LOGIK                           -->
 <!-- ========================================== -->
 <script>
@@ -669,7 +674,13 @@
 
     // Initiera vid start
     window.addEventListener('DOMContentLoaded', () => {
-        laddaSparadeKlasserPiller();
+        if (window.SkolIFKlasser) {
+            SkolIFKlasser.onSelect((namn, text) => {
+                document.getElementById('sparaKlassNamn').value = namn;
+                document.getElementById('eleverInput').value = text;
+                parsaInputTillElever();
+            });
+        }
         parsaInputTillElever();
     });
 
@@ -823,9 +834,9 @@
     }
 
     // ==========================================
-    //  SPARADE KLASSER (LOCALSTORAGE)
+    //  SPARADE KLASSER (MOLN + LOCALSTORAGE)
     // ==========================================
-    function sparaKlassLokalt() {
+    async function sparaKlassLokalt() {
         const namn = document.getElementById('sparaKlassNamn').value.trim();
         const text = document.getElementById('eleverInput').value.trim();
 
@@ -838,6 +849,11 @@
             return;
         }
 
+        if (window.SkolIFKlasser) {
+            await SkolIFKlasser.saveClass(namn, text);
+            return;
+        }
+
         let sparade = {};
         try {
             sparade = JSON.parse(localStorage.getItem('skolif_sparade_klasser') || '{}');
@@ -845,7 +861,6 @@
 
         sparade[namn] = text;
         localStorage.setItem('skolif_sparade_klasser', JSON.stringify(sparade));
-        laddaSparadeKlasserPiller();
         alert(`✅ "${namn}" sparades!`);
     }
 

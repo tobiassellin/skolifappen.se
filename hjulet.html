@@ -446,6 +446,8 @@
         </div>
     </a>
     <div class="nav-actions">
+        <button class="nav-btn" onclick="SkolIFKlasser.openModal()">📋 Mina Klasser</button>
+        <button class="nav-btn" data-skolif-auth-btn>👤 Logga in</button>
         <button class="nav-btn" onclick="toggleAudio()" id="audioBtn">🔊 Ljud: På</button>
         <button class="nav-btn" onclick="toggleFullscreen()" id="fsBtn">⛶ Fullskärm</button>
         <a href="index.html" class="nav-btn">← Startsidan</a>
@@ -487,9 +489,12 @@
             </div>
         </div>
 
+        <!-- Molnsynkade klasser för direktval på hjulet -->
+        <div data-skolif-classbar data-theme="dark" style="margin-bottom: 0;"></div>
+
         <div>
             <div class="items-header" style="margin-bottom: 8px;">
-                <span class="section-title">📝 Övningar på hjulet</span>
+                <span class="section-title">📝 Övningar / Elever på hjulet</span>
                 <span class="items-count" id="itemsCountBadge">10 st</span>
             </div>
             <textarea class="items-input" id="itemsInput" oninput="handleInputEdit()" placeholder="Skriv en övning eller ett namn per rad..."></textarea>
@@ -498,7 +503,7 @@
         <div>
             <label class="checkbox-row" title="Tar automatiskt bort övningen ur hjulet när den vunnit, så man slipper få samma övning två gånger!">
                 <input type="checkbox" id="eliminateCheckbox">
-                <span>Eliminera övning efter vinst</span>
+                <span>Eliminera övning/elev efter vinst</span>
             </label>
         </div>
     </div>
@@ -517,6 +522,12 @@
         </div>
     </div>
 </div>
+
+<!-- FIREBASE & MINA KLASSER I MOLNET -->
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+<script src="klasser.js"></script>
 
 <script>
     // ==========================================
@@ -675,6 +686,21 @@
     const ctx = canvas.getContext('2d');
 
     window.addEventListener('DOMContentLoaded', () => {
+        if (window.SkolIFKlasser) {
+            SkolIFKlasser.onSelect((namn, text) => {
+                if (isSpinning) return;
+                document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+                const elevBtn = document.getElementById('btnPresetElever');
+                if (elevBtn) elevBtn.classList.add('active');
+
+                const rader = text.split(/[\n,;]+/).map(s => s.trim()).filter(s => s.length > 0);
+                items = rader;
+                document.getElementById('itemsInput').value = items.join('\n');
+                updateCountBadge();
+                drawWheel();
+            });
+        }
+
         document.getElementById('itemsInput').value = items.join('\n');
         updateCountBadge();
         drawWheel();
@@ -694,6 +720,19 @@
         const btnId = 'btnPreset' + key.charAt(0).toUpperCase() + key.slice(1);
         const btn = document.getElementById(btnId);
         if (btn) btn.classList.add('active');
+
+        if (key === 'elever' && window.SkolIFKlasser) {
+            const sparade = SkolIFKlasser.getClasses();
+            const klassNamnLista = Object.keys(sparade);
+            if (klassNamnLista.length > 0) {
+                const forstaText = sparade[klassNamnLista[0]];
+                items = forstaText.split(/[\n,;]+/).map(s => s.trim()).filter(s => s.length > 0);
+                document.getElementById('itemsInput').value = items.join('\n');
+                updateCountBadge();
+                drawWheel();
+                return;
+            }
+        }
 
         items = [...PRESETS[key]];
         document.getElementById('itemsInput').value = items.join('\n');

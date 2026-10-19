@@ -331,6 +331,7 @@
     <a href="index.html" class="logo">📦 Redskapsboden</a>
     <div class="nav-right">
         <span id="userBadge">👤 <span id="userEmail"></span></span>
+        <button class="nav-btn" onclick="SkolIFKlasser.openModal()">📋 Mina Klasser</button>
         <button class="nav-btn primary" id="delaBtn" onclick="handleDelaClick()">☁️ Logga in & synka</button>
         <button class="nav-btn danger" id="logoutBtn" style="display:none" onclick="logoutUser()">Logga ut</button>
         <a href="index.html" class="nav-btn">← Startsidan</a>
@@ -574,6 +575,7 @@
 <!-- Toast -->
 <div id="toast"></div>
 
+<script src="klasser.js"></script>
 <script>
 // ==========================================
 //  FIREBASE KONFIGURATION
@@ -586,7 +588,9 @@ const firebaseConfig = {
     messagingSenderId: "593631856247",
     appId: "1:593631856247:web:874d4a87142b44bc336872"
 };
-firebase.initializeApp(firebaseConfig);
+if (!firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
+}
 const auth = firebase.auth();
 const db = firebase.firestore();
 

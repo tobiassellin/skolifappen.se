@@ -166,7 +166,10 @@
 
     <nav>
         <a href="index.html" class="logo">☕ Skol IF Kassa</a>
-        <a href="index.html" class="back-btn">← Till startsidan</a>
+        <div style="display: flex; gap: 10px; align-items: center;">
+            <button type="button" class="skolif-nav-auth-btn" onclick="SkolIFKlasser.openModal()">📋 Mina Klasser</button>
+            <a href="index.html" class="back-btn">← Till startsidan</a>
+        </div>
     </nav>
 
     <div class="container">
@@ -582,6 +585,7 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="klasser.js"></script>
 
     <script>
         const firebaseConfig = {
@@ -594,7 +598,9 @@
             measurementId: "G-6JP01V6CYC"
         };
 
-        firebase.initializeApp(firebaseConfig);
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
         const auth = firebase.auth();
         const db = firebase.firestore();
 
@@ -1112,6 +1118,7 @@
                 document.getElementById("modalElevNamn").innerText = e.namn;
                 document.getElementById("modalElevKlass").innerText = "Klass " + e.klass;
                 stangRedigeraElevModal();
+                alert(`✅ ${nyttNamn} (${nyKlass}) har uppdaterats!`);
             }).catch(err => {
                 console.error("Fel vid uppdatering av elev:", err);
                 alert("Kunde inte spara ändringarna.");
@@ -1121,6 +1128,9 @@
         function taBortAktivElev() {
             const e = allaEleverCache.find(x => x.id === aktivElevId);
             if (!e) return;
+
+            const borttagetNamn = e.namn;
+            const borttagenKlass = e.klass;
 
             let varning = `Är du säker på att du vill ta bort ${e.namn} (${e.klass})?`;
             if (e.saldo !== 0) {
@@ -1136,6 +1146,7 @@
             }).then(() => {
                 stangRedigeraElevModal();
                 stangModal();
+                alert(`🗑️ ${borttagetNamn} är borttagen från ${borttagenKlass}`);
             }).catch(err => {
                 console.error("Fel vid borttagning av elev:", err);
                 alert("Kunde inte ta bort eleven. Försök igen.");
@@ -1149,7 +1160,7 @@
             if (!namn || !klass) { alert("Fyll i både namn och klass!"); return; }
 
             const finnsRedan = allaEleverCache.some(e => e.namn.toLowerCase() === namn.toLowerCase() && e.klass.toUpperCase() === klass);
-            if (finnsRedan) { alert("Eleven finns redan i den här klassen."); return; }
+            if (finnsRedan) { alert(`${namn} finns redan i ${klass}.`); return; }
 
             const nyttId = allaEleverCache.length > 0 ? Math.max(...allaEleverCache.map(e => e.id)) + 1 : 1;
 
@@ -1158,7 +1169,7 @@
             db.collection("skolif_kassa").doc(aktivUserId).update({
                 elever: JSON.stringify(allaEleverCache)
             }).then(() => {
-                alert("Eleven har lagts till!");
+                alert(`✅ ${namn} är tillagd i ${klass}!`);
                 stangAdminModal();
             }).catch(err => {
                 console.error(err);
@@ -1172,6 +1183,8 @@
 
             const rader = text.split("\n");
             let tillagdaStycken = 0;
+            let senasteNamn = "";
+            let senasteKlass = "";
             let aktuelltId = allaEleverCache.length > 0 ? Math.max(...allaEleverCache.map(e => e.id)) : 0;
 
             for (let rad of rader) {
@@ -1199,6 +1212,8 @@
                         aktuelltId++;
                         allaEleverCache.push({ id: aktuelltId, namn: namn, klass: hittadKlass, saldo: 0 });
                         tillagdaStycken++;
+                        senasteNamn = namn;
+                        senasteKlass = hittadKlass;
                     }
                 }
             }
@@ -1207,7 +1222,11 @@
                 db.collection("skolif_kassa").doc(aktivUserId).update({
                     elever: JSON.stringify(allaEleverCache)
                 }).then(() => {
-                    alert(`${tillagdaStycken} elever har importerats!`);
+                    if (tillagdaStycken === 1) {
+                        alert(`✅ ${senasteNamn} är tillagd i ${senasteKlass}!`);
+                    } else {
+                        alert(`✅ ${tillagdaStycken} nya elever har lagts till!`);
+                    }
                     stangAdminModal();
                 });
             } else {

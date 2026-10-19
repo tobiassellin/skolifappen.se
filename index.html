@@ -166,6 +166,7 @@
                     Idrottsläraren <span class="nav-dropdown-arrow">▼</span>
                 </button>
                 <div class="nav-dropdown-menu">
+                    <a href="#" onclick="event.preventDefault(); SkolIFKlasser.openModal();" style="border-bottom: 1px solid #EBEFEA; margin-bottom: 4px;"><span>📋</span> Mina Klasser (Moln)</a>
                     <a href="lopning.html"><span>⏱️</span> Löprundan</a>
                     <a href="tabata.html"><span>🔔</span> Tabatatimer</a>
                     <a href="beeptest.html"><span>📢</span> Beep-test</a>
@@ -173,6 +174,8 @@
                     <a href="hjulet.html"><span>🎡</span> Uppvärmningshjulet</a>
                 </div>
             </div>
+            <button type="button" class="skolif-nav-auth-btn" onclick="SkolIFKlasser.openModal()">📋 Mina Klasser</button>
+            <button type="button" class="skolif-nav-auth-btn" data-skolif-auth-btn>👤 Logga in</button>
         </div>
     </nav>
 
@@ -275,13 +278,13 @@
                     <span class="tool-link">Snurra hjulet →</span>
                 </a>
 
-                <!-- RESULTATTAVLA / MATCHKLOCKA (KOMMANDE) -->
-                <div class="tool-card coming-soon">
-                    <div class="tool-badge">Förslag</div>
-                    <div class="tool-icon">🔢</div>
-                    <h4>Matchklocka & Tavla</h4>
-                    <p>Storskärm med poängställning, periodklocka och matchsignal för innebandy och bollsport.</p>
-                    <span class="tool-link disabled">Planerad...</span>
+                <!-- MINA KLASSER I MOLNET (AKTIV) -->
+                <div class="tool-card" onclick="SkolIFKlasser.openModal()">
+                    <div class="tool-badge new">Molnsynk!</div>
+                    <div class="tool-icon">📋</div>
+                    <h4>Mina Klasser</h4>
+                    <p>Lägg in dina klasslistor en gång – hämta dem med ett klick i Lagdelaren, Beep-test, Löprundan och Hjulet.</p>
+                    <span class="tool-link">Hantera klasser →</span>
                 </div>
             </div>
         </section>
@@ -306,6 +309,7 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     <!-- LÄGG TILL FIREBASE AUTH -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="klasser.js"></script>
 
    <script>
         const firebaseConfig = {
@@ -318,7 +322,9 @@
             measurementId: "G-6JP01V6CYC"
         };
 
-        firebase.initializeApp(firebaseConfig);
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
         const db = firebase.firestore();
 
         // 1. Kassa-navigation

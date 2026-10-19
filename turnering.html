@@ -263,6 +263,8 @@
 <nav>
     <a href="index.html" class="logo" id="navTourTitle">🏆 Turnering & Spelschema</a>
     <div class="nav-right">
+        <button class="nav-btn" onclick="SkolIFKlasser.openModal()">📋 Mina Klasser</button>
+        <button class="nav-btn" data-skolif-auth-btn>👤 Logga in</button>
         <button class="nav-btn" onclick="toggleFullscreen()" title="Fullskärm för projektor / TV">📺 Storskärm</button>
         <button class="nav-btn gold" id="printBtn" onclick="skrivUtSpelschema()" style="display:none;">📄 Skriv ut / PDF</button>
         <button class="nav-btn" id="exportBtn" onclick="exporteraCSV()" style="display:none;">📊 Exportera CSV</button>
@@ -292,6 +294,7 @@
             <!-- Snabb-mallar -->
             <label>Snabb-mallar för lag:</label>
             <div class="quick-fill-chips">
+                <span class="chip" onclick="fyllMinaSparadeKlasser()" style="background:#E8F5E9; color:#1E3A24; border-color:#A5D6A7; font-weight:700;">📂 Mina sparade klasser</span>
                 <span class="chip" onclick="fyllMall(4)">+ 4 lag</span>
                 <span class="chip" onclick="fyllMall(6)">+ 6 lag</span>
                 <span class="chip" onclick="fyllMall(8)">+ 8 lag (Klasser)</span>
@@ -512,6 +515,12 @@
     </div>
 </div>
 
+<!-- FIREBASE & MINA KLASSER I MOLNET -->
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+<script src="klasser.js"></script>
+
 <script>
 // ==========================================
 //  TILLSTÅND & MODELLER (State)
@@ -574,6 +583,18 @@ function saveLocalTournament() {
 // ==========================================
 //  SNABB-MALLAR & FORMULÄRVALIDERINGS-LOGIK
 // ==========================================
+function fyllMinaSparadeKlasser() {
+    if (!window.SkolIFKlasser) return;
+    const sparade = SkolIFKlasser.getClasses();
+    const klassNamn = Object.keys(sparade).sort((a, b) => a.localeCompare(b, 'sv'));
+    if (klassNamn.length === 0) {
+        SkolIFKlasser.openModal();
+        return;
+    }
+    document.getElementById('teamsInput').value = klassNamn.join(', ');
+    uppdateraLagAntal();
+}
+
 function fyllMall(antal) {
     const mallar = {
         4: 'Klass 7A, Klass 7B, Klass 8A, Klass 8B',

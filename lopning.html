@@ -701,6 +701,8 @@
         </div>
     </a>
     <div class="nav-actions">
+        <button class="nav-btn" onclick="SkolIFKlasser.openModal()">📋 Mina Klasser</button>
+        <button class="nav-btn" data-skolif-auth-btn>👤 Logga in</button>
         <button class="nav-btn" onclick="toggleLjud()" id="ljudBtn" title="Slå på/av startljud">🔊 Ljud: På</button>
         <a href="index.html" class="nav-btn">← Startsidan</a>
     </div>
@@ -722,6 +724,9 @@
         </div>
 
         <div class="card">
+            <!-- Molnsynkade klasser -->
+            <div data-skolif-classbar></div>
+
             <div class="form-row">
                 <div class="form-group">
                     <label>Klass / Loppets namn</label>
@@ -747,8 +752,9 @@
                 </div>
                 <textarea id="deltagareInput" rows="7" placeholder="Kalle Andersson&#10;Lisa Lindqvist&#10;Ahmed Hassan&#10;Sara Nilsson&#10;..." oninput="uppdateraDeltagarCount()"></textarea>
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 6px; flex-wrap: wrap; gap: 8px;">
-                    <div class="helper-text">Tips: Klistra in direkt från Vklass, Schoolsoft eller Excel!</div>
-                    <div style="display: flex; gap: 6px;">
+                    <div class="helper-text">Tips: Välj en sparad klass ovan eller klistra in från Schoolsoft/Vklass!</div>
+                    <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                        <button type="button" class="btn btn-outline btn-sm" onclick="sparaAktuellKlassILopning()">💾 Spara klass</button>
                         <button type="button" class="btn btn-outline btn-sm" onclick="laddaExempelKlass()">Ladda exempelklass</button>
                         <button type="button" class="btn btn-sm" style="background:#EEEEEE; color:#555;" onclick="rensaDeltagare()">Rensa</button>
                     </div>
@@ -943,6 +949,11 @@
 <!-- UTSKRIFTSOMRÅDE FÖR DIPLOM -->
 <div id="diplomPrintArea"></div>
 
+<!-- FIREBASE & MINA KLASSER I MOLNET -->
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+<script src="klasser.js"></script>
 
 <script>
     // ==========================================
@@ -967,6 +978,14 @@
     //  INITIERING
     // ==========================================
     window.addEventListener('DOMContentLoaded', () => {
+        if (window.SkolIFKlasser) {
+            SkolIFKlasser.onSelect((namn, text) => {
+                document.getElementById('loppNamn').value = namn + " - Löpning";
+                document.getElementById('deltagareInput').value = text;
+                uppdateraDeltagarCount();
+            });
+        }
+
         // Kontrollera om ett pågående lopp finns sparat i localStorage
         const sparad = localStorage.getItem(STORAGE_KEY);
         if (sparad) {
@@ -987,6 +1006,23 @@
 
         uppdateraDeltagarCount();
     });
+
+    async function sparaAktuellKlassILopning() {
+        let namn = document.getElementById('loppNamn').value.trim();
+        namn = namn.replace(/\s*-\s*(Löpning|Terränglopp|Lopp)$/i, '').trim() || namn;
+        const text = document.getElementById('deltagareInput').value.trim();
+        if (!namn) {
+            alert('Ange klassens namn först!');
+            return;
+        }
+        if (!text) {
+            alert('Skriv eller klistra in deltagare i listan först!');
+            return;
+        }
+        if (window.SkolIFKlasser) {
+            await SkolIFKlasser.saveClass(namn, text);
+        }
+    }
 
     function setDistans(dist) {
         document.getElementById('banLangd').value = dist;

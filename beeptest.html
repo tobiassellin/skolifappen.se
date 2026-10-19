@@ -594,6 +594,8 @@
         </div>
     </a>
     <div class="nav-actions">
+        <button class="nav-btn" onclick="SkolIFKlasser.openModal()">📋 Mina Klasser</button>
+        <button class="nav-btn" data-skolif-auth-btn>👤 Logga in</button>
         <button class="nav-btn" onclick="toggleAudio()" id="audioBtn" title="Ljud på/av">🔊 Ljud: På</button>
         <button class="nav-btn" onclick="toggleFullscreen()" id="fsBtn" title="Helskärmsläge">⛶ Fullskärm</button>
         <a href="index.html" class="nav-btn">← Startsidan</a>
@@ -616,6 +618,9 @@
         </div>
 
         <div class="card">
+            <!-- Molnsynkade klasser -->
+            <div data-skolif-classbar></div>
+
             <div class="form-group">
                 <label>Klassens namn / Grupp</label>
                 <input type="text" id="klassNamnInput" placeholder="T.ex. Klass 8B" value="Klass 8B">
@@ -628,8 +633,9 @@
                 </div>
                 <textarea id="eleverInput" rows="7" placeholder="Kalle Andersson&#10;Lisa Lindqvist&#10;Ahmed Hassan&#10;Sara Nilsson&#10;..." oninput="uppdateraDeltagarCount()"></textarea>
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 6px; flex-wrap: wrap; gap: 8px;">
-                    <div style="font-size: 0.78rem; color: #777;">Tips: Klistra in direkt från Vklass, Schoolsoft eller Excel!</div>
-                    <div style="display: flex; gap: 6px;">
+                    <div style="font-size: 0.78rem; color: #777;">Tips: Välj en sparad klass ovan eller klistra in från Schoolsoft/Vklass!</div>
+                    <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                        <button type="button" class="btn btn-outline btn-sm" onclick="sparaAktuellKlassIBeep()">💾 Spara klass</button>
                         <button type="button" class="btn btn-outline btn-sm" onclick="laddaExempelKlass()">Ladda exempelklass</button>
                         <button type="button" class="btn btn-sm" style="background:#EEEEEE; color:#555;" onclick="rensaDeltagare()">Rensa</button>
                     </div>
@@ -828,6 +834,11 @@
 <!-- UTSKRIFTSOMRÅDE FÖR DIPLOM -->
 <div id="diplomPrintArea"></div>
 
+<!-- FIREBASE & MINA KLASSER I MOLNET -->
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+<script src="klasser.js"></script>
 
 <script>
     // ==========================================
@@ -942,8 +953,31 @@
     //  INITIERING & LJUDPROV
     // ==========================================
     window.addEventListener('DOMContentLoaded', () => {
+        if (window.SkolIFKlasser) {
+            SkolIFKlasser.onSelect((namn, text) => {
+                document.getElementById('klassNamnInput').value = namn;
+                document.getElementById('eleverInput').value = text;
+                uppdateraDeltagarCount();
+            });
+        }
         uppdateraDeltagarCount();
     });
+
+    async function sparaAktuellKlassIBeep() {
+        const namn = document.getElementById('klassNamnInput').value.trim();
+        const text = document.getElementById('eleverInput').value.trim();
+        if (!namn) {
+            alert('Ange klassens namn (t.ex. Klass 8B) först!');
+            return;
+        }
+        if (!text) {
+            alert('Skriv eller klistra in elever i listan först!');
+            return;
+        }
+        if (window.SkolIFKlasser) {
+            await SkolIFKlasser.saveClass(namn, text);
+        }
+    }
 
     function testaLjudsparet() {
         const audioEl = document.getElementById('beepAudio');
