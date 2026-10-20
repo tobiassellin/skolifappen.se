@@ -403,6 +403,9 @@
 
                             if (befintlig) {
                                 elevIdMap.set(lokElev.id, befintlig.id);
+                                if (lokElev.tagg && !befintlig.tagg) {
+                                    befintlig.tagg = lokElev.tagg;
+                                }
                                 // Räkna ut saldo-förändring från eventuella nya lokala transaktioner för denna elev
                                 const elevNyaTx = nyaLokalaTx.filter(t => t.elevId === lokElev.id);
                                 if (elevNyaTx.length > 0) {
@@ -418,6 +421,7 @@
                                 maxId++;
                                 elevIdMap.set(lokElev.id, maxId);
                                 sammanslagnaElever.push({
+                                    ...lokElev,
                                     id: maxId,
                                     namn: namnClean,
                                     klass: klassNorm,
@@ -593,6 +597,7 @@
             );
             if (befintlig) {
                 uppdateradeIKlassen.push({
+                    ...befintlig,
                     id: befintlig.id,
                     namn: befintlig.namn,
                     klass: klassCode,

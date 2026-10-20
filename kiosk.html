@@ -323,10 +323,16 @@
             </div>
             <div id="varorLista" class="varor-grid"></div>
 
-            <input type="text" id="sokElev" class="search-box" placeholder="🔍 Sök på elevnamn..." oninput="filtreraOchVisa()">
+            <input type="text" id="sokElev" class="search-box" placeholder="🔍 Sök på elevnamn (eller blippa elevens tagg direkt med USB-läsaren)..." oninput="filtreraOchVisa()">
             <div style="display: flex; justify-content: space-between; align-items: center; gap: 15px; margin-bottom: 20px;">
                 <div id="klassFilterContainer" class="filter-container" style="margin-bottom: 0; flex: 1;"></div>
-                <button onclick="oppnaAdminModal()" style="background: #2E7D32; color: white; border: none; padding: 8px 16px; border-radius: 8px; font-weight: 700; cursor: pointer; font-size: 0.85rem; white-space: nowrap; flex-shrink: 0; display: flex; align-items: center; gap: 6px;">👥 Klasser & Elever</button>
+                <div style="display: flex; gap: 8px; align-items: center; flex-shrink: 0;">
+                    <button type="button" onclick="oppnaBlippInfoModal()" style="background: #E8F5E9; color: #2E7D32; border: 1.5px solid #A5D6A7; padding: 7px 12px; border-radius: 8px; font-weight: 700; cursor: pointer; font-size: 0.8rem; white-space: nowrap; display: flex; align-items: center; gap: 6px;" title="USB RFID-läsare är aktiv! Blippa en tagg när som helst.">
+                        <span style="display: inline-block; width: 8px; height: 8px; background: #22C55E; border-radius: 50%; box-shadow: 0 0 0 3px rgba(34,197,94,0.25);"></span>
+                        📡 Blipp-läsare redo
+                    </button>
+                    <button onclick="oppnaAdminModal()" style="background: #2E7D32; color: white; border: none; padding: 8px 16px; border-radius: 8px; font-weight: 700; cursor: pointer; font-size: 0.85rem; white-space: nowrap; flex-shrink: 0; display: flex; align-items: center; gap: 6px;">👥 Klasser & Elever</button>
+                </div>
             </div>
             <div id="elevLista" class="elev-grid"></div>
         </div> <!-- Stänger Kiosk-vyn -->
@@ -416,7 +422,8 @@
                         <h3 id="modalElevNamn">Namn</h3>
                         <p id="modalElevKlass" style="font-size:0.9rem; color:#666;">Klass</p>
                     </div>
-                    <button onclick="oppnaRedigeraElevModal()" style="background: #F0F4F1; border: 1px solid #D0D7DE; width: 36px; height: 36px; border-radius: 8px; cursor: pointer; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; transition: 0.2s;" title="Redigera elev" onmouseover="this.style.background='#E8F5E9'" onmouseout="this.style.background='#F0F4F1'">✏️</button>
+                    <button onclick="oppnaRedigeraElevModal()" style="background: #F0F4F1; border: 1px solid #D0D7DE; width: 34px; height: 34px; border-radius: 8px; cursor: pointer; font-size: 1rem; display: flex; align-items: center; justify-content: center; transition: 0.2s;" title="Redigera elev" onmouseover="this.style.background='#E8F5E9'" onmouseout="this.style.background='#F0F4F1'">✏️</button>
+                    <button type="button" id="modalKopplaBlippBtn" onclick="klickaKopplaBlippPaAktivElev()" style="background: #F0F9FF; border: 1.5px solid #BAE6FD; color: #0369A1; padding: 5px 11px; border-radius: 8px; cursor: pointer; font-size: 0.78rem; font-weight: 700; display: flex; align-items: center; gap: 5px; transition: 0.2s;" title="Koppla eller hantera elevens RFID-blipp">📡 Koppla blipp</button>
                 </div>
             </div>
 
@@ -594,6 +601,13 @@
                 <div>
                     <label style="display: block; font-size: 0.85rem; font-weight: 600; color: #555; margin-bottom: 6px;">Klass</label>
                     <input type="text" id="redigeraElevKlassInput" class="custom-input" style="width: 100%; text-transform: uppercase;" placeholder="T.ex. 9B">
+                </div>
+                <div>
+                    <label style="display: block; font-size: 0.85rem; font-weight: 600; color: #555; margin-bottom: 6px;">📡 Personlig Blipp / RFID-tagg (valfritt)</label>
+                    <div style="display: flex; gap: 8px;">
+                        <input type="text" id="redigeraElevTaggInput" class="custom-input" style="flex: 1;" placeholder="Klicka här och blippa taggen..." onkeydown="if(event.key==='Enter'){event.preventDefault(); sparaRedigeradElev();}">
+                        <button type="button" onclick="document.getElementById('redigeraElevTaggInput').value=''" style="background: #F1F5F9; border: 1px solid #CBD5E1; color: #475569; padding: 0 12px; border-radius: 8px; font-size: 0.78rem; font-weight: 700; cursor: pointer;">Rensa</button>
+                    </div>
                 </div>
             </div>
 
@@ -2177,6 +2191,619 @@
                 document.getElementById("adminModal").style.display = "flex";
             }
         };
+        // ==========================================
+        //  USB RFID-LÄSARE ("BLIPP") I KASSAN
+        // ==========================================
+        let vantarPaBlippForElevId = null;
+        let senastSkannadOkandTagg = null;
+        let rfidBuffer = "";
+        let rfidStartTime = 0;
+        let rfidLastKeyTime = 0;
+        let rfidPreInputVal = null;
+        let rfidTargetInput = null;
+
+        function spelaBlippLjud(typ) {
+            try {
+                const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                if (!AudioCtx) return;
+                const ctx = new AudioCtx();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+
+                if (typ === "ny") {
+                    osc.type = "sine";
+                    osc.frequency.setValueAtTime(587.33, ctx.currentTime); // D5
+                    osc.frequency.setValueAtTime(880, ctx.currentTime + 0.08); // A5
+                    gain.gain.setValueAtTime(0.12, ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.22);
+                    osc.start();
+                    osc.stop(ctx.currentTime + 0.22);
+                } else {
+                    osc.type = "sine";
+                    osc.frequency.setValueAtTime(880, ctx.currentTime); // A5
+                    osc.frequency.setValueAtTime(1174.66, ctx.currentTime + 0.06); // D6
+                    gain.gain.setValueAtTime(0.14, ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.18);
+                    osc.start();
+                    osc.stop(ctx.currentTime + 0.18);
+                }
+            } catch (e) {
+                // Ignorera om ljud blockeras
+            }
+        }
+
+        // Injicera modaler för Blipp-hantering i DOM
+        (function initBlippModals() {
+            const wrapper = document.createElement("div");
+            wrapper.innerHTML = `
+                <!-- MODAL: VÄNTAR PÅ ATT SKANNA BLIPP FÖR SPECIFIK ELEV -->
+                <div id="vantarPaBlippModal" class="modal-overlay" style="z-index: 1300;">
+                    <div class="modal-content" style="max-width: 440px; text-align: center; padding: 28px 26px;">
+                        <button class="close-btn" onclick="stangVantarPaBlippModal()">✕</button>
+                        <div style="width: 68px; height: 68px; border-radius: 50%; background: #E0F2FE; color: #0284C7; display: flex; align-items: center; justify-content: center; font-size: 2rem; margin: 0 auto 14px auto; box-shadow: 0 0 0 8px rgba(2,132,199,0.1);">
+                            📡
+                        </div>
+                        <h3 id="vantarPaBlippTitel" style="font-size: 1.25rem; color: #0F172A; margin-bottom: 6px;">Blippa taggen nu!</h3>
+                        <p id="vantarPaBlippUndertext" style="font-size: 0.9rem; color: #475569; margin-bottom: 18px; line-height: 1.5;">
+                            Håll fram elevens blipp/tagg mot USB-läsaren så kopplas den automatiskt.
+                        </p>
+                        <div id="vantarPaBlippNuvarandeBox" style="display: none; background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 10px; padding: 10px 14px; margin-bottom: 16px; font-size: 0.85rem; color: #334155;">
+                        </div>
+                        <div style="display: flex; gap: 8px; margin-top: 8px;">
+                            <input type="text" id="manuellBlippKodInput" class="custom-input" style="flex: 1; text-align: center; font-size: 0.88rem;" placeholder="Eller blippa / skriv tagg-nr här..." onkeydown="if(event.key==='Enter'){event.preventDefault(); sparaManuellBlippKoppling();}">
+                            <button type="button" onclick="sparaManuellBlippKoppling()" class="btn-insattning" style="padding: 8px 14px; font-size: 0.82rem;">Koppla</button>
+                        </div>
+                        <div style="margin-top: 16px; display: flex; justify-content: center; gap: 10px;">
+                            <button type="button" id="taBortBlippKnappModal" onclick="taBortBlippFranAktivElev()" style="display: none; background: #FEF2F2; color: #DC2626; border: 1px solid #FECACA; padding: 8px 14px; border-radius: 8px; font-weight: 700; font-size: 0.8rem; cursor: pointer;">🗑️ Ta bort kopplad blipp</button>
+                            <button type="button" onclick="stangVantarPaBlippModal()" style="background: #F1F5F9; color: #475569; border: none; padding: 8px 18px; border-radius: 8px; font-weight: 700; font-size: 0.82rem; cursor: pointer;">Avbryt</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- MODAL: NY (OKÄND) BLIPP SKANNAD -> VÄLJ ELEV ELLER SKAPA NY -->
+                <div id="okandBlippModal" class="modal-overlay" style="z-index: 1300;">
+                    <div class="modal-content" style="max-width: 520px; padding: 24px 26px;">
+                        <button class="close-btn" onclick="stangOkandBlippModal()">✕</button>
+                        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 14px;">
+                            <div style="width: 48px; height: 48px; border-radius: 12px; background: #E8F5E9; color: #2E7D32; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; flex-shrink: 0;">
+                                💳
+                            </div>
+                            <div>
+                                <h3 style="font-size: 1.15rem; color: #0F172A; margin: 0;">Ny blipp skannad!</h3>
+                                <div style="font-size: 0.82rem; color: #64748B;">Tagg-nummer: <strong id="okandBlippKodVisning" style="color: #0F172A; font-family: monospace; background: #F1F5F9; padding: 2px 6px; border-radius: 4px;"></strong></div>
+                            </div>
+                        </div>
+
+                        <p style="font-size: 0.86rem; color: #475569; margin-bottom: 12px; line-height: 1.45;">
+                            Denna blipp är inte kopplad till någon elev ännu. Välj vem blippen tillhör nedan så öppnas elevens kassa direkt:
+                        </p>
+
+                        <div id="okandBlippSnabbKopplaAktiv" style="display: none; margin-bottom: 12px;"></div>
+
+                        <input type="text" id="okandBlippSokElev" class="custom-input" style="width: 100%; margin-bottom: 10px; padding: 9px 12px; font-size: 0.88rem;" placeholder="🔍 Sök elev att koppla blippen till..." oninput="renderaOkandBlippElevLista()">
+
+                        <div id="okandBlippElevLista" style="max-height: 210px; overflow-y: auto; border: 1px solid #E2E8F0; border-radius: 10px; background: #F8FAFC; padding: 6px; margin-bottom: 14px;">
+                        </div>
+
+                        <div style="background: #F0FDF4; border: 1px solid #BBF7D0; border-radius: 10px; padding: 12px;">
+                            <div style="font-size: 0.8rem; font-weight: 700; color: #166534; margin-bottom: 8px;">➕ Eller skapa en ny elev direkt med denna blipp:</div>
+                            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                                <input type="text" id="okandBlippNyNamn" class="custom-input" style="flex: 2; min-width: 140px; padding: 7px 10px; font-size: 0.85rem; background: white;" placeholder="Elevens namn">
+                                <input type="text" id="okandBlippNyKlass" class="custom-input" style="flex: 1; min-width: 75px; max-width: 100px; padding: 7px 10px; font-size: 0.85rem; background: white; text-transform: uppercase;" placeholder="Klass (7B)" onkeydown="if(event.key==='Enter') skapaNyElevMedSkannadBlipp()">
+                                <button type="button" onclick="skapaNyElevMedSkannadBlipp()" class="btn-insattning" style="padding: 7px 14px; font-size: 0.82rem; white-space: nowrap;">Skapa & Koppla</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- MODAL: BLIPP-LÄSARE INFO & ÖVERSIKT -->
+                <div id="blippInfoModal" class="modal-overlay" style="z-index: 1250;">
+                    <div class="modal-content" style="max-width: 540px; padding: 24px 28px;">
+                        <button class="close-btn" onclick="document.getElementById('blippInfoModal').style.display='none'">✕</button>
+                        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 14px;">
+                            <div style="width: 46px; height: 46px; border-radius: 12px; background: #E8F5E9; color: #2E7D32; display: flex; align-items: center; justify-content: center; font-size: 1.5rem;">
+                                📡
+                            </div>
+                            <div>
+                                <h3 style="font-size: 1.15rem; color: #0F172A; margin: 0;">USB Blipp-läsare (RFID)</h3>
+                                <div style="font-size: 0.8rem; color: #16A34A; font-weight: 700;">🟢 Aktiv & lyssnar automatiskt i kassan</div>
+                            </div>
+                        </div>
+
+                        <div style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 12px; padding: 14px; margin-bottom: 16px; font-size: 0.85rem; color: #334155; line-height: 1.55;">
+                            <div style="font-weight: 700; color: #0F172A; margin-bottom: 6px;">Så fungerar det:</div>
+                            1. <strong>Koppla in USB-läsaren</strong> i datorn (inga drivrutiner behövs).<br>
+                            2. <strong>Blippa en tagg när som helst</strong> i kassan:<br>
+                            &nbsp;&nbsp;&bull; Om taggen redan tillhör en elev <strong>öppnas elevens kassa direkt</strong> – du klickar bara på vad eleven köper!<br>
+                            &nbsp;&nbsp;&bull; Om taggen är ny frågar kassan vilken elev du vill koppla den till.<br>
+                            3. Du kan även klicka på <strong>📡 Koppla blipp</strong> inne på en elevs kort.
+                        </div>
+
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                            <span style="font-weight: 700; font-size: 0.88rem; color: #0F172A;">Elever med kopplad blipp:</span>
+                            <span id="blippAntalKoppladeBadge" style="background: #E8F5E9; color: #2E7D32; padding: 3px 10px; border-radius: 99px; font-size: 0.78rem; font-weight: 700;">0 st</span>
+                        </div>
+                        <div id="blippKoppladeLista" style="max-height: 200px; overflow-y: auto; border: 1px solid #E2E8F0; border-radius: 10px; background: #FAFAFA; padding: 8px;">
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(wrapper);
+        })();
+
+        // Uppdatera filtreraOchVisa så att:
+        // 1. Man även kan söka på tagg-nummer
+        // 2. Elever med kopplad blipp får en liten 💳-ikon på sitt kort
+        filtreraOchVisa = function() {
+            const q = (document.getElementById("sokElev").value || "").toLowerCase().trim();
+            const res = allaEleverCache.filter(e => {
+                const klassMatch = (aktivtKlassFilter === "Alla" || (e.klass || "").toUpperCase() === aktivtKlassFilter.toUpperCase());
+                if (!klassMatch) return false;
+                if (!q) return true;
+                const namnMatch = (e.namn || "").toLowerCase().includes(q);
+                const taggMatch = e.tagg && String(e.tagg).toLowerCase().includes(q);
+                return namnMatch || taggMatch;
+            });
+
+            document.getElementById("elevLista").innerHTML = res.length === 0
+                ? "<p style='grid-column:1/-1; text-align:center; color:gray;'>Inga elever hittades.</p>"
+                : res.sort((a, b) => a.namn.localeCompare(b.namn)).map(e => `
+                    <div class="elev-card ${e.saldo < 0 ? 'negativ' : ''}" onclick='oppnaModalObj(${JSON.stringify(e).replace(/'/g, "&#39;")})'>
+                        <div>
+                            <div class="elev-namn">${escapeHtmlKassa(e.namn)} ${e.tagg ? '<span title="Har kopplad blipp (#' + escapeHtmlKassa(e.tagg) + ')" style="font-size:0.82rem; margin-left:3px;">💳</span>' : ''}</div>
+                            <div class="elev-klass">Klass ${escapeHtmlKassa(e.klass)}</div>
+                        </div>
+                        <div class="elev-saldo ${e.saldo < 0 ? 'negativ' : 'positiv'}">${e.saldo} kr</div>
+                    </div>`).join('');
+        };
+
+        // Uppdatera oppnaElevModal så att knappen "📡 Koppla blipp" visar om eleven har blipp
+        const origOppnaElevModal = oppnaElevModal;
+        oppnaElevModal = function(e, endastUppd) {
+            origOppnaElevModal(e, endastUppd);
+            const blippBtn = document.getElementById("modalKopplaBlippBtn");
+            if (blippBtn && e) {
+                if (e.tagg) {
+                    blippBtn.innerHTML = `💳 Blipp #${escapeHtmlKassa(e.tagg)}`;
+                    blippBtn.style.background = "#E8F5E9";
+                    blippBtn.style.borderColor = "#86EFAC";
+                    blippBtn.style.color = "#166534";
+                } else {
+                    blippBtn.innerHTML = `📡 Koppla blipp`;
+                    blippBtn.style.background = "#F0F9FF";
+                    blippBtn.style.borderColor = "#BAE6FD";
+                    blippBtn.style.color = "#0369A1";
+                }
+            }
+        };
+
+        // Uppdatera Redigera Elev-modalen så att tagg-fältet fylls i och sparas
+        oppnaRedigeraElevModal = function() {
+            const e = allaEleverCache.find(x => x.id === aktivElevId);
+            if (!e) return;
+
+            document.getElementById("redigeraElevNamnInput").value = e.namn || "";
+            document.getElementById("redigeraElevKlassInput").value = e.klass || "";
+            const taggInput = document.getElementById("redigeraElevTaggInput");
+            if (taggInput) taggInput.value = e.tagg || "";
+            document.getElementById("redigeraElevModal").style.display = "flex";
+        };
+
+        sparaRedigeradElev = function() {
+            const e = allaEleverCache.find(x => x.id === aktivElevId);
+            if (!e) return;
+
+            const nyttNamn = document.getElementById("redigeraElevNamnInput").value.trim();
+            const nyKlass = document.getElementById("redigeraElevKlassInput").value.trim().toUpperCase();
+            const taggInput = document.getElementById("redigeraElevTaggInput");
+            const nyTagg = taggInput ? taggInput.value.trim() : (e.tagg || "");
+
+            if (!nyttNamn || !nyKlass) {
+                alert("Vänligen fyll i både namn och klass.");
+                return;
+            }
+
+            if (nyTagg) {
+                // Ta bort taggen från eventuell annan elev så varje blipp är unik
+                allaEleverCache.forEach(ann => {
+                    if (ann.id !== e.id && String(ann.tagg || "").trim() === nyTagg) {
+                        delete ann.tagg;
+                    }
+                });
+                e.tagg = nyTagg;
+            } else {
+                delete e.tagg;
+            }
+
+            e.namn = nyttNamn;
+            e.klass = nyKlass;
+
+            sparaKassaData({
+                elever: JSON.stringify(allaEleverCache)
+            }).then(() => {
+                oppnaElevModal(e, true);
+                stangRedigeraElevModal();
+                alert(`✅ ${nyttNamn} (${nyKlass}) har uppdaterats!`);
+            }).catch(err => {
+                console.error("Fel vid uppdatering av elev:", err);
+                alert("Kunde inte spara ändringarna.");
+            });
+        };
+
+        // Klick på "📡 Koppla blipp" inne på elevens modal
+        window.klickaKopplaBlippPaAktivElev = function() {
+            const e = allaEleverCache.find(x => x.id === aktivElevId);
+            if (!e) return;
+
+            vantarPaBlippForElevId = e.id;
+            const modal = document.getElementById("vantarPaBlippModal");
+            const titel = document.getElementById("vantarPaBlippTitel");
+            const under = document.getElementById("vantarPaBlippUndertext");
+            const nuvBox = document.getElementById("vantarPaBlippNuvarandeBox");
+            const taBortBtn = document.getElementById("taBortBlippKnappModal");
+            const manuellInput = document.getElementById("manuellBlippKodInput");
+
+            if (titel) titel.innerText = `Blippa taggen för ${e.namn}`;
+            if (under) under.innerText = `Håll fram blippen mot USB-läsaren nu, så kopplas den direkt till ${e.namn} (${e.klass}).`;
+            if (manuellInput) manuellInput.value = "";
+
+            if (e.tagg) {
+                if (nuvBox) {
+                    nuvBox.style.display = "block";
+                    nuvBox.innerHTML = `Nuvarande kopplad blipp: <strong style="font-family:monospace;">#${escapeHtmlKassa(e.tagg)}</strong>`;
+                }
+                if (taBortBtn) taBortBtn.style.display = "inline-block";
+            } else {
+                if (nuvBox) nuvBox.style.display = "none";
+                if (taBortBtn) taBortBtn.style.display = "none";
+            }
+
+            if (modal) modal.style.display = "flex";
+        };
+
+        window.stangVantarPaBlippModal = function() {
+            vantarPaBlippForElevId = null;
+            const modal = document.getElementById("vantarPaBlippModal");
+            if (modal) modal.style.display = "none";
+        };
+
+        window.sparaManuellBlippKoppling = function() {
+            const input = document.getElementById("manuellBlippKodInput");
+            const kod = input ? input.value.trim() : "";
+            if (!kod) {
+                alert("Blippa en tagg eller skriv in taggens nummer först!");
+                return;
+            }
+            if (vantarPaBlippForElevId !== null) {
+                kopplaTaggTillElev(vantarPaBlippForElevId, kod);
+            }
+        };
+
+        window.taBortBlippFranAktivElev = function() {
+            const e = allaEleverCache.find(x => x.id === (vantarPaBlippForElevId || aktivElevId));
+            if (!e || !e.tagg) return;
+            delete e.tagg;
+            stangVantarPaBlippModal();
+            sparaKassaData({
+                elever: JSON.stringify(allaEleverCache)
+            }).then(() => {
+                if (aktivElevId === e.id) oppnaElevModal(e, true);
+                alert(`🗑️ Blipp-kopplingen togs bort från ${e.namn}.`);
+            });
+        };
+
+        window.kopplaTaggTillElev = function(elevId, taggKod) {
+            const renKod = String(taggKod || "").trim();
+            if (!renKod) return;
+
+            const elev = allaEleverCache.find(x => x.id === elevId);
+            if (!elev) return;
+
+            // Säkerställ att ingen annan elev har samma tagg
+            allaEleverCache.forEach(ann => {
+                if (ann.id !== elev.id && String(ann.tagg || "").trim() === renKod) {
+                    delete ann.tagg;
+                }
+            });
+
+            elev.tagg = renKod;
+            stangVantarPaBlippModal();
+            stangOkandBlippModal();
+
+            sparaKassaData({
+                elever: JSON.stringify(allaEleverCache)
+            }).then(() => {
+                oppnaModalObj(elev);
+                if (window.visaNotis) {
+                    window.visaNotis(`💳 Blipp (#${renKod}) är nu kopplad till ${elev.namn} (${elev.klass})!`, "success");
+                }
+            });
+        };
+
+        // Hantera okänd blipp-modal
+        window.oppnaOkandBlippModal = function(kod) {
+            senastSkannadOkandTagg = kod;
+            const kodEl = document.getElementById("okandBlippKodVisning");
+            if (kodEl) kodEl.innerText = "#" + kod;
+
+            const sokInput = document.getElementById("okandBlippSokElev");
+            if (sokInput) sokInput.value = "";
+
+            const nyNamn = document.getElementById("okandBlippNyNamn");
+            const nyKlass = document.getElementById("okandBlippNyKlass");
+            if (nyNamn) nyNamn.value = "";
+            if (nyKlass) nyKlass.value = "";
+
+            // Om en elev redan är öppen i kassan, visa en snabbknapp överst!
+            const snabbDiv = document.getElementById("okandBlippSnabbKopplaAktiv");
+            if (snabbDiv) {
+                const aktivElev = aktivElevId !== null ? allaEleverCache.find(x => x.id === aktivElevId) : null;
+                if (aktivElev) {
+                    snabbDiv.style.display = "block";
+                    snabbDiv.innerHTML = `
+                        <button type="button" onclick="kopplaTaggTillElev(${aktivElev.id}, '${escapeHtmlKassa(kod)}')" style="width: 100%; background: #0284C7; color: white; border: none; padding: 10px 14px; border-radius: 10px; font-weight: 700; font-size: 0.88rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 12px rgba(2,132,199,0.2);">
+                            ⚡ Koppla direkt till öppnad elev: ${escapeHtmlKassa(aktivElev.namn)} (${escapeHtmlKassa(aktivElev.klass)})
+                        </button>
+                    `;
+                } else {
+                    snabbDiv.style.display = "none";
+                }
+            }
+
+            renderaOkandBlippElevLista();
+            const modal = document.getElementById("okandBlippModal");
+            if (modal) modal.style.display = "flex";
+        };
+
+        window.stangOkandBlippModal = function() {
+            senastSkannadOkandTagg = null;
+            const modal = document.getElementById("okandBlippModal");
+            if (modal) modal.style.display = "none";
+        };
+
+        window.renderaOkandBlippElevLista = function() {
+            const container = document.getElementById("okandBlippElevLista");
+            if (!container) return;
+            const q = (document.getElementById("okandBlippSokElev")?.value || "").toLowerCase().trim();
+
+            const matchade = allaEleverCache
+                .filter(e => !q || (e.namn || "").toLowerCase().includes(q) || (e.klass || "").toLowerCase().includes(q))
+                .sort((a, b) => (a.klass || "").localeCompare(b.klass || "") || (a.namn || "").localeCompare(b.namn || ""));
+
+            if (matchade.length === 0) {
+                container.innerHTML = `<div style="padding: 14px; text-align: center; color: #64748B; font-size: 0.84rem;">Inga elever matchade sökningen. Skapa en ny elev nedan!</div>`;
+                return;
+            }
+
+            const kodSafe = escapeHtmlKassa(senastSkannadOkandTagg || "");
+            container.innerHTML = matchade.map(e => `
+                <div onclick="kopplaTaggTillElev(${e.id}, '${kodSafe}')" style="display: flex; justify-content: space-between; align-items: center; padding: 8px 10px; border-radius: 8px; cursor: pointer; border-bottom: 1px solid #F1F5F9; background: white; margin-bottom: 4px; transition: background 0.15s;" onmouseover="this.style.background='#E0F2FE'" onmouseout="this.style.background='white'">
+                    <div>
+                        <strong style="font-size: 0.88rem; color: #0F172A;">${escapeHtmlKassa(e.namn)}</strong>
+                        <span style="font-size: 0.78rem; color: #64748B; margin-left: 6px;">Klass ${escapeHtmlKassa(e.klass)}</span>
+                        ${e.tagg ? `<span style="font-size: 0.72rem; color: #B45309; background: #FEF3C7; padding: 1px 6px; border-radius: 4px; margin-left: 6px;">Byter ut #${escapeHtmlKassa(e.tagg)}</span>` : ''}
+                    </div>
+                    <span style="background: #E8F5E9; color: #2E7D32; font-weight: 700; font-size: 0.76rem; padding: 4px 10px; border-radius: 6px;">Koppla & Öppna ➔</span>
+                </div>
+            `).join('');
+        };
+
+        window.skapaNyElevMedSkannadBlipp = function() {
+            const namn = (document.getElementById("okandBlippNyNamn")?.value || "").trim();
+            const klass = (document.getElementById("okandBlippNyKlass")?.value || "").trim().toUpperCase();
+            const kod = String(senastSkannadOkandTagg || "").trim();
+
+            if (!namn || !klass) {
+                alert("Fyll i både namn och klass för den nya eleven!");
+                return;
+            }
+            if (!kod) return;
+
+            allaEleverCache.forEach(ann => {
+                if (String(ann.tagg || "").trim() === kod) delete ann.tagg;
+            });
+
+            const nyttId = allaEleverCache.length > 0 ? Math.max(...allaEleverCache.map(e => e.id || 0)) + 1 : 1;
+            const nyElev = { id: nyttId, namn: namn, klass: klass, saldo: 0, tagg: kod };
+            allaEleverCache.push(nyElev);
+
+            stangOkandBlippModal();
+            sparaKassaData({
+                elever: JSON.stringify(allaEleverCache)
+            }).then(() => {
+                oppnaModalObj(nyElev);
+                if (window.visaNotis) {
+                    window.visaNotis(`✅ ${namn} (${klass}) skapades och kopplades till blipp #${kod}!`, "success");
+                }
+            });
+        };
+
+        // Info & översiktsmodal för Blipp-läsaren
+        window.oppnaBlippInfoModal = function() {
+            const kopplade = allaEleverCache.filter(e => e.tagg);
+            const badge = document.getElementById("blippAntalKoppladeBadge");
+            if (badge) badge.innerText = `${kopplade.length} av ${allaEleverCache.length} elever`;
+
+            const lista = document.getElementById("blippKoppladeLista");
+            if (lista) {
+                if (kopplade.length === 0) {
+                    lista.innerHTML = `<div style="padding: 14px; text-align: center; color: #64748B; font-size: 0.84rem;">Inga elever har en kopplad blipp ännu. Blippa en tagg med USB-läsaren för att sätta igång!</div>`;
+                } else {
+                    lista.innerHTML = kopplade
+                        .sort((a, b) => (a.klass || "").localeCompare(b.klass || "") || (a.namn || "").localeCompare(b.namn || ""))
+                        .map(e => `
+                            <div style="display: flex; justify-content: space-between; align-items: center; padding: 7px 10px; background: white; border-radius: 8px; margin-bottom: 4px; border: 1px solid #F1F5F9;">
+                                <div>
+                                    <strong style="font-size: 0.86rem; color: #0F172A;">${escapeHtmlKassa(e.namn)}</strong>
+                                    <span style="font-size: 0.78rem; color: #64748B; margin-left: 6px;">(${escapeHtmlKassa(e.klass)})</span>
+                                    <span style="font-family: monospace; font-size: 0.76rem; background: #E8F5E9; color: #166534; padding: 2px 6px; border-radius: 4px; margin-left: 6px;">#${escapeHtmlKassa(e.tagg)}</span>
+                                </div>
+                                <button type="button" onclick="taBortBlippFranElevId(${e.id})" style="background: #FEF2F2; color: #DC2626; border: 1px solid #FECACA; padding: 3px 8px; border-radius: 6px; font-size: 0.72rem; font-weight: 700; cursor: pointer;">Ta bort blipp</button>
+                            </div>
+                        `).join('');
+                }
+            }
+            document.getElementById("blippInfoModal").style.display = "flex";
+        };
+
+        window.taBortBlippFranElevId = function(elevId) {
+            const e = allaEleverCache.find(x => x.id === elevId);
+            if (!e) return;
+            delete e.tagg;
+            sparaKassaData({
+                elever: JSON.stringify(allaEleverCache)
+            }).then(() => {
+                oppnaBlippInfoModal();
+                if (window.visaNotis) window.visaNotis(`🗑️ Blipp borttagen från ${e.namn}`, "info");
+            });
+        };
+
+        // Huvudfunktion när en blipp skannas via USB-läsaren
+        window.hanteraSkannadBlipp = function(rawKod) {
+            const kod = String(rawKod || "").trim();
+            if (!kod) return;
+
+            // Om användaren står i "Redigera elev" och har fokus i tagg-rutan
+            const redigeraModal = document.getElementById("redigeraElevModal");
+            if (redigeraModal && redigeraModal.style.display === "flex") {
+                const taggInput = document.getElementById("redigeraElevTaggInput");
+                if (taggInput) {
+                    taggInput.value = kod;
+                    spelaBlippLjud("ok");
+                    if (window.visaNotis) window.visaNotis(`📡 Blipp #${kod} inläst! Klicka på Spara ändringar.`, "info");
+                    return;
+                }
+            }
+
+            // 1. Om vi väntar på att koppla en blipp till en specifik elev
+            if (vantarPaBlippForElevId !== null) {
+                spelaBlippLjud("ok");
+                kopplaTaggTillElev(vantarPaBlippForElevId, kod);
+                return;
+            }
+
+            // 2. Kolla om blippen redan tillhör en elev i kassan
+            const befintligElev = allaEleverCache.find(e => String(e.tagg || "").trim().toLowerCase() === kod.toLowerCase());
+            if (befintligElev) {
+                spelaBlippLjud("ok");
+
+                // Stäng eventuella andra öppna fönster så elevens kassa kommer fram direkt
+                ["okandBlippModal", "vantarPaBlippModal", "blippInfoModal", "varorModal", "adminModal"].forEach(id => {
+                    const m = document.getElementById(id);
+                    if (m) m.style.display = "none";
+                });
+                const klasserModal = document.getElementById("skolifKlasserModalOverlay");
+                if (klasserModal) klasserModal.classList.remove("visas");
+
+                // Se till att vi är i kassavyn (och inte i statistikvyn)
+                bytVy("kiosk");
+
+                // Öppna elevens kassa direkt!
+                oppnaModalObj(befintligElev);
+
+                // Visuell grön puls på elevens kassafönster så man ser direkt att blippen registrerades
+                const modalBox = document.querySelector("#elevModal .modal-content");
+                if (modalBox) {
+                    modalBox.style.transition = "box-shadow 0.25s ease, transform 0.2s ease";
+                    modalBox.style.boxShadow = "0 0 0 4px #22C55E, 0 20px 50px rgba(0,0,0,0.3)";
+                    setTimeout(() => {
+                        modalBox.style.boxShadow = "";
+                    }, 750);
+                }
+
+                if (window.visaNotis) {
+                    window.visaNotis(`💳 Blipp: ${befintligElev.namn} (${befintligElev.klass}) — Saldo: ${befintligElev.saldo} kr`, "success");
+                }
+                return;
+            }
+
+            // 3. Okänd/ny blipp -> Öppna "Ny blipp skannad!"-modalen så man kan välja elev på 1 klick
+            spelaBlippLjud("ny");
+            oppnaOkandBlippModal(kod);
+        };
+
+        // Global tangentbordslyssnare som fångar USB RFID-läsarens snabba inmatning var man än är på sidan
+        window.addEventListener("keydown", function(e) {
+            const now = Date.now();
+
+            // Om användaren trycker Enter i sökfältet (#sokElev) och har skrivit/skannat ett tagg-nummer
+            if (e.key === "Enter" && document.activeElement && document.activeElement.id === "sokElev") {
+                const sokVal = (document.activeElement.value || "").trim();
+                const matchadTaggElev = allaEleverCache.find(x => x.tagg && String(x.tagg).trim().toLowerCase() === sokVal.toLowerCase());
+                if (matchadTaggElev || /^\d{5,16}$/.test(sokVal)) {
+                    e.preventDefault();
+                    document.activeElement.value = "";
+                    filtreraOchVisa();
+                    rfidBuffer = "";
+                    hanteraSkannadBlipp(sokVal);
+                    return;
+                }
+            }
+
+            // Ignorera modifier-tangenter
+            if (e.key === "Shift" || e.key === "Control" || e.key === "Alt" || e.key === "Meta") {
+                return;
+            }
+
+            const delta = now - rfidLastKeyTime;
+
+            if (e.key === "Enter") {
+                const totalTime = now - rfidStartTime;
+                const avgTime = rfidBuffer.length > 0 ? totalTime / rfidBuffer.length : 999;
+
+                // USB RFID-läsare skickar normalt 4-20 tecken i hög hastighet (< 75 ms per tecken) följt av Enter
+                if (rfidBuffer.length >= 4 && delta < 120 && avgTime < 75) {
+                    const skannadKod = rfidBuffer;
+                    rfidBuffer = "";
+                    e.preventDefault();
+                    e.stopPropagation();
+
+                    // Om ett textfält (t.ex. sökfältet eller beloppsfältet) råkade ha fokus när blippen lästes in, återställ dess text!
+                    const activeEl = document.activeElement;
+                    if (activeEl && (activeEl.tagName === "INPUT" || activeEl.tagName === "TEXTAREA") && activeEl.id !== "redigeraElevTaggInput" && activeEl.id !== "manuellBlippKodInput") {
+                        if (rfidTargetInput === activeEl && rfidPreInputVal !== null) {
+                            activeEl.value = rfidPreInputVal;
+                        } else {
+                            activeEl.value = "";
+                        }
+                        if (activeEl.id === "sokElev") {
+                            filtreraOchVisa();
+                        }
+                    }
+
+                    hanteraSkannadBlipp(skannadKod);
+                    return;
+                }
+                rfidBuffer = "";
+                return;
+            }
+
+            if (e.key.length === 1 && !e.ctrlKey && !e.altKey && !e.metaKey) {
+                if (delta > 90) {
+                    // Ny inmatningssekvens börjar
+                    rfidBuffer = e.key;
+                    rfidStartTime = now;
+                    const activeEl = document.activeElement;
+                    if (activeEl && (activeEl.tagName === "INPUT" || activeEl.tagName === "TEXTAREA")) {
+                        rfidTargetInput = activeEl;
+                        rfidPreInputVal = activeEl.value;
+                    } else {
+                        rfidTargetInput = null;
+                        rfidPreInputVal = null;
+                    }
+                } else {
+                    rfidBuffer += e.key;
+                }
+                rfidLastKeyTime = now;
+            } else {
+                rfidBuffer = "";
+            }
+        }, true);
+
+        // Uppdatera vyn så att 💳-ikonerna ritas ut direkt
+        filtreraOchVisa();
     </script>
 </body>
 </html>
