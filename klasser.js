@@ -517,18 +517,68 @@
         });
     }
 
-    // Hjälpfunktion för att uppdatera en klass i en elevlista utan att röra befintliga saldon
-    function mergeKlassIntoEleverList(nuvarandeElever, klassCode, nyaNamnLista, allowRemoveStudents) {
+    // Hjälpfunktion för att hämta aktuell elevlista (från molncache eller lokal kassa)
+    function getActiveEleverArray() {
+        return currentUser ? [...kassaEleverCache] : [...(getLocalKassa().elever || [])];
+    }
+
+    // Hjälpfunktion för att spara en komplett uppdaterad elevlista till både moln (om inloggad) och lokalt
+    async function persistEleverArray(nyKomplettLista) {
+        setClassesLocal(buildClassesMapFromKassaElever(nyKomplettLista));
+
+        if (currentUser && db && activeKassaDocId) {
+            try {
+                kassaEleverCache = nyKomplettLista;
+                const docRef = db.collection('skolif_kassa').doc(activeKassaDocId);
+                const docSnap = await docRef.get();
+                if (docSnap.exists) {
+                    await docRef.update({
+                        elever: JSON.stringify(nyKomplettLista),
+                        senastUppdaterad: Date.now()
+                    });
+                } else {
+                    const userEmail = (currentUser.email || '').trim().toLowerCase();
+                    await docRef.set({
+                        kassaId: activeKassaDocId,
+                        namn: `Skol-IF Kassa (${userEmail})`,
+                        skapare: userEmail,
+                        behoriga_anvandare: [userEmail],
+                        elever: JSON.stringify(nyKomplettLista),
+                        varor: '[]',
+                        transaktioner: '[]',
+                        senastUppdaterad: Date.now()
+                    });
+                }
+            } catch (err) {
+                console.error('Kunde inte spara elevlista till skolif_kassa:', err);
+            }
+        } else {
+            saveLocalKassa({ elever: nyKomplettLista }, true);
+        }
+
+        notifyAllListeners();
+    }
+
+    // Hjälpfunktion för att uppdatera en klass i en elevlista utan att röra befintliga saldon (stödjer även klassnamnsbyte t.ex. 8B -> 9B)
+    function mergeKlassIntoEleverList(nuvarandeElever, klassCode, nyaNamnLista, allowRemoveStudents, oldKlassCode = null) {
         let maxId = nuvarandeElever.length > 0
             ? Math.max(0, ...nuvarandeElever.map(e => Number(e.id) || 0))
             : 0;
 
-        const eleverIAndraKlasser = nuvarandeElever.filter(
-            e => normalizeKlassCode(e.klass) !== klassCode
-        );
-        const gamlaEleverIKlassen = nuvarandeElever.filter(
-            e => normalizeKlassCode(e.klass) === klassCode
-        );
+        const normOld = oldKlassCode ? normalizeKlassCode(oldKlassCode) : null;
+        const arKlassByte = Boolean(normOld && normOld !== klassCode);
+
+        const eleverIAndraKlasser = nuvarandeElever.filter(e => {
+            const k = normalizeKlassCode(e.klass);
+            if (arKlassByte) return k !== klassCode && k !== normOld;
+            return k !== klassCode;
+        });
+
+        const gamlaEleverIKlassen = nuvarandeElever.filter(e => {
+            const k = normalizeKlassCode(e.klass);
+            if (arKlassByte) return k === klassCode || k === normOld;
+            return k === klassCode;
+        });
 
         const uppdateradeIKlassen = [];
         const tillagdaLower = new Set();
@@ -563,7 +613,10 @@
             gamlaEleverIKlassen.forEach(gammal => {
                 const low = String(gammal.namn || '').trim().toLowerCase();
                 if (!tillagdaLower.has(low)) {
-                    uppdateradeIKlassen.push(gammal);
+                    uppdateradeIKlassen.push({
+                        ...gammal,
+                        klass: klassCode
+                    });
                 }
             });
         } else {
@@ -578,7 +631,10 @@
                     `⚠️ OBS! Följande elever som du tog bort från listan har saldo kvar i kiosken:\n${namnPaSaldoElever}\n\nVill du verkligen ta bort dem helt även från kiosken? (Klicka Avbryt för att behålla dem)`
                 );
                 if (!ok) {
-                    borttagnaMedSaldo.forEach(e => uppdateradeIKlassen.push(e));
+                    borttagnaMedSaldo.forEach(e => uppdateradeIKlassen.push({
+                        ...e,
+                        klass: klassCode
+                    }));
                 }
             }
         }
@@ -587,71 +643,45 @@
     }
 
     // Uppdatera en klass i skolif_kassa (eller lokalt) utan att någonsin röra befintliga elevers saldon!
-    async function saveClass(rawKlassNamn, elevText, allowRemoveStudents = false) {
+    async function saveClass(rawKlassNamn, elevText, allowRemoveStudents = false, oldRawKlassNamn = null) {
         const klassCode = normalizeKlassCode(rawKlassNamn);
+        const oldKlassCode = oldRawKlassNamn ? normalizeKlassCode(oldRawKlassNamn) : null;
+        const arKlassByte = Boolean(oldKlassCode && oldKlassCode !== klassCode);
         const nyaNamnLista = parseStudentNames(elevText);
         if (!klassCode || nyaNamnLista.length === 0) return false;
 
-        // Kolla vilka som redan fanns lokalt/i kassan för att ge en personlig bekräftelse
         const lokalaFore = getClassesLocal();
-        const fannsKlassenTidigare = Boolean(lokalaFore[klassCode]);
+        const referensKod = arKlassByte ? oldKlassCode : klassCode;
+        const fannsKlassenTidigare = Boolean(lokalaFore[referensKod]);
         const gamlaNamnLower = new Set(
-            parseStudentNames(lokalaFore[klassCode] || '').map(n => n.toLowerCase())
+            parseStudentNames(lokalaFore[referensKod] || '').map(n => n.toLowerCase())
         );
         const nytillagdaNamn = nyaNamnLista.filter(n => !gamlaNamnLower.has(n.toLowerCase()));
 
-        // 1. Uppdatera lokal cache direkt
-        lokalaFore[klassCode] = nyaNamnLista.join('\n');
-        setClassesLocal(lokalaFore);
-
-        // 2. Om inloggad: synka med skolif_kassa i Firestore. Annars: spara i lokal kassa!
+        let nuvarandeElever = getActiveEleverArray();
         if (currentUser && db && activeKassaDocId) {
             try {
-                const docRef = db.collection('skolif_kassa').doc(activeKassaDocId);
-                const docSnap = await docRef.get();
-                let nuvarandeElever = [];
+                const docSnap = await db.collection('skolif_kassa').doc(activeKassaDocId).get();
                 if (docSnap.exists) {
-                    try {
-                        nuvarandeElever = JSON.parse(docSnap.data().elever || '[]');
-                    } catch (e) {
-                        nuvarandeElever = [];
-                    }
+                    nuvarandeElever = JSON.parse(docSnap.data().elever || '[]');
                 }
-
-                const nyKomplettLista = mergeKlassIntoEleverList(nuvarandeElever, klassCode, nyaNamnLista, allowRemoveStudents);
-
-                if (docSnap.exists) {
-                    await docRef.update({
-                        elever: JSON.stringify(nyKomplettLista),
-                        senastUppdaterad: Date.now()
-                    });
-                } else {
-                    const userEmail = (currentUser.email || '').trim().toLowerCase();
-                    await docRef.set({
-                        kassaId: activeKassaDocId,
-                        namn: `Skol-IF Kassa (${userEmail})`,
-                        skapare: userEmail,
-                        behoriga_anvandare: [userEmail],
-                        elever: JSON.stringify(nyKomplettLista),
-                        varor: '[]',
-                        transaktioner: '[]',
-                        senastUppdaterad: Date.now()
-                    });
-                }
-            } catch (err) {
-                console.error('Kunde inte spara klass till skolif_kassa:', err);
-            }
-        } else {
-            // Lokalt läge (ej inloggad) -> Uppdatera skolif_lokal_kassa med bevarade saldon!
-            const lokalKassa = getLocalKassa();
-            const nyLokalElevLista = mergeKlassIntoEleverList(lokalKassa.elever, klassCode, nyaNamnLista, allowRemoveStudents);
-            saveLocalKassa({ elever: nyLokalElevLista }, true);
+            } catch (e) {}
         }
 
-        notifyAllListeners();
+        const nyKomplettLista = mergeKlassIntoEleverList(
+            nuvarandeElever,
+            klassCode,
+            nyaNamnLista,
+            allowRemoveStudents,
+            oldKlassCode
+        );
+
+        await persistEleverArray(nyKomplettLista);
 
         // Visa snygg och personlig bekräftelse-toast!
-        if (nytillagdaNamn.length === 1 && fannsKlassenTidigare) {
+        if (arKlassByte) {
+            showToast(`Klass ${oldKlassCode} har ändrats till ${klassCode} (${nyaNamnLista.length} elever)!`, 'success');
+        } else if (nytillagdaNamn.length === 1 && fannsKlassenTidigare) {
             showToast(`${nytillagdaNamn[0]} är tillagd i ${klassCode}!`, 'success');
         } else if (nytillagdaNamn.length > 1 && fannsKlassenTidigare) {
             showToast(`${nytillagdaNamn.length} nya elever är tillagda i ${klassCode}!`, 'success');
@@ -668,7 +698,7 @@
         const klassCode = normalizeKlassCode(rawKlassNamn);
         if (!klassCode) return;
 
-        const kallaElever = currentUser ? kassaEleverCache : getLocalKassa().elever;
+        const kallaElever = getActiveEleverArray();
         const eleverIKlass = kallaElever.filter(e => normalizeKlassCode(e.klass) === klassCode);
         const totaltSaldo = eleverIKlass.reduce((sum, e) => sum + (Number(e.saldo) || 0), 0);
         const harSaldo = eleverIKlass.some(e => (Number(e.saldo) || 0) !== 0);
@@ -679,29 +709,213 @@
         }
         if (!confirm(msg)) return;
 
-        const lokala = getClassesLocal();
-        delete lokala[klassCode];
-        setClassesLocal(lokala);
+        const kvarvarande = kallaElever.filter(e => normalizeKlassCode(e.klass) !== klassCode);
+        await persistEleverArray(kvarvarande);
+        showToast(`🗑️ Klass ${klassCode} har raderats`, 'info');
+    }
 
-        if (currentUser && db && activeKassaDocId) {
-            try {
-                const docRef = db.collection('skolif_kassa').doc(activeKassaDocId);
-                const kvarvarande = kassaEleverCache.filter(e => normalizeKlassCode(e.klass) !== klassCode);
-                await docRef.update({
-                    elever: JSON.stringify(kvarvarande),
-                    senastUppdaterad: Date.now()
-                });
-            } catch (err) {
-                console.error('Kunde inte radera klass i skolif_kassa:', err);
-            }
-        } else {
-            const lokalKassa = getLocalKassa();
-            const kvarvarande = lokalKassa.elever.filter(e => normalizeKlassCode(e.klass) !== klassCode);
-            saveLocalKassa({ elever: kvarvarande }, true);
+    // Lägg till en enskild elev snabbt
+    async function addSingleStudent(rawNamn, rawKlass) {
+        const namn = String(rawNamn || '').trim();
+        const klassCode = normalizeKlassCode(rawKlass);
+        if (!namn || !klassCode) {
+            showToast('Fyll i både elevens namn och klass!', 'warning');
+            return false;
         }
 
-        notifyAllListeners();
-        showToast(`🗑️ Klass ${klassCode} har raderats`, 'info');
+        const elever = getActiveEleverArray();
+        const finnsRedan = elever.some(
+            e => String(e.namn || '').trim().toLowerCase() === namn.toLowerCase() &&
+                 normalizeKlassCode(e.klass) === klassCode
+        );
+        if (finnsRedan) {
+            showToast(`${namn} finns redan i ${klassCode}.`, 'warning');
+            return false;
+        }
+
+        const nyttId = elever.length > 0 ? Math.max(0, ...elever.map(e => Number(e.id) || 0)) + 1 : 1;
+        elever.push({ id: nyttId, namn: namn, klass: klassCode, saldo: 0 });
+        await persistEleverArray(elever);
+        showToast(`${namn} är tillagd i ${klassCode}!`, 'success');
+        return true;
+    }
+
+    // Massimportera elever där klassen står på samma rad (t.ex. "Tobias Sellin 9B")
+    async function massImportStudents(rawText) {
+        const text = String(rawText || '').trim();
+        if (!text) {
+            showToast('Klistra in en lista med elever först!', 'warning');
+            return false;
+        }
+
+        const elever = getActiveEleverArray();
+        let aktuelltId = elever.length > 0 ? Math.max(0, ...elever.map(e => Number(e.id) || 0)) : 0;
+        let tillagdaStycken = 0;
+        let senasteNamn = '';
+        let senasteKlass = '';
+
+        const rader = text.split('\n');
+        for (const rad of rader) {
+            const renRad = rad.trim();
+            if (!renRad) continue;
+
+            const ordLista = renRad.replace(/[,;]/g, ' ').split(/\s+/).filter(Boolean);
+            let hittadKlass = '';
+            const namnDelar = [];
+
+            for (const ord of ordLista) {
+                if (/\d/.test(ord) && !hittadKlass) {
+                    hittadKlass = normalizeKlassCode(ord);
+                } else {
+                    namnDelar.push(ord);
+                }
+            }
+
+            const namn = namnDelar.join(' ').trim();
+            if (namn && hittadKlass) {
+                const finnsRedan = elever.some(
+                    e => String(e.namn || '').trim().toLowerCase() === namn.toLowerCase() &&
+                         normalizeKlassCode(e.klass) === hittadKlass
+                );
+                if (!finnsRedan) {
+                    aktuelltId++;
+                    elever.push({ id: aktuelltId, namn: namn, klass: hittadKlass, saldo: 0 });
+                    tillagdaStycken++;
+                    senasteNamn = namn;
+                    senasteKlass = hittadKlass;
+                }
+            }
+        }
+
+        if (tillagdaStycken > 0) {
+            await persistEleverArray(elever);
+            if (tillagdaStycken === 1) {
+                showToast(`${senasteNamn} är tillagd i ${senasteKlass}!`, 'success');
+            } else {
+                showToast(`${tillagdaStycken} nya elever har lagts till!`, 'success');
+            }
+            return true;
+        } else {
+            showToast('Inga nya elever hittades (kontrollera att klass t.ex. 9B står med på raden).', 'warning');
+            return false;
+        }
+    }
+
+    // Läsårsbyte: Flytta upp alla klasser +1 årskurs (t.ex. 7A -> 8A, 8B -> 9B)
+    async function upgradeAllClassesYear() {
+        const elever = getActiveEleverArray();
+        if (elever.length === 0) {
+            showToast('Det finns inga elever att flytta upp ännu.', 'warning');
+            return;
+        }
+
+        const berordaElever = elever.filter(e => /\d+/.test(String(e.klass || '')));
+        if (berordaElever.length === 0) {
+            showToast('Inga klasser med årskurssiffror (t.ex. 7A, 8B) hittades.', 'warning');
+            return;
+        }
+
+        const nior = elever.filter(e => /^9/i.test(normalizeKlassCode(e.klass)));
+        let infoNior = '';
+        if (nior.length > 0) {
+            infoNior = `\n\nℹ️ Info: ${nior.length} st elever i åk 9 flyttas till åk 10 (enkla att radera efteråt om de slutat).`;
+        }
+
+        const ok = confirm(
+            `Vill du genomföra läsårsbyte och höja alla klasser ett årskurs-steg?\n\nExempel:\n7A ➔ 8A\n8B ➔ 9B\n9C ➔ 10C\n\nTotalt ${berordaElever.length} elever uppdateras (alla saldon i Kiosken följer med).${infoNior}`
+        );
+        if (!ok) return;
+
+        const uppdaterade = elever.map(e => ({
+            ...e,
+            klass: normalizeKlassCode(e.klass).replace(/(\d+)/, match => String(parseInt(match, 10) + 1))
+        }));
+
+        await persistEleverArray(uppdaterade);
+        showToast('🎉 Läsårsbytet är klart! Alla klasser har flyttats upp en årskurs.', 'success');
+    }
+
+    // Byt namn / höj en enskild klass (t.ex. 8B -> 9B)
+    async function renameSingleClass(rawFromKlass, rawToKlass) {
+        const fromCode = normalizeKlassCode(rawFromKlass);
+        const toCode = normalizeKlassCode(rawToKlass);
+        if (!fromCode) {
+            showToast('Välj vilken klass du vill ändra!', 'warning');
+            return false;
+        }
+        if (!toCode) {
+            showToast('Ange det nya klassnamnet (t.ex. 9B)!', 'warning');
+            return false;
+        }
+        if (fromCode === toCode) {
+            showToast('Det nya klassnamnet är samma som det nuvarande.', 'warning');
+            return false;
+        }
+
+        const elever = getActiveEleverArray();
+        const berorda = elever.filter(e => normalizeKlassCode(e.klass) === fromCode);
+        if (berorda.length === 0) return false;
+
+        const uppdaterade = elever.map(e => {
+            if (normalizeKlassCode(e.klass) === fromCode) {
+                return { ...e, klass: toCode };
+            }
+            return e;
+        });
+
+        await persistEleverArray(uppdaterade);
+        showToast(`Klass ${fromCode} har ändrats till ${toCode} (${berorda.length} elever)!`, 'success');
+        return true;
+    }
+
+    // Exportera hela elevregistret med klasser och saldon till Excel / CSV
+    function exportStudentsCSV() {
+        const elever = getActiveEleverArray();
+        if (elever.length === 0) {
+            showToast('Det finns inga elever att exportera ännu.', 'warning');
+            return;
+        }
+
+        let csvInnehall = 'Namn;Klass;Saldo (kr)\r\n';
+        const sorterade = [...elever].sort((a, b) => {
+            const kDiff = String(a.klass || '').localeCompare(String(b.klass || ''), 'sv');
+            if (kDiff !== 0) return kDiff;
+            return String(a.namn || '').localeCompare(String(b.namn || ''), 'sv');
+        });
+
+        let totaltInnestaende = 0;
+        let totalaSkulder = 0;
+        let totaltNetto = 0;
+
+        sorterade.forEach(e => {
+            const rentNamn = `"${String(e.namn || '').replace(/"/g, '""')}"`;
+            const renKlass = `"${String(e.klass || '').replace(/"/g, '""')}"`;
+            const saldo = Number(e.saldo) || 0;
+            csvInnehall += `${rentNamn};${renKlass};${saldo}\r\n`;
+            if (saldo > 0) totaltInnestaende += saldo;
+            if (saldo < 0) totalaSkulder += saldo;
+            totaltNetto += saldo;
+        });
+
+        csvInnehall += '\r\n';
+        csvInnehall += '"--- SAMMANFATTNING BALANS ---";"";""\r\n';
+        csvInnehall += `"Totalt innestående saldo (positiva saldon)";"";${totaltInnestaende}\r\n`;
+        csvInnehall += `"Totala skulder (negativa saldon)";"";${totalaSkulder}\r\n`;
+        csvInnehall += `"Nettobalans (totalt kapital i kassan)";"";${totaltNetto}\r\n`;
+        csvInnehall += `"Totalt antal elever";"";${sorterade.length}\r\n`;
+
+        const d = new Date();
+        const datumStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        const blob = new Blob(['\uFEFF' + csvInnehall], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.setAttribute('download', `skolif_elever_klasser_${datumStr}.csv`);
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        showToast('📥 Elevlistan har laddats ner (Excel/CSV)!', 'success');
     }
 
     function notifyAllListeners() {
@@ -1143,6 +1357,30 @@
                 color: #DC2626;
                 border-color: #FCA5A5;
             }
+            .skolif-tab-row {
+                display: flex;
+                gap: 6px;
+                border-bottom: 2px solid #E2E8F0;
+                padding-bottom: 10px;
+                flex-wrap: wrap;
+            }
+            .skolif-tab-btn {
+                padding: 7px 14px;
+                border-radius: 10px;
+                font-size: 0.82rem;
+                font-weight: 700;
+                cursor: pointer;
+                border: 2px solid #E2E8F0;
+                background: #FFFFFF;
+                color: #475569;
+                font-family: inherit;
+                transition: all 0.15s;
+            }
+            .skolif-tab-btn.active {
+                background: #E8F5E9;
+                border-color: #4CAF50;
+                color: #2E7D32;
+            }
         `;
         document.head.appendChild(style);
 
@@ -1155,39 +1393,112 @@
                 <div class="skolif-modal-overlay" id="skolifKlasserModal" onclick="if(event.target===this) SkolIFKlasser.closeModal()">
                     <div class="skolif-modal-box">
                         <div class="skolif-modal-header">
-                            <h3><span>📋</span> Mina Klasser & Elever (Synkad med Kiosken)</h3>
+                            <h3><span>📋</span> Mina Klasser & Elever (Gemensam vy)</h3>
                             <button type="button" class="skolif-modal-close" onclick="SkolIFKlasser.closeModal()">✕</button>
                         </div>
-                        <div class="skolif-modal-body">
+                        <div class="skolif-modal-body" style="gap: 14px; padding: 16px 20px;">
                             <!-- Inloggningsstatus -->
                             <div id="skolifModalAuthBanner" class="skolif-auth-banner logged-out"></div>
 
-                            <!-- Sparade klasser lista -->
-                            <div>
-                                <div style="font-size: 0.85rem; font-weight: 800; color: #334155; margin-bottom: 8px; text-transform: uppercase;">
-                                    Dina klasser i databasen
-                                </div>
-                                <div id="skolifModalClassList" style="display: flex; flex-direction: column; gap: 8px; max-height: 220px; overflow-y: auto;"></div>
+                            <!-- Flikar -->
+                            <div class="skolif-tab-row">
+                                <button type="button" id="skolifTabBtn-klasser" class="skolif-tab-btn active" onclick="SkolIFKlasser.switchTab('klasser')">📂 Klasser & Elever</button>
+                                <button type="button" id="skolifTabBtn-massimport" class="skolif-tab-btn" onclick="SkolIFKlasser.switchTab('massimport')">⚡ Massimport</button>
+                                <button type="button" id="skolifTabBtn-verktyg" class="skolif-tab-btn" onclick="SkolIFKlasser.switchTab('verktyg')">🎓 Läsårsbyte & Verktyg</button>
                             </div>
 
-                            <!-- Skapa / Redigera klass -->
-                            <div style="background: #F8FAFC; border: 1.5px solid #E2E8F0; border-radius: 14px; padding: 16px;">
-                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                                    <div style="font-weight: 800; font-size: 0.95rem; color: #1E3A24;" id="skolifFormTitle">➕ Lägg till / Redigera klass</div>
-                                    <span id="skolifModalCountBadge" style="font-size: 0.78rem; font-weight: 700; color: #2E7D32; background: #E8F5E9; padding: 2px 10px; border-radius: 12px;">0 elever</span>
-                                </div>
-                                <div style="margin-bottom: 10px;">
-                                    <input type="text" id="skolifModalClassName" placeholder="Klassbeteckning (t.ex. 8B, 7A, 9C...)" style="width: 100%; padding: 9px 12px; border: 2px solid #CBD5E1; border-radius: 10px; font-size: 0.9rem; font-family: inherit; font-weight: 700;">
-                                </div>
-                                <div>
-                                    <textarea id="skolifModalClassStudents" rows="5" placeholder="Skriv eller klistra in elever (ett namn per rad)..." oninput="SkolIFKlasser.updateModalCount()" style="width: 100%; padding: 10px 12px; border: 2px solid #CBD5E1; border-radius: 10px; font-size: 0.88rem; font-family: inherit; resize: vertical;"></textarea>
-                                </div>
-                                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px; gap: 8px; flex-wrap: wrap;">
-                                    <span style="font-size: 0.75rem; color: #64748B;">☁️ Synkas automatiskt mellan Kiosken, Lagdelaren, Beep-test, Löprundan & Hjulet (saldon i Kiosken bevaras alltid!)</span>
-                                    <div style="display: flex; gap: 8px;">
-                                        <button type="button" class="skolif-btn-sm" onclick="SkolIFKlasser.clearModalForm()">Rensa fält</button>
-                                        <button type="button" class="skolif-btn-sm primary" onclick="SkolIFKlasser.saveFromModal()">💾 Spara klass</button>
+                            <!-- FLIK 1: KLASSER & ELEVER -->
+                            <div id="skolifTabContent-klasser" style="display: flex; flex-direction: column; gap: 14px;">
+                                <!-- Snabblägg till enskild elev -->
+                                <div style="background: #F0FDF4; border: 1.5px solid #BBF7D0; border-radius: 12px; padding: 12px 14px;">
+                                    <div style="font-weight: 800; font-size: 0.85rem; color: #166534; margin-bottom: 6px;">➕ Snabblägg till enskild elev</div>
+                                    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                                        <input type="text" id="skolifSingleStudentName" placeholder="Elevens namn (t.ex. Anna Andersson)" style="flex: 2; min-width: 160px; padding: 7px 10px; border: 1.5px solid #CBD5E1; border-radius: 8px; font-size: 0.85rem; font-family: inherit;" onkeydown="if(event.key==='Enter') SkolIFKlasser.addSingleFromModal()">
+                                        <input type="text" id="skolifSingleStudentClass" placeholder="Klass (t.ex. 8B)" style="flex: 1; min-width: 85px; max-width: 120px; padding: 7px 10px; border: 1.5px solid #CBD5E1; border-radius: 8px; font-size: 0.85rem; font-family: inherit; text-transform: uppercase; font-weight: 700;" onkeydown="if(event.key==='Enter') SkolIFKlasser.addSingleFromModal()">
+                                        <button type="button" class="skolif-btn-sm primary" onclick="SkolIFKlasser.addSingleFromModal()" style="padding: 7px 14px;">Lägg till</button>
                                     </div>
+                                </div>
+
+                                <!-- Sparade klasser lista -->
+                                <div>
+                                    <div style="font-size: 0.8rem; font-weight: 800; color: #334155; margin-bottom: 6px; text-transform: uppercase;">
+                                        Dina klasser (Klicka på ✏️ för att ändra elever eller höja t.ex. 8B ➔ 9B)
+                                    </div>
+                                    <div id="skolifModalClassList" style="display: flex; flex-direction: column; gap: 6px; max-height: 175px; overflow-y: auto;"></div>
+                                </div>
+
+                                <!-- Skapa / Redigera klass -->
+                                <div style="background: #F8FAFC; border: 1.5px solid #E2E8F0; border-radius: 12px; padding: 14px;">
+                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                        <div style="font-weight: 800; font-size: 0.9rem; color: #1E3A24;" id="skolifFormTitle">➕ Skapa eller redigera hel klass</div>
+                                        <span id="skolifModalCountBadge" style="font-size: 0.75rem; font-weight: 700; color: #2E7D32; background: #E8F5E9; padding: 2px 10px; border-radius: 12px;">0 elever</span>
+                                    </div>
+                                    <div style="margin-bottom: 8px;">
+                                        <input type="text" id="skolifModalClassName" placeholder="Klassbeteckning (t.ex. 8B – ändra till 9B om du vill höja klassen!)" style="width: 100%; padding: 8px 11px; border: 1.5px solid #CBD5E1; border-radius: 8px; font-size: 0.86rem; font-family: inherit; font-weight: 700; text-transform: uppercase;">
+                                    </div>
+                                    <div>
+                                        <textarea id="skolifModalClassStudents" rows="4" placeholder="Skriv eller klistra in elever i klassen (ett namn per rad)..." oninput="SkolIFKlasser.updateModalCount()" style="width: 100%; padding: 8px 11px; border: 1.5px solid #CBD5E1; border-radius: 8px; font-size: 0.84rem; font-family: inherit; resize: vertical;"></textarea>
+                                    </div>
+                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px; gap: 8px; flex-wrap: wrap;">
+                                        <span style="font-size: 0.72rem; color: #64748B;">☁️ Alla ändringar gäller på hela sajten & i Kiosken (saldon bevaras alltid!)</span>
+                                        <div style="display: flex; gap: 8px;">
+                                            <button type="button" class="skolif-btn-sm" onclick="SkolIFKlasser.clearModalForm()">Rensa / Avbryt</button>
+                                            <button type="button" class="skolif-btn-sm primary" onclick="SkolIFKlasser.saveFromModal()">💾 Spara klass</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- FLIK 2: MASSIMPORT -->
+                            <div id="skolifTabContent-massimport" style="display: none; flex-direction: column; gap: 12px;">
+                                <div style="background: #F8FAFC; border: 1.5px solid #E2E8F0; border-radius: 12px; padding: 16px;">
+                                    <div style="font-weight: 800; font-size: 0.95rem; color: #1E3A24; margin-bottom: 6px;">⚡ Massimportera elever (flera klasser samtidigt)</div>
+                                    <p style="font-size: 0.82rem; color: #475569; margin-bottom: 10px; line-height: 1.4;">
+                                        Klistra in en lista där både elevens namn och klass står på varje rad (t.ex. <strong>Tobias Sellin 9B</strong> eller <strong>Anna Andersson 7A</strong>). Programmet känner automatiskt av vilken del som är klassen och sorterar in eleverna rätt!
+                                    </p>
+                                    <textarea id="skolifMassImportText" rows="7" placeholder="Exempel:\nTobias Sellin 9B\nAnna Andersson 7A\nErik Eriksson 8C" style="width: 100%; padding: 10px 12px; border: 1.5px solid #CBD5E1; border-radius: 10px; font-size: 0.86rem; font-family: inherit; resize: vertical; margin-bottom: 10px;"></textarea>
+                                    <button type="button" class="skolif-btn-sm primary" onclick="SkolIFKlasser.massImportFromModal()" style="width: 100%; padding: 10px; font-size: 0.9rem;">🚀 Kör massimport</button>
+                                </div>
+                            </div>
+
+                            <!-- FLIK 3: LÄSÅRSBYTE & VERKTYG -->
+                            <div id="skolifTabContent-verktyg" style="display: none; flex-direction: column; gap: 12px;">
+                                <!-- 1. Läsårsbyte (+1 årskurs för alla klasser) -->
+                                <div style="background: #E8F5E9; border: 1.5px solid #C8E6C9; border-radius: 12px; padding: 14px 16px;">
+                                    <div style="font-weight: 800; font-size: 0.92rem; color: #2E7D32; margin-bottom: 4px;">🎓 Läsårsbyte – Höj alla klasser (+1 årskurs)</div>
+                                    <p style="font-size: 0.8rem; color: #334155; margin-bottom: 10px; line-height: 1.4;">
+                                        Stegar automatiskt upp alla klassbeteckningar ett årskurs-steg (t.ex. <strong>7A ➔ 8A</strong>, <strong>8B ➔ 9B</strong>, <strong>9C ➔ 10C</strong>). Alla elevers saldon i Kiosken följer med!
+                                    </p>
+                                    <button type="button" class="skolif-btn-sm primary" onclick="SkolIFKlasser.upgradeAllYear()" style="width: 100%; padding: 9px; font-size: 0.88rem;">🚀 Flytta upp alla klasser 1 årskurs</button>
+                                </div>
+
+                                <!-- 2. Byt klassnamn på en enskild klass (t.ex. 8B -> 9B) -->
+                                <div style="background: #F8FAFC; border: 1.5px solid #E2E8F0; border-radius: 12px; padding: 14px 16px;">
+                                    <div style="font-weight: 800; font-size: 0.9rem; color: #1E3A24; margin-bottom: 4px;">🔄 Höj eller byt namn på en enskild klass (t.ex. 8B ➔ 9B)</div>
+                                    <p style="font-size: 0.78rem; color: #64748B; margin-bottom: 8px;">Välj en klass och ange det nya klassnamnet så flyttas alla elever i klassen över (med bevarade saldon).</p>
+                                    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                                        <select id="skolifRenameFromSelect" style="flex: 1; min-width: 140px; padding: 7px 10px; border: 1.5px solid #CBD5E1; border-radius: 8px; font-size: 0.85rem; font-family: inherit; background: white;"></select>
+                                        <input type="text" id="skolifRenameToInput" placeholder="Nytt namn (t.ex. 9B)" style="flex: 1; min-width: 130px; padding: 7px 10px; border: 1.5px solid #CBD5E1; border-radius: 8px; font-size: 0.85rem; font-family: inherit; text-transform: uppercase; font-weight: 700;">
+                                        <button type="button" class="skolif-btn-sm primary" onclick="SkolIFKlasser.renameFromTool()">Byt klassnamn</button>
+                                    </div>
+                                </div>
+
+                                <!-- 3. Radera en hel klass -->
+                                <div style="background: #FFF5F5; border: 1.5px solid #FECACA; border-radius: 12px; padding: 14px 16px;">
+                                    <div style="font-weight: 800; font-size: 0.9rem; color: #C62828; margin-bottom: 4px;">🗑️ Radera en hel klass (t.ex. avgångsklasser)</div>
+                                    <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 6px;">
+                                        <select id="skolifDeleteClassSelect" style="flex: 2; min-width: 160px; padding: 7px 10px; border: 1.5px solid #CBD5E1; border-radius: 8px; font-size: 0.85rem; font-family: inherit; background: white;"></select>
+                                        <button type="button" class="skolif-btn-sm danger" onclick="SkolIFKlasser.deleteFromTool()" style="background: #C62828; color: white; border-color: #C62828;">Radera klass</button>
+                                    </div>
+                                </div>
+
+                                <!-- 4. Exportera elevlista till Excel / CSV -->
+                                <div style="background: #F0F9FF; border: 1.5px solid #BAE6FD; border-radius: 12px; padding: 14px 16px; display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap;">
+                                    <div>
+                                        <div style="font-weight: 800; font-size: 0.9rem; color: #0369A1;">📄 Exportera elevregister till Excel / CSV</div>
+                                        <div style="font-size: 0.78rem; color: #475569;">Ladda ner alla elever, klasser och aktuella saldon i Kiosken.</div>
+                                    </div>
+                                    <button type="button" class="skolif-btn-sm" onclick="SkolIFKlasser.exportCSV()" style="background: #0284C7; color: white; border-color: #0284C7;">📥 Ladda ner Excel/CSV</button>
                                 </div>
                             </div>
                         </div>
@@ -1288,15 +1599,24 @@
 
     function renderModalClassList() {
         const listEl = document.getElementById('skolifModalClassList');
-        if (!listEl) return;
-
         const klasser = getClassesLocal();
         const codes = Object.keys(klasser).sort((a, b) => a.localeCompare(b, 'sv'));
 
+        // Uppdatera även dropdowns i verktygsfliken
+        const renameSel = document.getElementById('skolifRenameFromSelect');
+        const deleteSel = document.getElementById('skolifDeleteClassSelect');
+        const optionsHtml = codes.length === 0
+            ? '<option value="">Inga klasser inlagda</option>'
+            : '<option value="">-- Välj klass --</option>' + codes.map(c => `<option value="${escapeHtml(c)}">Klass ${escapeHtml(c)} (${countStudents(klasser[c])} elever)</option>`).join('');
+        if (renameSel) renameSel.innerHTML = optionsHtml;
+        if (deleteSel) deleteSel.innerHTML = optionsHtml;
+
+        if (!listEl) return;
+
         if (codes.length === 0) {
             listEl.innerHTML = `
-                <div style="text-align: center; padding: 18px; color: #64748B; font-size: 0.85rem; background: #F8FAFC; border-radius: 10px; border: 1px dashed #CBD5E1;">
-                    Inga klasser inlagda än. Lägg till en klass i formuläret nedan (sparas direkt på datorn) eller logga in ovan för att hämta dina klasser från molnet!
+                <div style="text-align: center; padding: 14px; color: #64748B; font-size: 0.82rem; background: #F8FAFC; border-radius: 10px; border: 1px dashed #CBD5E1;">
+                    Inga klasser inlagda än. Lägg till en elev eller klass nedan (eller använd Massimport)!
                 </div>
             `;
             return;
@@ -1310,10 +1630,10 @@
                 : '';
 
             return `
-                <div class="skolif-class-item">
+                <div class="skolif-class-item" style="padding: 8px 12px;">
                     <div class="skolif-class-item-info">
-                        <span style="font-size: 1.1rem;">📁</span>
-                        <span class="skolif-class-item-name">${escapeHtml(label)}</span>
+                        <span style="font-size: 1rem;">📁</span>
+                        <span class="skolif-class-item-name" style="font-size: 0.9rem;">${escapeHtml(label)}</span>
                         <span class="skolif-class-item-badge">${count} elever</span>
                     </div>
                     <div style="display: flex; gap: 6px;">
@@ -1329,10 +1649,28 @@
     // ==========================================
     //  MODAL-INTERAKTION
     // ==========================================
-    function openModal(prefillName, prefillText) {
+    let editingOriginalKlassCode = null;
+
+    function switchTab(tabName) {
+        ['klasser', 'massimport', 'verktyg'].forEach(t => {
+            const btn = document.getElementById('skolifTabBtn-' + t);
+            const content = document.getElementById('skolifTabContent-' + t);
+            if (btn) {
+                if (t === tabName) btn.classList.add('active');
+                else btn.classList.remove('active');
+            }
+            if (content) {
+                content.style.display = (t === tabName) ? 'flex' : 'none';
+            }
+        });
+        renderModalClassList();
+    }
+
+    function openModal(prefillName, prefillText, initialTab) {
         injectStylesAndModal();
         updateAuthUI();
         renderModalClassList();
+        switchTab(initialTab || 'klasser');
 
         if (prefillName || prefillText) {
             const nameInput = document.getElementById('skolifModalClassName');
@@ -1363,23 +1701,26 @@
         const code = normalizeKlassCode(rawCode);
         const klasser = getClassesLocal();
         if (!(code in klasser)) return;
+        switchTab('klasser');
+        editingOriginalKlassCode = code;
         const nameInput = document.getElementById('skolifModalClassName');
         const textInput = document.getElementById('skolifModalClassStudents');
         const titleEl = document.getElementById('skolifFormTitle');
         if (nameInput) nameInput.value = code;
         if (textInput) textInput.value = klasser[code];
-        if (titleEl) titleEl.textContent = `✏️ Redigerar ${formatDisplayKlass(code)}`;
+        if (titleEl) titleEl.textContent = `✏️ Redigerar ${formatDisplayKlass(code)} (du kan även ändra klassnamn nedan)`;
         updateModalCount();
         if (textInput) textInput.focus();
     }
 
     function clearModalForm() {
+        editingOriginalKlassCode = null;
         const nameInput = document.getElementById('skolifModalClassName');
         const textInput = document.getElementById('skolifModalClassStudents');
         const titleEl = document.getElementById('skolifFormTitle');
         if (nameInput) nameInput.value = '';
         if (textInput) textInput.value = '';
-        if (titleEl) titleEl.textContent = '➕ Lägg till / Redigera klass';
+        if (titleEl) titleEl.textContent = '➕ Skapa eller redigera hel klass';
         updateModalCount();
     }
 
@@ -1400,8 +1741,45 @@
             return;
         }
 
-        await saveClass(name, text, true);
+        await saveClass(name, text, true, editingOriginalKlassCode);
         clearModalForm();
+    }
+
+    async function addSingleFromModal() {
+        const nameEl = document.getElementById('skolifSingleStudentName');
+        const classEl = document.getElementById('skolifSingleStudentClass');
+        const ok = await addSingleStudent(nameEl ? nameEl.value : '', classEl ? classEl.value : '');
+        if (ok && nameEl) {
+            nameEl.value = '';
+            nameEl.focus();
+        }
+    }
+
+    async function massImportFromModal() {
+        const textEl = document.getElementById('skolifMassImportText');
+        const ok = await massImportStudents(textEl ? textEl.value : '');
+        if (ok && textEl) {
+            textEl.value = '';
+            switchTab('klasser');
+        }
+    }
+
+    async function renameFromTool() {
+        const fromEl = document.getElementById('skolifRenameFromSelect');
+        const toEl = document.getElementById('skolifRenameToInput');
+        const ok = await renameSingleClass(fromEl ? fromEl.value : '', toEl ? toEl.value : '');
+        if (ok && toEl) {
+            toEl.value = '';
+        }
+    }
+
+    async function deleteFromTool() {
+        const sel = document.getElementById('skolifDeleteClassSelect');
+        if (!sel || !sel.value) {
+            showToast('Välj en klass i listan först!', 'warning');
+            return;
+        }
+        await deleteClass(sel.value);
     }
 
     async function removeFromModal(code) {
@@ -1436,9 +1814,16 @@
         deleteClass: deleteClass,
         openModal: openModal,
         closeModal: closeModal,
+        switchTab: switchTab,
         editInModal: editInModal,
         clearModalForm: clearModalForm,
         saveFromModal: saveFromModal,
+        addSingleFromModal: addSingleFromModal,
+        massImportFromModal: massImportFromModal,
+        upgradeAllYear: upgradeAllClassesYear,
+        renameFromTool: renameFromTool,
+        deleteFromTool: deleteFromTool,
+        exportCSV: exportStudentsCSV,
         removeFromModal: removeFromModal,
         updateModalCount: updateModalCount,
         login: loginWithGoogle,

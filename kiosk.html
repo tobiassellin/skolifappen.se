@@ -2167,6 +2167,16 @@
                 </div>`;
             }).join('');
         };
+        // Gör så att knappen "👥 Klasser & Elever" i Kiosken fungerar som en direktgenväg till den gemensamma Mina Klasser-vyn!
+        oppnaAdminModal = function() {
+            if (window.SkolIFKlasser && window.SkolIFKlasser.openModal) {
+                window.SkolIFKlasser.openModal();
+            } else {
+                bytAdminFlik('elever');
+                fyllKlassValjareIRadera();
+                document.getElementById("adminModal").style.display = "flex";
+            }
+        };
     </script>
 </body>
 </html>
