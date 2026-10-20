@@ -161,6 +161,60 @@
     }
     .stat-diagram-box { position: relative; height: 300px; box-sizing: border-box; }
     .stat-topplista-box { overflow-y: auto; height: 300px; box-sizing: border-box; }
+    /* KOMPAKT & SKARP KASSAVY (~75-80% SKALA DIREKT VID 100% ZOOM) */
+    nav { padding: 0.65rem 4%; }
+    .logo { font-size: 1.2rem; }
+    .back-btn { padding: 6px 12px; font-size: 0.82rem; }
+    .container { max-width: 1120px; margin: 18px auto; padding: 0 16px; }
+    .header-section { margin-bottom: 14px; gap: 10px; }
+    .header-section h2 { font-size: 1.3rem; line-height: 1.2; }
+    .badge { padding: 4px 11px; font-size: 0.78rem; }
+    .stats-grid { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 16px; }
+    .stat-card { padding: 12px 16px; border-radius: 12px; gap: 12px; }
+    .stat-icon { width: 40px; height: 40px; font-size: 1.4rem; border-radius: 10px; }
+    .stat-info h4 { font-size: 0.72rem; }
+    .stat-info .stat-value { font-size: 1.15rem; }
+    .section-title { font-size: 1rem; margin-bottom: 10px; }
+    .varor-grid { grid-template-columns: repeat(auto-fill, minmax(105px, 1fr)); gap: 8px; margin-bottom: 16px; }
+    .vara-card { padding: 8px 8px; border-radius: 10px; }
+    .vara-emoji { font-size: 1.35rem; margin-bottom: 2px; }
+    .vara-namn { font-size: 0.78rem; }
+    .vara-pris { font-size: 0.82rem; }
+    .search-box { padding: 9px 14px; font-size: 0.88rem; margin-bottom: 12px; border-radius: 10px; }
+    .filter-container { gap: 6px; padding-bottom: 6px; margin-bottom: 12px; }
+    .filter-chip { padding: 4px 12px; font-size: 0.78rem; }
+    .elev-grid { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; }
+    .elev-card { padding: 10px 14px; border-radius: 11px; }
+    .elev-namn { font-size: 0.92rem; }
+    .elev-klass { font-size: 0.72rem; padding: 1px 7px; margin-top: 2px; }
+    .elev-saldo { font-size: 1.05rem; }
+
+    /* KOMPAKT BETALNINGS-MODAL SÅ ALLT RYMS PÅ EN SKÄRM UTAN ATT SKROLLA */
+    .modal-overlay { padding: 12px; }
+    .modal-content { max-width: 720px; padding: 18px 22px; border-radius: 16px; max-height: 94vh; }
+    .close-btn { right: 18px; top: 16px; width: 28px; height: 28px; }
+    .modal-header { margin-bottom: 12px; padding-bottom: 8px; }
+    .modal-title h3 { font-size: 1.15rem; }
+    .modal-grid { gap: 18px; align-items: start; }
+    .modal-saldo-box { display: flex; justify-content: space-between; align-items: center; padding: 9px 14px; margin-bottom: 10px; border-radius: 10px; }
+    .modal-saldo-box span { font-size: 0.76rem; margin: 0; }
+    .modal-saldo-box h2 { font-size: 1.35rem; margin: 0; line-height: 1.1; }
+    .modal-section-title { font-size: 0.84rem; margin-bottom: 6px; }
+    .modal-varor-grid { grid-template-columns: repeat(auto-fill, minmax(86px, 1fr)); gap: 6px; margin-bottom: 10px; max-height: 185px; overflow-y: auto; padding-right: 4px; }
+    .modal-vara-btn { padding: 6px 5px; border-radius: 9px; border-width: 1.5px; }
+    .modal-vara-emoji { font-size: 1.15rem; line-height: 1.15; }
+    .modal-vara-namn { font-size: 0.73rem; line-height: 1.15; margin-top: 2px; }
+    .modal-vara-pris { font-size: 0.74rem; }
+    .snabb-insattning-rad { gap: 6px; margin-top: 4px; margin-bottom: 10px; }
+    .snabb-insattning-btn { padding: 6px 4px; font-size: 0.78rem; border-radius: 7px; }
+    .custom-action-box { gap: 8px; margin-top: 4px; }
+    .custom-input { padding: 8px 11px; font-size: 0.88rem; border-radius: 8px; }
+    .btn-kop, .btn-insattning { padding: 0 14px; font-size: 0.84rem; border-radius: 8px; }
+    .historik-container { padding: 10px 12px; max-height: 310px; }
+    .historik-item { padding: 7px 0; }
+    .historik-beskrivning { font-size: 0.82rem; }
+    .historik-datum { font-size: 0.7rem; }
+    .historik-belopp { font-size: 0.85rem; }
 </style>
 </head>
 <body>
@@ -378,7 +432,7 @@
                     <div class="modal-section-title">Kioskvaror (Klicka för direktköp)</div>
                     <div id="modalVarorGrid" class="modal-varor-grid"></div>
 
-                    <div class="modal-section-title" style="margin-top: 18px; margin-bottom: 4px;">Snabbinsättning</div>
+                    <div class="modal-section-title" style="margin-top: 8px; margin-bottom: 3px;">Snabbinsättning</div>
                     <div class="snabb-insattning-rad">
                         <button type="button" class="snabb-insattning-btn" onclick="gorSnabbInsattning(10)">+10 kr</button>
                         <button type="button" class="snabb-insattning-btn" onclick="gorSnabbInsattning(20)">+20 kr</button>
@@ -386,7 +440,7 @@
                         <button type="button" class="snabb-insattning-btn" onclick="gorSnabbInsattning(100)">+100 kr</button>
                     </div>
 
-                    <div class="modal-section-title" style="margin-top: 10px;">Valfritt belopp</div>
+                    <div class="modal-section-title" style="margin-top: 6px; margin-bottom: 3px;">Valfritt belopp</div>
                     <div class="custom-action-box">
                         <input type="number" id="customBeloppInput" class="custom-input" placeholder="Belopp (kr)">
                         <button onclick="gorKopCustom()" class="btn-kop">Köp</button>
@@ -515,7 +569,7 @@
         </div>
         
         <!-- Lista över befintliga varor -->
-        <div class="modal-section-title">Dina varor (Klicka för att ta bort)</div>
+        <div class="modal-section-title">Dina varor (Redigera, ändra lagerstatus eller ta bort)</div>
         <div id="varorRedigeraLista" style="max-height: 300px; overflow-y: auto; background: #FAFAFA; border: 1px solid #EEEEEE; border-radius: 12px; padding: 10px;">
             <!-- Ritas ut av JavaScript -->
         </div>
@@ -2004,6 +2058,115 @@
                 laddaLokalKassaVy();
             }
         });
+        // ==========================================
+        //  REDIGERA BEFINTLIGA VAROR I "HANTERA VAROR"
+        // ==========================================
+        let redigerarVaraIndex = null;
+
+        hanteraVaror = function() {
+            redigerarVaraIndex = null;
+            document.getElementById("varorModal").style.display = "flex";
+            ritaUppVarorIHantera();
+        };
+
+        valjEmoji = function(emoji) {
+            if (redigerarVaraIndex !== null) {
+                const editInput = document.getElementById("editVaraEmoji-" + redigerarVaraIndex);
+                if (editInput) {
+                    editInput.value = emoji;
+                    return;
+                }
+            }
+            document.getElementById("nyVaraEmoji").value = emoji;
+        };
+
+        window.startaRedigeraVara = function(index) {
+            redigerarVaraIndex = index;
+            ritaUppVarorIHantera();
+            setTimeout(() => {
+                const nameInput = document.getElementById("editVaraNamn-" + index);
+                if (nameInput) nameInput.focus();
+            }, 30);
+        };
+
+        window.avbrytRedigeraVara = function() {
+            redigerarVaraIndex = null;
+            ritaUppVarorIHantera();
+        };
+
+        window.sparaRedigeradVara = function(index) {
+            const v = allaVarorCache[index];
+            if (!v) return;
+
+            const emojiInput = document.getElementById("editVaraEmoji-" + index);
+            const namnInput = document.getElementById("editVaraNamn-" + index);
+            const prisInput = document.getElementById("editVaraPris-" + index);
+
+            const nyEmoji = (emojiInput ? emojiInput.value.trim() : "") || "🍬";
+            const nyttNamn = namnInput ? namnInput.value.trim() : "";
+            const nyttPris = parseInt(prisInput ? prisInput.value : "", 10);
+
+            if (!nyttNamn || isNaN(nyttPris)) {
+                alert("Ange både ett namn och ett pris för varan!");
+                return;
+            }
+
+            v.emoji = nyEmoji;
+            v.namn = nyttNamn;
+            v.pris = nyttPris;
+            redigerarVaraIndex = null;
+
+            sparaKassaData({
+                varor: JSON.stringify(allaVarorCache)
+            }).then(() => {
+                ritaUppVarorIHantera();
+                visaVaror(allaVarorCache);
+                if (aktivElevId !== null) {
+                    const e = allaEleverCache.find(x => x.id === aktivElevId);
+                    if (e) oppnaElevModal(e, false);
+                }
+                alert(`✅ ${nyEmoji} ${nyttNamn} (${nyttPris} kr) har uppdaterats!`);
+            });
+        };
+
+        ritaUppVarorIHantera = function() {
+            const lista = document.getElementById("varorRedigeraLista");
+            if (!lista) return;
+            if (allaVarorCache.length === 0) {
+                lista.innerHTML = "<p style='color:gray; font-size: 0.9rem;'>Du har inga varor i kassan ännu.</p>";
+                return;
+            }
+
+            lista.innerHTML = allaVarorCache.map((v, index) => {
+                const arSlut = v.slut === true;
+                if (redigerarVaraIndex === index) {
+                    return `
+                    <div style="display: flex; align-items: center; gap: 6px; padding: 8px; background: #E8F5E9; border: 1.5px solid #4CAF50; border-radius: 10px; margin: 4px 0; flex-wrap: wrap;">
+                        <input type="text" id="editVaraEmoji-${index}" value="${escapeHtmlKassa(v.emoji || '🍬')}" class="custom-input" style="width: 52px; flex: 0 0 52px; padding: 6px; text-align: center; font-size: 1.1rem; background: white;" title="Välj eller skriv emoji">
+                        <input type="text" id="editVaraNamn-${index}" value="${escapeHtmlKassa(v.namn)}" class="custom-input" style="flex: 2; min-width: 120px; padding: 6px 10px; font-size: 0.85rem; background: white;" placeholder="Varans namn" onkeydown="if(event.key==='Enter') sparaRedigeradVara(${index})">
+                        <input type="number" id="editVaraPris-${index}" value="${v.pris}" class="custom-input" style="width: 78px; flex: 0 0 78px; padding: 6px 8px; font-size: 0.85rem; background: white;" placeholder="Pris (kr)" onkeydown="if(event.key==='Enter') sparaRedigeradVara(${index})">
+                        <button type="button" onclick="sparaRedigeradVara(${index})" style="background: #2E7D32; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 0.76rem; font-weight: 700;">💾 Spara</button>
+                        <button type="button" onclick="avbrytRedigeraVara()" style="background: white; border: 1px solid #CBD5E1; color: #555; padding: 6px 10px; border-radius: 6px; cursor: pointer; font-size: 0.76rem; font-weight: 600;">Avbryt</button>
+                    </div>`;
+                }
+
+                return `
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #E0E0E0; gap: 8px; flex-wrap: wrap;">
+                    <div style="flex: 1; min-width: 130px; ${arSlut ? 'opacity: 0.5; text-decoration: line-through;' : ''}">
+                        <span style="font-size:1.15rem; margin-right:6px;">${v.emoji || '🍬'}</span> 
+                        <strong style="font-size: 0.9rem;">${escapeHtmlKassa(v.namn)}</strong> <span style="font-size: 0.85rem; color: #2E7D32; font-weight: 700;">(${v.pris} kr)</span>
+                        ${arSlut ? '<span style="color:#D32F2F; font-size:0.72rem; font-weight:700; margin-left:6px; text-decoration:none; display:inline-block;">[SLUT]</span>' : ''}
+                    </div>
+                    <div style="display: flex; gap: 6px; align-items: center;">
+                        <button type="button" onclick="startaRedigeraVara(${index})" style="background: #F0F4F1; border: 1px solid #D0D7DE; color: #333; padding: 5px 10px; border-radius: 6px; cursor: pointer; font-size: 0.74rem; font-weight: 700;">✏️ Ändra</button>
+                        <button type="button" onclick="togglaVaraLager(${index})" style="background: ${arSlut ? '#E8F5E9' : '#FFF3E0'}; border: 1px solid ${arSlut ? '#4CAF50' : '#FFB74D'}; color: ${arSlut ? '#2E7D32' : '#E65100'}; padding: 5px 10px; border-radius: 6px; cursor: pointer; font-size: 0.74rem; font-weight: 700;">
+                            ${arSlut ? '✓ Finns i lager' : '⛔ Slut'}
+                        </button>
+                        <button type="button" onclick="taBortVara(${index})" style="background: #FFEBEE; border: 1px solid #FFCDD2; color: #C62828; padding: 5px 10px; border-radius: 6px; cursor: pointer; font-size: 0.74rem; font-weight: 700;">Ta bort</button>
+                    </div>
+                </div>`;
+            }).join('');
+        };
     </script>
 </body>
 </html>
