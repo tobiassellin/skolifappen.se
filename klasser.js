@@ -6,6 +6,7 @@
 
 (function () {
     const STORAGE_KEY = 'skolif_sparade_klasser';
+    const LOCAL_KASSA_KEY = 'skolif_lokal_kassa';
 
     const firebaseConfig = {
         apiKey: "AIzaSyCmHoypbgqWYxgAVI98_gCwTJqXVUdG3hg",
@@ -188,36 +189,299 @@
     }
 
     // ==========================================
-    //  SYNK MOT SKOL-IF KASSA (FIRESTORE)
+    //  LOKAL KASSA (NÄR MAN INTE ÄR INLOGGAD)
     // ==========================================
-    async function resolveKassaDocId(user) {
-        if (!user || !db) return null;
-        const userEmail = (user.email || '').trim().toLowerCase();
-        if (!userEmail) return user.uid;
+    function getLocalKassa() {
+        let parsed = null;
+        try {
+            const raw = localStorage.getItem(LOCAL_KASSA_KEY);
+            if (raw) parsed = JSON.parse(raw);
+        } catch (e) {
+            parsed = null;
+        }
+
+        const result = {
+            elever: (parsed && Array.isArray(parsed.elever)) ? parsed.elever : [],
+            varor: (parsed && Array.isArray(parsed.varor)) ? parsed.varor : [],
+            transaktioner: (parsed && Array.isArray(parsed.transaktioner)) ? parsed.transaktioner : [],
+            harLokalaAndringar: Boolean(parsed && parsed.harLokalaAndringar),
+            senastUppdaterad: (parsed && Number(parsed.senastUppdaterad)) || 0
+        };
+
+        // Om inga elever finns i lokal kassa ännu men det finns lokalt sparade klasser (och ej inloggad)
+        if (!currentUser && result.elever.length === 0) {
+            const lokalaKlasser = getClassesLocal();
+            const koder = Object.keys(lokalaKlasser);
+            if (koder.length > 0) {
+                let nextId = 1;
+                koder.forEach(kod => {
+                    const namnLista = parseStudentNames(lokalaKlasser[kod]);
+                    namnLista.forEach(namn => {
+                        result.elever.push({
+                            id: nextId++,
+                            namn: namn,
+                            klass: normalizeKlassCode(kod),
+                            saldo: 0
+                        });
+                    });
+                });
+                if (result.elever.length > 0) {
+                    result.harLokalaAndringar = true;
+                    try {
+                        localStorage.setItem(LOCAL_KASSA_KEY, JSON.stringify(result));
+                    } catch (e) {}
+                }
+            }
+        }
+
+        return result;
+    }
+
+    function saveLocalKassa(partialData, markModified = true) {
+        const current = getLocalKassa();
+        const updated = {
+            elever: Array.isArray(partialData.elever) ? partialData.elever : current.elever,
+            varor: Array.isArray(partialData.varor) ? partialData.varor : current.varor,
+            transaktioner: Array.isArray(partialData.transaktioner) ? partialData.transaktioner : current.transaktioner,
+            harLokalaAndringar: markModified,
+            senastUppdaterad: Date.now()
+        };
 
         try {
-            const egenRef = db.collection('skolif_kassa').doc(userEmail);
-            const egenSnap = await egenRef.get();
-            if (egenSnap.exists) return userEmail;
-
-            if (user.uid) {
-                try {
-                    const gammalSnap = await db.collection('skolif_kassa').doc(user.uid).get();
-                    if (gammalSnap.exists) return user.uid;
-                } catch (e) {}
-            }
-
-            const q = db.collection('skolif_kassa').where('behoriga_anvandare', 'array-contains', userEmail);
-            const deladeSnap = await q.get();
-            if (!deladeSnap.empty) {
-                return deladeSnap.docs[0].id;
-            }
-
-            return userEmail;
-        } catch (err) {
-            console.warn('Kunde inte slå upp kassa-dokument, använder e-post:', err.message);
-            return userEmail;
+            localStorage.setItem(LOCAL_KASSA_KEY, JSON.stringify(updated));
+        } catch (e) {
+            console.error('Kunde inte spara lokal kassa i localStorage:', e);
         }
+
+        if (!currentUser) {
+            kassaEleverCache = updated.elever;
+            setClassesLocal(buildClassesMapFromKassaElever(updated.elever));
+            notifyAllListeners();
+        }
+
+        return updated;
+    }
+
+    function clearLocalKassa() {
+        try {
+            localStorage.removeItem(LOCAL_KASSA_KEY);
+            localStorage.removeItem(STORAGE_KEY);
+        } catch (e) {}
+        kassaEleverCache = [];
+        notifyAllListeners();
+    }
+
+    // ==========================================
+    //  SYNK & SAMMANSLAGNING MOT SKOL-IF KASSA (FIRESTORE)
+    // ==========================================
+    let activeResolvePromise = null;
+    let activeResolveUid = null;
+
+    async function resolveAndMergeKassa(user) {
+        if (!user || !db) return null;
+        const uidKey = user.uid || user.email || 'user';
+        if (activeResolvePromise && activeResolveUid === uidKey) {
+            return activeResolvePromise;
+        }
+
+        activeResolveUid = uidKey;
+        activeResolvePromise = (async () => {
+            const userEmail = (user.email || '').trim().toLowerCase();
+            let docId = userEmail || user.uid;
+
+            try {
+                if (userEmail) {
+                    const egenRef = db.collection('skolif_kassa').doc(userEmail);
+                    const egenSnap = await egenRef.get();
+
+                    if (egenSnap.exists) {
+                        docId = userEmail;
+                    } else {
+                        // Kolla ev. äldre kassa under user.uid
+                        let migrated = false;
+                        if (user.uid) {
+                            try {
+                                const gammalSnap = await db.collection('skolif_kassa').doc(user.uid).get();
+                                if (gammalSnap.exists) {
+                                    const gammalData = gammalSnap.data() || {};
+                                    await egenRef.set({
+                                        kassaId: userEmail,
+                                        namn: gammalData.namn || `Skol-IF Kassa (${userEmail})`,
+                                        skapare: userEmail,
+                                        behoriga_anvandare: [userEmail],
+                                        elever: gammalData.elever || '[]',
+                                        varor: gammalData.varor || '[]',
+                                        transaktioner: gammalData.transaktioner || '[]',
+                                        senastUppdaterad: Date.now()
+                                    });
+                                    docId = userEmail;
+                                    migrated = true;
+                                }
+                            } catch (e) {}
+                        }
+
+                        if (!migrated) {
+                            // Kolla om inbjuden till en kollegas kassa
+                            const q = db.collection('skolif_kassa').where('behoriga_anvandare', 'array-contains', userEmail);
+                            const deladeSnap = await q.get();
+                            if (!deladeSnap.empty) {
+                                docId = deladeSnap.docs[0].id;
+                            } else {
+                                docId = userEmail;
+                            }
+                        }
+                    }
+                }
+
+                // Kolla om användaren har startat/ändrat en lokal kassa innan inloggning!
+                const lokalKassa = getLocalKassa();
+                const harLokalData = lokalKassa.harLokalaAndringar && (
+                    lokalKassa.elever.length > 0 ||
+                    lokalKassa.varor.length > 0 ||
+                    lokalKassa.transaktioner.length > 0
+                );
+
+                const targetRef = db.collection('skolif_kassa').doc(docId);
+                const targetSnap = await targetRef.get();
+
+                if (harLokalData) {
+                    let molnElever = [];
+                    let molnVaror = [];
+                    let molnTransaktioner = [];
+
+                    if (targetSnap.exists) {
+                        const d = targetSnap.data() || {};
+                        try { molnElever = JSON.parse(d.elever || '[]'); } catch (e) { molnElever = []; }
+                        try { molnVaror = JSON.parse(d.varor || '[]'); } catch (e) { molnVaror = []; }
+                        try { molnTransaktioner = JSON.parse(d.transaktioner || '[]'); } catch (e) { molnTransaktioner = []; }
+                    }
+
+                    const molnArTom = molnElever.length === 0 && molnVaror.length === 0 && molnTransaktioner.length === 0;
+
+                    if (molnArTom) {
+                        // Molnet var tomt -> Ladda över hela den lokala kassan till molnet!
+                        const payload = {
+                            elever: JSON.stringify(lokalKassa.elever),
+                            varor: JSON.stringify(lokalKassa.varor),
+                            transaktioner: JSON.stringify(lokalKassa.transaktioner),
+                            senastUppdaterad: Date.now()
+                        };
+                        if (targetSnap.exists) {
+                            await targetRef.update(payload);
+                        } else {
+                            await targetRef.set({
+                                kassaId: docId,
+                                namn: `Skol-IF Kassa (${userEmail || docId})`,
+                                skapare: userEmail || docId,
+                                behoriga_anvandare: [userEmail || docId],
+                                ...payload
+                            });
+                        }
+                        saveLocalKassa(lokalKassa, false);
+                        showToast('☁️ Din lokala kassa har laddats upp till molnet!', 'success');
+                    } else {
+                        // Både lokal kassa och molnkassa (t.ex. från mobilen) har innehåll -> Sla ihop dem smart!
+                        const sammanslagnaElever = molnElever.map(e => ({ ...e }));
+                        let maxId = sammanslagnaElever.length > 0
+                            ? Math.max(0, ...sammanslagnaElever.map(e => Number(e.id) || 0))
+                            : 0;
+
+                        const molnTxIds = new Set(molnTransaktioner.map(t => t && t.id));
+                        const nyaLokalaTx = lokalKassa.transaktioner.filter(t => t && !molnTxIds.has(t.id));
+                        const elevIdMap = new Map();
+
+                        lokalKassa.elever.forEach(lokElev => {
+                            if (!lokElev || !lokElev.namn) return;
+                            const namnClean = String(lokElev.namn).trim();
+                            const namnLow = namnClean.toLowerCase();
+                            const klassNorm = normalizeKlassCode(lokElev.klass);
+
+                            const befintlig = sammanslagnaElever.find(m =>
+                                String(m.namn || '').trim().toLowerCase() === namnLow &&
+                                normalizeKlassCode(m.klass) === klassNorm
+                            );
+
+                            if (befintlig) {
+                                elevIdMap.set(lokElev.id, befintlig.id);
+                                // Räkna ut saldo-förändring från eventuella nya lokala transaktioner för denna elev
+                                const elevNyaTx = nyaLokalaTx.filter(t => t.elevId === lokElev.id);
+                                if (elevNyaTx.length > 0) {
+                                    const delta = elevNyaTx.reduce((sum, t) => {
+                                        const b = Number(t.belopp) || 0;
+                                        return t.typ === 'KÖP' ? sum - b : sum + b;
+                                    }, 0);
+                                    befintlig.saldo = (Number(befintlig.saldo) || 0) + delta;
+                                } else if ((Number(befintlig.saldo) || 0) === 0 && (Number(lokElev.saldo) || 0) !== 0) {
+                                    befintlig.saldo = Number(lokElev.saldo) || 0;
+                                }
+                            } else {
+                                maxId++;
+                                elevIdMap.set(lokElev.id, maxId);
+                                sammanslagnaElever.push({
+                                    id: maxId,
+                                    namn: namnClean,
+                                    klass: klassNorm,
+                                    saldo: Number(lokElev.saldo) || 0
+                                });
+                            }
+                        });
+
+                        // Slå ihop varor (lägg till nya lokala varor som saknas i molnet)
+                        const sammanslagnaVaror = [...molnVaror];
+                        lokalKassa.varor.forEach(lokVara => {
+                            if (!lokVara || !lokVara.namn) return;
+                            const finnsVara = sammanslagnaVaror.some(v =>
+                                String(v.namn || '').trim().toLowerCase() === String(lokVara.namn).trim().toLowerCase()
+                            );
+                            if (!finnsVara) {
+                                sammanslagnaVaror.push(lokVara);
+                            }
+                        });
+
+                        // Slå ihop transaktioner (med mappat elevId)
+                        const mappadeNyaTx = nyaLokalaTx.map(t => ({
+                            ...t,
+                            elevId: elevIdMap.has(t.elevId) ? elevIdMap.get(t.elevId) : t.elevId
+                        }));
+                        const sammanslagnaTransaktioner = [...molnTransaktioner, ...mappadeNyaTx];
+
+                        await targetRef.update({
+                            elever: JSON.stringify(sammanslagnaElever),
+                            varor: JSON.stringify(sammanslagnaVaror),
+                            transaktioner: JSON.stringify(sammanslagnaTransaktioner),
+                            senastUppdaterad: Date.now()
+                        });
+
+                        saveLocalKassa({
+                            elever: sammanslagnaElever,
+                            varor: sammanslagnaVaror,
+                            transaktioner: sammanslagnaTransaktioner
+                        }, false);
+
+                        showToast('☁️ Din lokala kassa har slagits ihop med molnet!', 'success');
+                    }
+                } else if (!targetSnap.exists) {
+                    // Ingen lokal data och ingen molnkassa fanns -> skapa ny tom molnkassa
+                    await targetRef.set({
+                        kassaId: docId,
+                        namn: `Skol-IF Kassa (${userEmail || docId})`,
+                        skapare: userEmail || docId,
+                        behoriga_anvandare: [userEmail || docId],
+                        elever: '[]',
+                        varor: '[]',
+                        transaktioner: '[]',
+                        senastUppdaterad: Date.now()
+                    });
+                }
+
+                return docId;
+            } catch (err) {
+                console.warn('Fel vid resolveAndMergeKassa:', err);
+                return docId;
+            }
+        })();
+
+        return activeResolvePromise;
     }
 
     async function startKassaSync(user) {
@@ -227,7 +491,7 @@
         }
         if (!user || !db) return;
 
-        const docId = await resolveKassaDocId(user);
+        const docId = await resolveAndMergeKassa(user);
         if (!docId) return;
         activeKassaDocId = docId;
 
@@ -253,7 +517,76 @@
         });
     }
 
-    // Uppdatera en klass i skolif_kassa utan att någonsin röra befintliga elevers saldon!
+    // Hjälpfunktion för att uppdatera en klass i en elevlista utan att röra befintliga saldon
+    function mergeKlassIntoEleverList(nuvarandeElever, klassCode, nyaNamnLista, allowRemoveStudents) {
+        let maxId = nuvarandeElever.length > 0
+            ? Math.max(0, ...nuvarandeElever.map(e => Number(e.id) || 0))
+            : 0;
+
+        const eleverIAndraKlasser = nuvarandeElever.filter(
+            e => normalizeKlassCode(e.klass) !== klassCode
+        );
+        const gamlaEleverIKlassen = nuvarandeElever.filter(
+            e => normalizeKlassCode(e.klass) === klassCode
+        );
+
+        const uppdateradeIKlassen = [];
+        const tillagdaLower = new Set();
+
+        nyaNamnLista.forEach(namn => {
+            const low = namn.toLowerCase();
+            if (tillagdaLower.has(low)) return;
+            tillagdaLower.add(low);
+
+            const befintlig = gamlaEleverIKlassen.find(
+                e => String(e.namn || '').trim().toLowerCase() === low
+            );
+            if (befintlig) {
+                uppdateradeIKlassen.push({
+                    id: befintlig.id,
+                    namn: befintlig.namn,
+                    klass: klassCode,
+                    saldo: Number(befintlig.saldo) || 0
+                });
+            } else {
+                maxId++;
+                uppdateradeIKlassen.push({
+                    id: maxId,
+                    namn: namn,
+                    klass: klassCode,
+                    saldo: 0
+                });
+            }
+        });
+
+        if (!allowRemoveStudents) {
+            gamlaEleverIKlassen.forEach(gammal => {
+                const low = String(gammal.namn || '').trim().toLowerCase();
+                if (!tillagdaLower.has(low)) {
+                    uppdateradeIKlassen.push(gammal);
+                }
+            });
+        } else {
+            const borttagnaMedSaldo = gamlaEleverIKlassen.filter(gammal => {
+                const low = String(gammal.namn || '').trim().toLowerCase();
+                return !tillagdaLower.has(low) && (Number(gammal.saldo) || 0) !== 0;
+            });
+
+            if (borttagnaMedSaldo.length > 0) {
+                const namnPaSaldoElever = borttagnaMedSaldo.map(e => `${e.namn} (${e.saldo} kr)`).join(', ');
+                const ok = confirm(
+                    `⚠️ OBS! Följande elever som du tog bort från listan har saldo kvar i kiosken:\n${namnPaSaldoElever}\n\nVill du verkligen ta bort dem helt även från kiosken? (Klicka Avbryt för att behålla dem)`
+                );
+                if (!ok) {
+                    borttagnaMedSaldo.forEach(e => uppdateradeIKlassen.push(e));
+                }
+            }
+        }
+
+        return [...eleverIAndraKlasser, ...uppdateradeIKlassen];
+    }
+
+    // Uppdatera en klass i skolif_kassa (eller lokalt) utan att någonsin röra befintliga elevers saldon!
     async function saveClass(rawKlassNamn, elevText, allowRemoveStudents = false) {
         const klassCode = normalizeKlassCode(rawKlassNamn);
         const nyaNamnLista = parseStudentNames(elevText);
@@ -270,9 +603,8 @@
         // 1. Uppdatera lokal cache direkt
         lokalaFore[klassCode] = nyaNamnLista.join('\n');
         setClassesLocal(lokalaFore);
-        notifyAllListeners();
 
-        // 2. Om inloggad: synka med skolif_kassa i Firestore
+        // 2. Om inloggad: synka med skolif_kassa i Firestore. Annars: spara i lokal kassa!
         if (currentUser && db && activeKassaDocId) {
             try {
                 const docRef = db.collection('skolif_kassa').doc(activeKassaDocId);
@@ -286,71 +618,7 @@
                     }
                 }
 
-                let maxId = nuvarandeElever.length > 0
-                    ? Math.max(0, ...nuvarandeElever.map(e => Number(e.id) || 0))
-                    : 0;
-
-                const eleverIAndraKlasser = nuvarandeElever.filter(
-                    e => normalizeKlassCode(e.klass) !== klassCode
-                );
-                const gamlaEleverIKlassen = nuvarandeElever.filter(
-                    e => normalizeKlassCode(e.klass) === klassCode
-                );
-
-                const uppdateradeIKlassen = [];
-                const tillagdaLower = new Set();
-
-                nyaNamnLista.forEach(namn => {
-                    const low = namn.toLowerCase();
-                    if (tillagdaLower.has(low)) return;
-                    tillagdaLower.add(low);
-
-                    const befintlig = gamlaEleverIKlassen.find(
-                        e => String(e.namn || '').trim().toLowerCase() === low
-                    );
-                    if (befintlig) {
-                        uppdateradeIKlassen.push({
-                            id: befintlig.id,
-                            namn: befintlig.namn,
-                            klass: klassCode,
-                            saldo: Number(befintlig.saldo) || 0
-                        });
-                    } else {
-                        maxId++;
-                        uppdateradeIKlassen.push({
-                            id: maxId,
-                            namn: namn,
-                            klass: klassCode,
-                            saldo: 0
-                        });
-                    }
-                });
-
-                if (!allowRemoveStudents) {
-                    gamlaEleverIKlassen.forEach(gammal => {
-                        const low = String(gammal.namn || '').trim().toLowerCase();
-                        if (!tillagdaLower.has(low)) {
-                            uppdateradeIKlassen.push(gammal);
-                        }
-                    });
-                } else {
-                    const borttagnaMedSaldo = gamlaEleverIKlassen.filter(gammal => {
-                        const low = String(gammal.namn || '').trim().toLowerCase();
-                        return !tillagdaLower.has(low) && (Number(gammal.saldo) || 0) !== 0;
-                    });
-
-                    if (borttagnaMedSaldo.length > 0) {
-                        const namnPaSaldoElever = borttagnaMedSaldo.map(e => `${e.namn} (${e.saldo} kr)`).join(', ');
-                        const ok = confirm(
-                            `⚠️ OBS! Följande elever som du tog bort från listan har saldo kvar i kiosken:\n${namnPaSaldoElever}\n\nVill du verkligen ta bort dem helt även från kiosken? (Klicka Avbryt för att behålla dem)`
-                        );
-                        if (!ok) {
-                            borttagnaMedSaldo.forEach(e => uppdateradeIKlassen.push(e));
-                        }
-                    }
-                }
-
-                const nyKomplettLista = [...eleverIAndraKlasser, ...uppdateradeIKlassen];
+                const nyKomplettLista = mergeKlassIntoEleverList(nuvarandeElever, klassCode, nyaNamnLista, allowRemoveStudents);
 
                 if (docSnap.exists) {
                     await docRef.update({
@@ -373,7 +641,14 @@
             } catch (err) {
                 console.error('Kunde inte spara klass till skolif_kassa:', err);
             }
+        } else {
+            // Lokalt läge (ej inloggad) -> Uppdatera skolif_lokal_kassa med bevarade saldon!
+            const lokalKassa = getLocalKassa();
+            const nyLokalElevLista = mergeKlassIntoEleverList(lokalKassa.elever, klassCode, nyaNamnLista, allowRemoveStudents);
+            saveLocalKassa({ elever: nyLokalElevLista }, true);
         }
+
+        notifyAllListeners();
 
         // Visa snygg och personlig bekräftelse-toast!
         if (nytillagdaNamn.length === 1 && fannsKlassenTidigare) {
@@ -393,7 +668,8 @@
         const klassCode = normalizeKlassCode(rawKlassNamn);
         if (!klassCode) return;
 
-        const eleverIKlass = kassaEleverCache.filter(e => normalizeKlassCode(e.klass) === klassCode);
+        const kallaElever = currentUser ? kassaEleverCache : getLocalKassa().elever;
+        const eleverIKlass = kallaElever.filter(e => normalizeKlassCode(e.klass) === klassCode);
         const totaltSaldo = eleverIKlass.reduce((sum, e) => sum + (Number(e.saldo) || 0), 0);
         const harSaldo = eleverIKlass.some(e => (Number(e.saldo) || 0) !== 0);
 
@@ -406,7 +682,6 @@
         const lokala = getClassesLocal();
         delete lokala[klassCode];
         setClassesLocal(lokala);
-        notifyAllListeners();
 
         if (currentUser && db && activeKassaDocId) {
             try {
@@ -419,8 +694,13 @@
             } catch (err) {
                 console.error('Kunde inte radera klass i skolif_kassa:', err);
             }
+        } else {
+            const lokalKassa = getLocalKassa();
+            const kvarvarande = lokalKassa.elever.filter(e => normalizeKlassCode(e.klass) !== klassCode);
+            saveLocalKassa({ elever: kvarvarande }, true);
         }
 
+        notifyAllListeners();
         showToast(`🗑️ Klass ${klassCode} har raderats`, 'info');
     }
 
@@ -472,7 +752,9 @@
             kassaUnsubscribe = null;
         }
         activeKassaDocId = null;
-        kassaEleverCache = [];
+        activeResolvePromise = null;
+        activeResolveUid = null;
+        clearLocalKassa();
         auth.signOut().then(() => {
             showToast('Du har loggats ut', 'info');
         });
@@ -489,7 +771,10 @@
                     kassaUnsubscribe = null;
                 }
                 activeKassaDocId = null;
-                kassaEleverCache = [];
+                activeResolvePromise = null;
+                activeResolveUid = null;
+                const lokalKassa = getLocalKassa();
+                kassaEleverCache = lokalKassa.elever;
             }
             updateAuthUI();
             renderAllClassBars();
@@ -948,8 +1233,8 @@
                 banner.className = 'skolif-auth-banner logged-out';
                 banner.innerHTML = `
                     <div>
-                        <strong>💻 Du är inte inloggad</strong><br>
-                        <span style="font-size: 0.78rem;">Logga in med Google för att hämta dina klasser från Kiosken/molnet!</span>
+                        <strong>💻 Lokalt läge (Sparas på denna dator)</strong><br>
+                        <span style="font-size: 0.78rem;">Du kan använda klasser och kassan direkt utan inloggning! Logga in med Google om du vill synka med molnet & mobilen.</span>
                     </div>
                     <button type="button" class="skolif-btn-sm primary" onclick="SkolIFKlasser.login()">🔑 Logga in med Google</button>
                 `;
@@ -968,11 +1253,11 @@
 
             const cloudStatusHtml = (currentUser && currentUser.email)
                 ? `<span class="skolif-cloud-dot" title="Synkad med ${escapeHtml(currentUser.email)}">☁️ Synkad med Kiosken & Molnet</span>`
-                : `<span class="skolif-cloud-dot offline" onclick="SkolIFKlasser.login()" title="Klicka för att logga in med Google och hämta dina klasser">🔑 Logga in för att hämta dina klasser</span>`;
+                : `<span class="skolif-cloud-dot offline" onclick="SkolIFKlasser.login()" title="Sparas lokalt på datorn. Klicka för att logga in med Google och synka med molnet">💻 Lokal lagring (Logga in för molnsynk)</span>`;
 
             let pillsHtml = '';
             if (codes.length === 0) {
-                pillsHtml = `<span style="font-size: 0.8rem; color: #94A3B8; font-style: italic;">${currentUser ? 'Inga klasser inlagda än. Klicka på "+ Hantera klasser" för att lägga in en klass!' : 'Logga in eller klicka på "+ Hantera klasser" för att välja klass.'}</span>`;
+                pillsHtml = `<span style="font-size: 0.8rem; color: #94A3B8; font-style: italic;">Inga klasser inlagda än. Klicka på "+ Hantera klasser" för att lägga in en klass (eller logga in för att hämta från molnet).</span>`;
             } else {
                 pillsHtml = codes.map(code => {
                     const count = countStudents(klasser[code]);
@@ -1011,7 +1296,7 @@
         if (codes.length === 0) {
             listEl.innerHTML = `
                 <div style="text-align: center; padding: 18px; color: #64748B; font-size: 0.85rem; background: #F8FAFC; border-radius: 10px; border: 1px dashed #CBD5E1;">
-                    ${currentUser ? 'Inga klasser hittades. Lägg till din första klass nedan!' : 'Logga in med Google ovan för att se dina befintliga klasser från Kiosken!'}
+                    Inga klasser inlagda än. Lägg till en klass i formuläret nedan (sparas direkt på datorn) eller logga in ovan för att hämta dina klasser från molnet!
                 </div>
             `;
             return;
@@ -1143,6 +1428,10 @@
 
     window.SkolIFKlasser = {
         getClasses: getClassesLocal,
+        getLocalKassa: getLocalKassa,
+        saveLocalKassa: saveLocalKassa,
+        clearLocalKassa: clearLocalKassa,
+        resolveAndMergeKassa: resolveAndMergeKassa,
         saveClass: saveClass,
         deleteClass: deleteClass,
         openModal: openModal,
