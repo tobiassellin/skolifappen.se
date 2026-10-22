@@ -111,6 +111,8 @@
         .hero p { font-size: 1.2rem; color: #666; max-width: 600px; margin: 0 auto 30px auto; }
         .cta-button { display: inline-block; background-color: #4CAF50; color: white; padding: 15px 30px; border-radius: 30px; text-decoration: none; font-weight: bold; font-size: 1.1rem; border: none; cursor: pointer; transition: transform 0.2s, background-color 0.2s; box-shadow: 0 4px 15px rgba(76, 175, 80, 0.4); }
         .cta-button:hover { background-color: #388E3C; transform: translateY(-2px); }
+        .cta-button-secondary { display: inline-flex; align-items: center; gap: 8px; background-color: white; color: #2E7D32; padding: 13px 26px; border-radius: 30px; text-decoration: none; font-weight: 700; font-size: 1.02rem; border: 2px solid #4CAF50; cursor: pointer; transition: transform 0.2s, background-color 0.2s, box-shadow 0.2s; }
+        .cta-button-secondary:hover { background-color: #E8F5E9; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(76, 175, 80, 0.2); }
         .features-container { max-width: 1200px; margin: 0 auto; }
         .features { display: flex; justify-content: center; gap: 20px; padding: 60px 5%; flex-wrap: nowrap; align-items: flex-start; }
         .card { background: white; border-radius: 12px; padding: 30px; flex: 1; box-shadow: 0 4px 10px rgba(0,0,0,0.05); text-align: center; transition: transform 0.3s; }
@@ -181,8 +183,11 @@
 
     <header class="hero">
         <h1>Skol-IF Webben</h1>
-        <p>Det kompletta digitala verktyget för idrottslärare och Skol-IF-ledare. Samla kioskkassan, utlåning, spelscheman och lektionsverktyg på ett och samma ställe direkt i webbläsaren.</p>
-        <a href="#kassa" class="cta-button">Öppna verktygen</a>
+        <p>Det kompletta digitala verktyget för idrottslärare och Skol-IF-ledare. Samla kioskkassan, utlåning, spelscheman och lektionsverktyg på ett ställe – och koppla ihop dem med mobilappen och kollegor i realtid.</p>
+        <div style="display: flex; justify-content: center; align-items: center; gap: 14px; flex-wrap: wrap;">
+            <a href="#kassa" class="cta-button">Öppna verktygen</a>
+            <a href="https://play.google.com/store/apps/details?id=com.sellin.tabatatimer" target="_blank" class="cta-button-secondary">📱 Hämta Android-appen</a>
+        </div>
     </header>
 
     <div class="features-container">
@@ -191,18 +196,21 @@
 <div class="card" id="kassa" onclick="gaTillKiosk()" style="cursor: pointer;">
     <div class="card-icon">☕</div>
     <h3>Skol IF Kassa</h3>
-    <p>Smidig kioskförsäljning för mobilfria skolor. Ladda elevens saldo i förväg genom Swish/inbetalning till Skol-IF – vid kiosken handlar eleven med ett klick på sitt saldo utan mobilkrångel!</p>
+    <p>Smidig kioskförsäljning för mobilfria skolor med förladdade elevsaldon. Koppla kassan via Google för att synka i realtid med mobilappen och dela hanteringen med kollegor och elever!</p>
     
     <div style="margin-top: 20px;">
         <button id="kioskBtn" onclick="klickaPaKnapp(event)" class="cta-button" style="width: 100%; max-width: 250px;">Logga in med Google</button>
+        <div id="kioskOfflineText" style="margin-top: 10px;">
+            <a href="kiosk.html" onclick="event.stopPropagation();" style="font-size: 0.82rem; color: #2E7D32; font-weight: 600; text-decoration: underline;">Eller öppna direkt utan inloggning →</a>
+        </div>
     </div>
 </div>
 
             <!-- REDSKAPSBODEN KORTET -->
             <div class="card" id="redskapsboden" onclick="gaTillBod()" style="cursor: pointer;">
-                <div class="card-icon">📦</div>
+                <div class="card-icon">⚽</div>
                 <h3>Redskapsboden</h3>
-                <p>Håll ordning på rasternas utrustning. Registrera utlånade bollar och racketar på sekunder så att allt hittar tillbaka till boden.</p>
+                <p>Håll ordning på rasternas utrustning och registrera lån på sekunder. Koppla boden via Google för att synka direkt med mobilappen och låta kollegor och rastvärdar hjälpas åt i realtid.</p>
                 
                 <div style="margin-top: 20px;">
                     <button id="bodBtn" onclick="klickaPaBodKnapp(event)" class="cta-button" style="width: 100%; max-width: 250px;">Logga in med Google</button>
@@ -223,6 +231,18 @@
                 </div>
             </div>
         </section>
+
+        <!-- SYNK & SAMARBETE-BANNER -->
+        <div style="background: linear-gradient(135deg, #E8F5E9 0%, #F1F8E9 100%); border: 1.5px solid #C8E6C9; border-radius: 14px; padding: 18px 24px; margin: -25px 5% 40px 5%; display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; text-align: left; box-shadow: 0 4px 12px rgba(46,125,50,0.06);">
+            <div style="display: flex; align-items: center; gap: 16px; flex: 1; min-width: 260px;">
+                <div style="font-size: 2rem; line-height: 1;">📲</div>
+                <div>
+                    <strong style="color: #1E3A24; font-size: 0.98rem; display: block; margin-bottom: 2px;">Koppla ihop Kiosken & Redskapsboden för enklare hantering</strong>
+                    <span style="color: #445; font-size: 0.88rem;">Logga in med Google för att synka saldon, varor och utlåningar i realtid med <strong>Skol-IF Appen</strong> och dela tillgången med kollegor eller elever på flera enheter samtidigt.</span>
+                </div>
+            </div>
+            <a href="https://play.google.com/store/apps/details?id=com.sellin.tabatatimer" target="_blank" style="display: inline-flex; align-items: center; gap: 6px; background: #2E7D32; color: white; padding: 10px 18px; border-radius: 20px; text-decoration: none; font-size: 0.88rem; font-weight: 700; white-space: nowrap; transition: background 0.2s, transform 0.2s; box-shadow: 0 3px 10px rgba(46,125,50,0.2);" onmouseover="this.style.background='#1B5E20'; this.style.transform='translateY(-1px)'" onmouseout="this.style.background='#2E7D32'; this.style.transform='none'">📱 Hämta på Google Play →</a>
+        </div>
 
         <!-- IDROTTSLÄRARENS VERKTYGSLÅDA -->
         <section class="teacher-tools-section">
@@ -292,8 +312,8 @@
         <!-- APP / GOOGLE PLAY SEKTION UNDER BOXARNA -->
         <section style="text-align: center; padding: 35px 20px; background: white; border-radius: 16px; margin: 0 5% 40px 5%; box-shadow: 0 4px 15px rgba(0,0,0,0.03); border: 1px solid #EEEEEE;">
             <div style="font-size: 2.2rem; margin-bottom: 8px;">📱</div>
-            <h4 style="color: #2E7D32; font-size: 1.2rem; margin-bottom: 6px; font-weight: 700;">Skol IF Appen till Android</h4>
-            <p style="color: #666; font-size: 0.95rem; max-width: 520px; margin: 0 auto 16px auto;">Mobilappen är under utveckling för att komplettera webbverktygen. Du kan ladda ner den på Google Play.</p>
+            <h4 style="color: #2E7D32; font-size: 1.2rem; margin-bottom: 6px; font-weight: 700;">Skol IF Appen till Android – Koppla Kiosk & Redskapsbod</h4>
+            <p style="color: #666; font-size: 0.95rem; max-width: 640px; margin: 0 auto 16px auto;">Koppla ihop <strong>Skol IF Kassa</strong> och <strong>Redskapsboden</strong> mellan webben och Android-appen genom att logga in med Google. Du kan även bjuda in kollegor och elever så att alla saldon, köp och utlåningar synkas i realtid mellan alla enheter!</p>
             <a href="https://play.google.com/store/apps/details?id=com.sellin.tabatatimer" target="_blank" style="display: inline-block; background: #333; color: white; padding: 10px 22px; border-radius: 20px; text-decoration: none; font-size: 0.9rem; font-weight: 600; transition: background 0.2s;" onmouseover="this.style.background='#555'" onmouseout="this.style.background='#333'">Hämta på Google Play</a>
         </section>
     </div>
@@ -362,6 +382,7 @@
             const kioskBtn = document.getElementById("kioskBtn");
             const bodBtn = document.getElementById("bodBtn");
             const bodOfflineText = document.getElementById("bodOfflineText");
+            const kioskOfflineText = document.getElementById("kioskOfflineText");
 
             if (user) {
                 if (kioskBtn) {
@@ -375,6 +396,9 @@
                 if (bodOfflineText) {
                     bodOfflineText.style.display = "none";
                 }
+                if (kioskOfflineText) {
+                    kioskOfflineText.style.display = "none";
+                }
             } else {
                 if (kioskBtn) {
                     kioskBtn.innerText = "Logga in med Google";
@@ -386,6 +410,9 @@
                 }
                 if (bodOfflineText) {
                     bodOfflineText.style.display = "block";
+                }
+                if (kioskOfflineText) {
+                    kioskOfflineText.style.display = "block";
                 }
             }
         });

@@ -287,6 +287,16 @@
         }
         input:focus, select:focus, textarea:focus { border-color: #4CAF50; }
 
+        .emoji-picker-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+        .emoji-chip {
+            background: #F8F9FA; border: 1.5px solid #E0E0E0; border-radius: 8px;
+            font-size: 1.25rem; padding: 5px 9px; cursor: pointer; transition: all 0.15s;
+            line-height: 1.2;
+        }
+        .emoji-chip:hover, .emoji-chip.selected {
+            background: #E8F5E9; border-color: #4CAF50; transform: scale(1.08);
+        }
+
         /* ====== DELA / BEHÖRIGA ====== */
         #delaPanel {
             background: white; border-radius: 16px; padding: 22px;
@@ -328,7 +338,7 @@
 <body>
 
 <nav>
-    <a href="index.html" class="logo">📦 Redskapsboden</a>
+    <a href="index.html" class="logo">⚽ Redskapsboden</a>
     <div class="nav-right">
         <span id="userBadge">👤 <span id="userEmail"></span></span>
         <button class="nav-btn" onclick="SkolIFKlasser.openModal()">📋 Mina Klasser</button>
@@ -372,7 +382,7 @@
     <!-- Stats -->
     <div class="stats-grid">
         <div class="stat-card">
-            <div class="stat-icon">📦</div>
+            <div class="stat-icon">🏀</div>
             <div class="stat-info">
                 <h4>Artiklar</h4>
                 <div class="stat-value" id="statArtiklar">0</div>
@@ -403,7 +413,7 @@
 
     <!-- Tabs -->
     <div class="tabs">
-        <button class="tab-btn active" onclick="switchTab('boden', this)">📦 Boden & Utlåningar</button>
+        <button class="tab-btn active" onclick="switchTab('boden', this)">⚽ Boden & Utlåningar</button>
         <button class="tab-btn" onclick="switchTab('historik', this)">📋 Historik</button>
     </div>
 
@@ -412,7 +422,7 @@
         <!-- Mobil-subtabs för snabbväxling på små skärmar -->
         <div class="mobile-subtabs">
             <button id="subtabBtnArtiklar" class="subtab-btn active" onclick="switchMobileSubtab('artiklar')">
-                📦 Artiklar (<span id="countArtiklarMobile">0</span>)
+                ⚽ Artiklar (<span id="countArtiklarMobile">0</span>)
             </button>
             <button id="subtabBtnUtlanade" class="subtab-btn" onclick="switchMobileSubtab('utlanade')">
                 🔄 Utlånade (<span id="countUtlanadeMobile">0</span>)
@@ -435,7 +445,7 @@
 
                 <div class="artiklar-grid" id="artiklarGrid">
                     <div class="empty-state" style="grid-column:1/-1;">
-                        <div class="empty-icon">📦</div>
+                        <div class="empty-icon">⚽</div>
                         <p>Inga artiklar ännu.<br>Lägg till din första artikel!</p>
                     </div>
                 </div>
@@ -492,7 +502,35 @@
 
         <div class="form-group">
             <label>Namn på artikeln</label>
-            <input type="text" id="artikelNamn" placeholder="T.ex. Fotbollar (Storlek 5)...">
+            <input type="text" id="artikelNamn" placeholder="T.ex. Fotbollar (Storlek 5)..." oninput="autoMatchArtikelEmoji()">
+        </div>
+        <div class="form-group">
+            <label>Ikon / Emoji</label>
+            <div style="display:flex; gap:10px; align-items:center;">
+                <input type="text" id="artikelEmoji" placeholder="⚽" style="width:68px; text-align:center; font-size:1.4rem; padding:8px;" oninput="artikelEmojiManuelltVald = true">
+                <span style="font-size:0.8rem; color:#666;">Väljs automatiskt efter namn eller klicka på en ikon nedan:</span>
+            </div>
+            <div class="emoji-picker-row" id="artikelEmojiChips">
+                <button type="button" class="emoji-chip" onclick="valjArtikelEmoji('⚽')">⚽</button>
+                <button type="button" class="emoji-chip" onclick="valjArtikelEmoji('🏀')">🏀</button>
+                <button type="button" class="emoji-chip" onclick="valjArtikelEmoji('🏑')">🏑</button>
+                <button type="button" class="emoji-chip" onclick="valjArtikelEmoji('🏓')">🏓</button>
+                <button type="button" class="emoji-chip" onclick="valjArtikelEmoji('🏸')">🏸</button>
+                <button type="button" class="emoji-chip" onclick="valjArtikelEmoji('🎾')">🎾</button>
+                <button type="button" class="emoji-chip" onclick="valjArtikelEmoji('🏐')">🏐</button>
+                <button type="button" class="emoji-chip" onclick="valjArtikelEmoji('🏈')">🏈</button>
+                <button type="button" class="emoji-chip" onclick="valjArtikelEmoji('⚾')">⚾</button>
+                <button type="button" class="emoji-chip" onclick="valjArtikelEmoji('🔴')">🔴</button>
+                <button type="button" class="emoji-chip" onclick="valjArtikelEmoji('🦺')">🦺</button>
+                <button type="button" class="emoji-chip" onclick="valjArtikelEmoji('🪢')">🪢</button>
+                <button type="button" class="emoji-chip" onclick="valjArtikelEmoji('🥏')">🥏</button>
+                <button type="button" class="emoji-chip" onclick="valjArtikelEmoji('🎯')">🎯</button>
+                <button type="button" class="emoji-chip" onclick="valjArtikelEmoji('🔺')">🔺</button>
+                <button type="button" class="emoji-chip" onclick="valjArtikelEmoji('🥅')">🥅</button>
+                <button type="button" class="emoji-chip" onclick="valjArtikelEmoji('🎲')">🎲</button>
+                <button type="button" class="emoji-chip" onclick="valjArtikelEmoji('🛴')">🛴</button>
+                <button type="button" class="emoji-chip" onclick="valjArtikelEmoji('🏅')">🏅</button>
+            </div>
         </div>
         <div class="form-group">
             <label>Totalt antal st</label>
@@ -596,12 +634,59 @@ const db = firebase.firestore();
 
 // Standardartiklar för en ny redskapsbod
 const STANDARD_ARTIKLAR = [
-    { id: 1, namn: "Fotbollar (Storlek 5)", totaltAntal: 15, lan: [] },
-    { id: 2, namn: "Basketbollar", totaltAntal: 10, lan: [] },
-    { id: 3, namn: "Innebandyklubbor", totaltAntal: 20, lan: [] },
-    { id: 4, namn: "Västar (Gröna)", totaltAntal: 15, lan: [] },
-    { id: 5, namn: "Hopprep", totaltAntal: 12, lan: [] }
+    { id: 1, namn: "Fotbollar (Storlek 5)", emoji: "⚽", totaltAntal: 15, lan: [] },
+    { id: 2, namn: "Basketbollar", emoji: "🏀", totaltAntal: 10, lan: [] },
+    { id: 3, namn: "Innebandyklubbor", emoji: "🏑", totaltAntal: 20, lan: [] },
+    { id: 4, namn: "Västar (Gröna)", emoji: "🦺", totaltAntal: 15, lan: [] },
+    { id: 5, namn: "Hopprep", emoji: "🪢", totaltAntal: 12, lan: [] }
 ];
+
+// Automatisk emoji-matchning utifrån artikelns namn
+function matchEmojiByName(namn) {
+    const s = String(namn || '').toLowerCase();
+    if (!s) return '⚽';
+    if (s.includes('fotboll')) return '⚽';
+    if (s.includes('basket')) return '🏀';
+    if (s.includes('innebandy') || s.includes('bandy') || s.includes('klubba') || s.includes('klubbor') || s.includes('hockey')) return '🏑';
+    if (s.includes('pingis') || s.includes('bordtennis')) return '🏓';
+    if (s.includes('badminton') || s.includes('fjäder')) return '🏸';
+    if (s.includes('tennis') || s.includes('padel') || s.includes('racket')) return '🎾';
+    if (s.includes('volley')) return '🏐';
+    if (s.includes('handboll')) return '🤾';
+    if (s.includes('rugby') || s.includes('amerikansk')) return '🏈';
+    if (s.includes('brännboll') || s.includes('baseboll') || s.includes('slagträ') || s.includes('softboll')) return '⚾';
+    if (s.includes('king') || s.includes('studsboll') || s.includes('spökboll') || s.includes('dodgeball') || s.includes('skumboll') || s.includes('mjukboll')) return '🔴';
+    if (s.includes('väst') || s.includes('tröj')) return '🦺';
+    if (s.includes('hopprep') || s.includes('långrep') || s.includes('rep') || s.includes('dragkamp')) return '🪢';
+    if (s.includes('frisbee') || s.includes('disc')) return '🥏';
+    if (s.includes('skridsko')) return '⛸️';
+    if (s.includes('skid') || s.includes('stavar')) return '🎿';
+    if (s.includes('hjälm')) return '⛑️';
+    if (s.includes('mål') || s.includes('bur')) return '🥅';
+    if (s.includes('kon') || s.includes('markering')) return '🔺';
+    if (s.includes('ärtpås') || s.includes('prick') || s.includes('pil') || s.includes('dart') || s.includes('båg')) return '🎯';
+    if (s.includes('rockring') || s.includes('ring')) return '⭕';
+    if (s.includes('kubb') || s.includes('kägl') || s.includes('mölkky')) return '🪵';
+    if (s.includes('bowling')) return '🎳';
+    if (s.includes('biljard') || s.includes('kula') || s.includes('kulor') || s.includes('boule')) return '🎱';
+    if (s.includes('box') || s.includes('handsk')) return '🥊';
+    if (s.includes('vissel') || s.includes('pipa') || s.includes('megafon')) return '📣';
+    if (s.includes('tidtag') || s.includes('klocka') || s.includes('timer')) return '⏱️';
+    if (s.includes('kort')) return '🃏';
+    if (s.includes('schack')) return '♟️';
+    if (s.includes('tärning') || s.includes('spel') || s.includes('yatzy') || s.includes('fia')) return '🎲';
+    if (s.includes('krit')) return '🖍️';
+    if (s.includes('stylt') || s.includes('cykel') || s.includes('kickbike') || s.includes('skateboard') || s.includes('inlines')) return '🛴';
+    if (s.includes('boll')) return '⚽';
+    return '🏅';
+}
+
+function getArtikelEmoji(artikel) {
+    if (artikel && artikel.emoji && artikel.emoji.trim() && artikel.emoji.trim() !== '📦') {
+        return artikel.emoji.trim();
+    }
+    return matchEmojiByName(artikel ? artikel.namn : '');
+}
 
 // ==========================================
 //  TILLSTÅND (STATE)
@@ -948,10 +1033,41 @@ function renderBehorigaPanel() {
 // ==========================================
 //  ARTIKLAR - CRUD
 // ==========================================
+let artikelEmojiManuelltVald = false;
+
+function valjArtikelEmoji(emoji) {
+    const input = document.getElementById('artikelEmoji');
+    if (input) input.value = emoji;
+    artikelEmojiManuelltVald = true;
+    uppdateraEmojiChipMarkering(emoji);
+}
+
+function uppdateraEmojiChipMarkering(valdEmoji) {
+    document.querySelectorAll('#artikelEmojiChips .emoji-chip').forEach(btn => {
+        if (btn.textContent.trim() === (valdEmoji || '').trim()) {
+            btn.classList.add('selected');
+        } else {
+            btn.classList.remove('selected');
+        }
+    });
+}
+
+function autoMatchArtikelEmoji() {
+    if (artikelEmojiManuelltVald) return;
+    const namn = document.getElementById('artikelNamn')?.value || '';
+    const autoEmoji = matchEmojiByName(namn);
+    const emojiInput = document.getElementById('artikelEmoji');
+    if (emojiInput) emojiInput.value = autoEmoji;
+    uppdateraEmojiChipMarkering(autoEmoji);
+}
+
 function openNyArtikelModal() {
     editingArtikelId = null;
+    artikelEmojiManuelltVald = false;
     document.getElementById('artikelModalTitel').textContent = 'Ny artikel';
     document.getElementById('artikelNamn').value = '';
+    document.getElementById('artikelEmoji').value = '⚽';
+    uppdateraEmojiChipMarkering('⚽');
     document.getElementById('artikelAntal').value = '10';
     document.getElementById('raderaArtikelBtn').style.display = 'none';
     openModal('artikelModal');
@@ -961,8 +1077,12 @@ function openRedigeraArtikelModal(id) {
     const a = artiklar.find(x => x.id === id);
     if (!a) return;
     editingArtikelId = id;
+    const nuvarandeEmoji = getArtikelEmoji(a);
+    artikelEmojiManuelltVald = Boolean(a.emoji && a.emoji.trim() && a.emoji.trim() !== '📦');
     document.getElementById('artikelModalTitel').textContent = 'Redigera artikel';
     document.getElementById('artikelNamn').value = a.namn;
+    document.getElementById('artikelEmoji').value = nuvarandeEmoji;
+    uppdateraEmojiChipMarkering(nuvarandeEmoji);
     document.getElementById('artikelAntal').value = a.totaltAntal;
     document.getElementById('raderaArtikelBtn').style.display = 'inline-flex';
     openModal('artikelModal');
@@ -971,12 +1091,14 @@ function openRedigeraArtikelModal(id) {
 async function sparaArtikel() {
     const namn = document.getElementById('artikelNamn').value.trim();
     const antal = parseInt(document.getElementById('artikelAntal').value) || 1;
+    const valdEmoji = (document.getElementById('artikelEmoji')?.value || '').trim() || matchEmojiByName(namn);
     if (!namn) { showToast('Ange ett namn på artikeln'); return; }
 
     if (editingArtikelId !== null) {
         const a = artiklar.find(x => x.id === editingArtikelId);
         if (a) {
             a.namn = namn;
+            a.emoji = valdEmoji;
             a.totaltAntal = antal;
         }
         laggTillHistorik('artikel', `Ändrade artikeln "${namn}"`);
@@ -985,6 +1107,7 @@ async function sparaArtikel() {
         artiklar.push({
             id: nextId,
             namn: namn,
+            emoji: valdEmoji,
             totaltAntal: antal,
             lan: []
         });
@@ -1019,7 +1142,7 @@ function openLanaModal(artikelId) {
         const utlanat = (a.lan || []).reduce((s, l) => s + (l.antal || 0), 0);
         const kvar = Math.max(0, a.totaltAntal - utlanat);
         return `<option value="${a.id}" ${a.id === artikelId ? 'selected' : ''} ${kvar <= 0 ? 'disabled' : ''}>
-            ${a.namn} (${kvar} kvar av ${a.totaltAntal})
+            ${getArtikelEmoji(a)} ${a.namn} (${kvar} kvar av ${a.totaltAntal})
         </option>`;
     }).join('');
 
@@ -1255,7 +1378,7 @@ function renderArtiklar() {
 
     if (!filtrerade.length) {
         grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1; padding: 35px 15px;">
-            <div class="empty-icon">📦</div>
+            <div class="empty-icon">⚽</div>
             <p>${sokTerm ? 'Inga artiklar matchade sökningen.' : 'Inga artiklar i boden ännu.<br>Klicka på "+ Ny artikel" för att lägga till!'}</p>
         </div>`;
         return;
@@ -1296,7 +1419,7 @@ function renderArtiklar() {
         return `
         <div class="artikel-card ${cardKlass}" onclick="openLanaModal(${idArt})">
             <button class="artikel-edit-btn" title="Redigera" onclick="event.stopPropagation(); openRedigeraArtikelModal(${idArt})">✏️</button>
-            <div class="artikel-emoji">📦</div>
+            <div class="artikel-emoji">${getArtikelEmoji(a)}</div>
             <div class="artikel-namn">${escapeHtml(a.namn)}</div>
             <div class="artikel-antal ${antalKlass}">${kvar} / ${a.totaltAntal} kvar</div>
 
@@ -1325,6 +1448,7 @@ function renderUtlaningar() {
                     allaLan.push({
                         artikelId: a.id,
                         artikelNamn: a.namn,
+                        artikelEmoji: getArtikelEmoji(a),
                         lanId: l.id,
                         namn: l.namn,
                         antal: l.antal
@@ -1350,7 +1474,7 @@ function renderUtlaningar() {
         <div class="utlaning-card">
             <div class="utlaning-info">
                 <div class="utlaning-namn">👤 ${escapeHtml(l.namn)}</div>
-                <div class="utlaning-detalj">📦 <strong>${l.antal} st</strong> × <span class="utlaning-artikelnamn">${escapeHtml(l.artikelNamn)}</span></div>
+                <div class="utlaning-detalj">${l.artikelEmoji || '⚽'} <strong>${l.antal} st</strong> × <span class="utlaning-artikelnamn">${escapeHtml(l.artikelNamn)}</span></div>
             </div>
             <div style="display:flex; gap:6px; align-items:center;">
                 ${l.antal > 1 ? `<button class="btn btn-outline btn-sm" style="padding: 4px 8px; font-size: 0.75rem;" onclick="openAterlamnModal(${idArt}, ${idLan})">Delåterlämna</button>` : ''}
