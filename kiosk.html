@@ -216,7 +216,8 @@
     .historik-datum { font-size: 0.7rem; }
     .historik-belopp { font-size: 0.85rem; }
 
-    /* LYXIGT SKOL-IF TEMA */
+    /* LYXIGT & UTZOOMAT SKOL-IF TEMA (MAXIMAL ÖVERSIKT FÖR ELEVER) */
+    html { font-size: 14px; }
     body {
         background-color: #F3F7F4;
         background-image: radial-gradient(at 15% 15%, rgba(76, 175, 80, 0.07) 0px, transparent 50%),
@@ -232,6 +233,7 @@
         position: sticky;
         top: 0;
         z-index: 900;
+        padding: 0.45rem 4%;
     }
     .back-btn {
         background: rgba(255,255,255,0.12);
@@ -239,25 +241,56 @@
         border-radius: 10px;
     }
     .back-btn:hover { background: rgba(255,255,255,0.22); }
+    .container { max-width: 1240px; margin: 10px auto; padding: 0 16px; }
+    .header-section { margin-bottom: 8px; gap: 8px; }
+    .header-section h2 { font-size: 1.18rem; display: inline-block; margin-right: 10px; }
+    #kassaStatusText { display: inline-block; font-size: 0.82rem !important; }
+    .header-section > div:last-child { flex-direction: row !important; align-items: center !important; flex-wrap: wrap; }
+    #kioskView > .stats-grid { gap: 10px; margin-bottom: 8px; }
     .stat-card {
-        box-shadow: 0 8px 22px rgba(15, 41, 30, 0.05);
-        border: 1px solid rgba(46, 125, 50, 0.12);
-        border-left: 5px solid #2E7D32;
-    }
-    .stat-icon { background: linear-gradient(135deg, #E8F5E9, #C8E6C9); }
-    .vara-card {
         box-shadow: 0 4px 14px rgba(15, 41, 30, 0.04);
+        border: 1px solid rgba(46, 125, 50, 0.12);
+        border-left: 4px solid #2E7D32;
+        padding: 7px 12px;
+        border-radius: 10px;
+        gap: 10px;
+    }
+    .stat-icon { background: linear-gradient(135deg, #E8F5E9, #C8E6C9); width: 32px; height: 32px; font-size: 1.15rem; border-radius: 8px; }
+    .stat-info { display: flex; align-items: baseline; gap: 8px; }
+    .stat-info h4 { font-size: 0.72rem; }
+    .stat-info .stat-value { font-size: 1.05rem; }
+    .section-title { font-size: 0.92rem; margin-bottom: 6px; }
+    .varor-grid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 6px; margin-bottom: 8px; }
+    .vara-card {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        padding: 5px 10px;
+        border-radius: 9px;
+        box-shadow: 0 2px 8px rgba(15, 41, 30, 0.04);
         border: 1.5px solid #E2ECE5;
         transition: all 0.2s;
     }
-    .vara-card:hover { border-color: #4CAF50; transform: translateY(-2px); box-shadow: 0 8px 20px rgba(46, 125, 50, 0.12); }
+    .vara-card:hover { border-color: #4CAF50; transform: translateY(-1px); box-shadow: 0 6px 14px rgba(46, 125, 50, 0.1); }
+    .vara-emoji { font-size: 1.15rem; margin-bottom: 0; }
+    .vara-namn { font-size: 0.78rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .vara-pris { font-size: 0.8rem; white-space: nowrap; }
+    .search-box { padding: 7px 12px; font-size: 0.88rem; margin-bottom: 8px; border-radius: 9px; }
+    #kioskView > div[style*="justify-content: space-between"] { margin-bottom: 10px !important; }
+    .elev-grid { grid-template-columns: repeat(auto-fill, minmax(195px, 1fr)); gap: 8px; }
     .elev-card {
-        box-shadow: 0 6px 18px rgba(15, 41, 30, 0.05);
+        padding: 8px 12px;
+        border-radius: 10px;
+        box-shadow: 0 4px 12px rgba(15, 41, 30, 0.04);
         border: 1px solid rgba(46, 125, 50, 0.1);
-        border-left: 5px solid #2E7D32;
-        transition: all 0.22s;
+        border-left: 4px solid #2E7D32;
+        transition: all 0.2s;
     }
-    .elev-card:hover { transform: translateY(-3px); box-shadow: 0 12px 26px rgba(15, 41, 30, 0.1); }
+    .elev-card:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(15, 41, 30, 0.09); }
+    .elev-namn { font-size: 0.88rem; }
+    .elev-klass { font-size: 0.7rem; padding: 1px 6px; margin-top: 1px; }
+    .elev-saldo { font-size: 1rem; }
     .filter-chip.active { background: linear-gradient(135deg, #4CAF50, #2E7D32); border-color: #2E7D32; box-shadow: 0 3px 10px rgba(46, 125, 50, 0.25); }
     .btn-insattning { background: linear-gradient(135deg, #4CAF50, #2E7D32); }
 </style>
