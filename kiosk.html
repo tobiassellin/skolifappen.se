@@ -928,6 +928,7 @@
                     allaEleverCache = JSON.parse(data.elever || "[]");
                     allaVarorCache = JSON.parse(data.varor || "[]");
                     allaTransaktionerCache = JSON.parse(data.transaktioner || "[]");
+                    if (window.SkolIFKlasser && window.SkolIFKlasser.syncLocalCacheFromCloud) { window.SkolIFKlasser.syncLocalCacheFromCloud(allaEleverCache, allaVarorCache, allaTransaktionerCache); }
 
                     // Uppdatera header-status
                     const statusEl = document.getElementById("kassaStatusText");
@@ -947,7 +948,8 @@
                     filtreraOchVisa();
 
                     if (aktivElevId !== null) {
-                        const uppdaterad = allaEleverCache.find(e => e.id === aktivElevId);
+                        const uppdaterad = allaEleverCache.find(e => String(e.id) === String(aktivElevId));
+                        if (!uppdaterad) { stangRedigeraElevModal(); stangModal(); }
                         if (uppdaterad) {
                             oppnaElevModal(uppdaterad, true);
                             ritaUppHistorik();
@@ -1290,7 +1292,8 @@
 
             if (!confirm(varning)) return;
 
-            allaEleverCache = allaEleverCache.filter(x => x.id !== e.id);
+            const targetId = e.id; const targetNamn = String(e.namn || "").trim().toLowerCase(); const targetKlass = String(e.klass || "").trim().toUpperCase();
+            allaEleverCache = allaEleverCache.filter(x => !(targetId !== undefined && targetId !== null && String(x.id) === String(targetId)) && !(String(x.namn || "").trim().toLowerCase() === targetNamn && String(x.klass || "").trim().toUpperCase() === targetKlass));
 
             sparaKassaData({
                 elever: JSON.stringify(allaEleverCache)
@@ -2011,6 +2014,7 @@
 
             if (aktivUserId) {
                 const payload = { senastUppdaterad: Date.now() };
+                if (window.SkolIFKlasser && window.SkolIFKlasser.syncLocalCacheFromCloud) { window.SkolIFKlasser.syncLocalCacheFromCloud(allaEleverCache, allaVarorCache, allaTransaktionerCache); }
                 if (fieldsObj.elever !== undefined) payload.elever = fieldsObj.elever;
                 if (fieldsObj.varor !== undefined) payload.varor = fieldsObj.varor;
                 if (fieldsObj.transaktioner !== undefined) payload.transaktioner = fieldsObj.transaktioner;
@@ -2123,7 +2127,7 @@
 
         // Om man ändrar en klass i "Mina Klasser"-modalen medan man kör i lokalt läge
         window.addEventListener("skolif-klasser-updated", () => {
-            if (!aktivUserId && window.SkolIFKlasser && window.SkolIFKlasser.getLocalKassa) {
+            if (!aktivUserId && !auth.currentUser && window.SkolIFKlasser && window.SkolIFKlasser.getLocalKassa) {
                 const lokal = window.SkolIFKlasser.getLocalKassa();
                 allaEleverCache = Array.isArray(lokal.elever) ? lokal.elever : [];
                 uppdateraKassaVyDirekt();

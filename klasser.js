@@ -26,6 +26,7 @@
     const db = typeof firebase !== 'undefined' && firebase.firestore ? firebase.firestore() : null;
 
     let currentUser = null;
+    let authReady = false;
     let activeKassaDocId = null;
     let kassaUnsubscribe = null;
     let kassaEleverCache = [];
@@ -200,50 +201,26 @@
             parsed = null;
         }
 
-        const result = {
+        const isGenuinelyDirty = Boolean(parsed && parsed.harVerkligaOfflineAndringar);
+        return {
             elever: (parsed && Array.isArray(parsed.elever)) ? parsed.elever : [],
             varor: (parsed && Array.isArray(parsed.varor)) ? parsed.varor : [],
             transaktioner: (parsed && Array.isArray(parsed.transaktioner)) ? parsed.transaktioner : [],
-            harLokalaAndringar: Boolean(parsed && parsed.harLokalaAndringar),
+            harLokalaAndringar: isGenuinelyDirty,
+            harVerkligaOfflineAndringar: isGenuinelyDirty,
             senastUppdaterad: (parsed && Number(parsed.senastUppdaterad)) || 0
         };
-
-        // Om inga elever finns i lokal kassa ännu men det finns lokalt sparade klasser (och ej inloggad)
-        if (!currentUser && result.elever.length === 0) {
-            const lokalaKlasser = getClassesLocal();
-            const koder = Object.keys(lokalaKlasser);
-            if (koder.length > 0) {
-                let nextId = 1;
-                koder.forEach(kod => {
-                    const namnLista = parseStudentNames(lokalaKlasser[kod]);
-                    namnLista.forEach(namn => {
-                        result.elever.push({
-                            id: nextId++,
-                            namn: namn,
-                            klass: normalizeKlassCode(kod),
-                            saldo: 0
-                        });
-                    });
-                });
-                if (result.elever.length > 0) {
-                    result.harLokalaAndringar = true;
-                    try {
-                        localStorage.setItem(LOCAL_KASSA_KEY, JSON.stringify(result));
-                    } catch (e) {}
-                }
-            }
-        }
-
-        return result;
     }
 
     function saveLocalKassa(partialData, markModified = true) {
         const current = getLocalKassa();
+        const isOfflineModified = Boolean(markModified && authReady && !currentUser);
         const updated = {
             elever: Array.isArray(partialData.elever) ? partialData.elever : current.elever,
             varor: Array.isArray(partialData.varor) ? partialData.varor : current.varor,
             transaktioner: Array.isArray(partialData.transaktioner) ? partialData.transaktioner : current.transaktioner,
-            harLokalaAndringar: markModified,
+            harLokalaAndringar: isOfflineModified,
+            harVerkligaOfflineAndringar: isOfflineModified,
             senastUppdaterad: Date.now()
         };
 
@@ -260,6 +237,30 @@
         }
 
         return updated;
+    }
+
+    // Håller localStorage-cachen (både klasser och lokal kassa) i 100% synk med molnet så raderade elever aldrig spökar
+    function syncLocalCacheFromCloud(elever, varor, transaktioner) {
+        const current = getLocalKassa();
+        const nextElever = Array.isArray(elever) ? elever : current.elever;
+        const nextVaror = Array.isArray(varor) ? varor : current.varor;
+        const nextTx = Array.isArray(transaktioner) ? transaktioner : current.transaktioner;
+
+        kassaEleverCache = nextElever;
+        setClassesLocal(buildClassesMapFromKassaElever(nextElever));
+
+        try {
+            localStorage.setItem(LOCAL_KASSA_KEY, JSON.stringify({
+                elever: nextElever,
+                varor: nextVaror,
+                transaktioner: nextTx,
+                harLokalaAndringar: false,
+                harVerkligaOfflineAndringar: false,
+                senastUppdaterad: Date.now()
+            }));
+        } catch (e) {}
+
+        notifyAllListeners();
     }
 
     function clearLocalKassa() {
@@ -333,9 +334,9 @@
                     }
                 }
 
-                // Kolla om användaren har startat/ändrat en lokal kassa innan inloggning!
+                // Kolla om användaren har gjort verkliga ändringar i lokal kassa (utloggat läge) innan inloggning!
                 const lokalKassa = getLocalKassa();
-                const harLokalData = lokalKassa.harLokalaAndringar && (
+                const harLokalData = lokalKassa.harVerkligaOfflineAndringar && (
                     lokalKassa.elever.length > 0 ||
                     lokalKassa.varor.length > 0 ||
                     lokalKassa.transaktioner.length > 0
@@ -377,10 +378,10 @@
                                 ...payload
                             });
                         }
-                        saveLocalKassa(lokalKassa, false);
+                        syncLocalCacheFromCloud(lokalKassa.elever, lokalKassa.varor, lokalKassa.transaktioner);
                         showToast('☁️ Din lokala kassa har laddats upp till molnet!', 'success');
                     } else {
-                        // Både lokal kassa och molnkassa (t.ex. från mobilen) har innehåll -> Sla ihop dem smart!
+                        // Både lokal kassa och molnkassa (t.ex. från mobilen) har innehåll -> Slå ihop dem smart!
                         const sammanslagnaElever = molnElever.map(e => ({ ...e }));
                         let maxId = sammanslagnaElever.length > 0
                             ? Math.max(0, ...sammanslagnaElever.map(e => Number(e.id) || 0))
@@ -456,15 +457,20 @@
                             senastUppdaterad: Date.now()
                         });
 
-                        saveLocalKassa({
-                            elever: sammanslagnaElever,
-                            varor: sammanslagnaVaror,
-                            transaktioner: sammanslagnaTransaktioner
-                        }, false);
-
+                        syncLocalCacheFromCloud(sammanslagnaElever, sammanslagnaVaror, sammanslagnaTransaktioner);
                         showToast('☁️ Din lokala kassa har slagits ihop med molnet!', 'success');
                     }
-                } else if (!targetSnap.exists) {
+                } else if (targetSnap.exists) {
+                    // Molnkassan är enda sanningen – uppdatera lokal cache direkt så gamla raderade elever rensas bort
+                    const d = targetSnap.data() || {};
+                    let molnElever = [];
+                    let molnVaror = [];
+                    let molnTransaktioner = [];
+                    try { molnElever = JSON.parse(d.elever || '[]'); } catch (e) { molnElever = []; }
+                    try { molnVaror = JSON.parse(d.varor || '[]'); } catch (e) { molnVaror = []; }
+                    try { molnTransaktioner = JSON.parse(d.transaktioner || '[]'); } catch (e) { molnTransaktioner = []; }
+                    syncLocalCacheFromCloud(molnElever, molnVaror, molnTransaktioner);
+                } else {
                     // Ingen lokal data och ingen molnkassa fanns -> skapa ny tom molnkassa
                     await targetRef.set({
                         kassaId: docId,
@@ -476,6 +482,7 @@
                         transaktioner: '[]',
                         senastUppdaterad: Date.now()
                     });
+                    syncLocalCacheFromCloud([], [], []);
                 }
 
                 return docId;
@@ -502,19 +509,25 @@
         kassaUnsubscribe = db.collection('skolif_kassa').doc(docId).onSnapshot((docSnap) => {
             if (docSnap.exists) {
                 const data = docSnap.data() || {};
+                let molnElever = [];
+                let molnVaror = undefined;
+                let molnTx = undefined;
                 try {
-                    kassaEleverCache = JSON.parse(data.elever || '[]');
-                    if (!Array.isArray(kassaEleverCache)) kassaEleverCache = [];
+                    molnElever = JSON.parse(data.elever || '[]');
+                    if (!Array.isArray(molnElever)) molnElever = [];
                 } catch (e) {
-                    kassaEleverCache = [];
+                    molnElever = [];
+                }
+                if (data.varor !== undefined) {
+                    try { molnVaror = JSON.parse(data.varor || '[]'); } catch (e) {}
+                }
+                if (data.transaktioner !== undefined) {
+                    try { molnTx = JSON.parse(data.transaktioner || '[]'); } catch (e) {}
                 }
 
-                const kassaKlasser = buildClassesMapFromKassaElever(kassaEleverCache);
-                setClassesLocal(kassaKlasser);
-                notifyAllListeners();
+                syncLocalCacheFromCloud(molnElever, molnVaror, molnTx);
             } else {
-                kassaEleverCache = [];
-                notifyAllListeners();
+                syncLocalCacheFromCloud([], [], []);
             }
         }, (err) => {
             console.error('Fel vid lyssning på skolif_kassa i klasser.js:', err);
@@ -528,11 +541,12 @@
 
     // Hjälpfunktion för att spara en komplett uppdaterad elevlista till både moln (om inloggad) och lokalt
     async function persistEleverArray(nyKomplettLista) {
-        setClassesLocal(buildClassesMapFromKassaElever(nyKomplettLista));
-
-        if (currentUser && db && activeKassaDocId) {
+        if (currentUser && db) {
             try {
-                kassaEleverCache = nyKomplettLista;
+                if (!activeKassaDocId) {
+                    activeKassaDocId = await resolveAndMergeKassa(currentUser);
+                }
+                syncLocalCacheFromCloud(nyKomplettLista);
                 const docRef = db.collection('skolif_kassa').doc(activeKassaDocId);
                 const docSnap = await docRef.get();
                 if (docSnap.exists) {
@@ -648,12 +662,13 @@
     }
 
     // Uppdatera en klass i skolif_kassa (eller lokalt) utan att någonsin röra befintliga elevers saldon!
-    async function saveClass(rawKlassNamn, elevText, allowRemoveStudents = false, oldRawKlassNamn = null) {
+    async function saveClass(rawKlassNamn, elevText, allowRemoveStudents = true, oldRawKlassNamn = null) {
         const klassCode = normalizeKlassCode(rawKlassNamn);
         const oldKlassCode = oldRawKlassNamn ? normalizeKlassCode(oldRawKlassNamn) : null;
         const arKlassByte = Boolean(oldKlassCode && oldKlassCode !== klassCode);
         const nyaNamnLista = parseStudentNames(elevText);
-        if (!klassCode || nyaNamnLista.length === 0) return false;
+        if (!klassCode) return false;
+        if (nyaNamnLista.length === 0 && !allowRemoveStudents) return false;
 
         const lokalaFore = getClassesLocal();
         const referensKod = arKlassByte ? oldKlassCode : klassCode;
@@ -684,7 +699,9 @@
         await persistEleverArray(nyKomplettLista);
 
         // Visa snygg och personlig bekräftelse-toast!
-        if (arKlassByte) {
+        if (nyaNamnLista.length === 0) {
+            showToast(`🗑️ Klass ${referensKod} har raderats`, 'info');
+        } else if (arKlassByte) {
             showToast(`Klass ${oldKlassCode} har ändrats till ${klassCode} (${nyaNamnLista.length} elever)!`, 'success');
         } else if (nytillagdaNamn.length === 1 && fannsKlassenTidigare) {
             showToast(`${nytillagdaNamn[0]} är tillagd i ${klassCode}!`, 'success');
@@ -981,6 +998,7 @@
 
     if (auth) {
         auth.onAuthStateChanged((user) => {
+            authReady = true;
             currentUser = user || null;
             if (user) {
                 startKassaSync(user);
@@ -1740,7 +1758,7 @@
             if (nameInput) nameInput.focus();
             return;
         }
-        if (!text) {
+        if (!text && !editingOriginalKlassCode) {
             showToast('Skriv eller klistra in minst en elev i listan!', 'warning');
             if (textInput) textInput.focus();
             return;
@@ -1811,8 +1829,10 @@
 
     window.SkolIFKlasser = {
         getClasses: getClassesLocal,
+        getActiveElever: getActiveEleverArray,
         getLocalKassa: getLocalKassa,
         saveLocalKassa: saveLocalKassa,
+        syncLocalCacheFromCloud: syncLocalCacheFromCloud,
         clearLocalKassa: clearLocalKassa,
         resolveAndMergeKassa: resolveAndMergeKassa,
         saveClass: saveClass,
