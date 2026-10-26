@@ -215,6 +215,51 @@
     .historik-beskrivning { font-size: 0.82rem; }
     .historik-datum { font-size: 0.7rem; }
     .historik-belopp { font-size: 0.85rem; }
+
+    /* LYXIGT SKOL-IF TEMA */
+    body {
+        background-color: #F3F7F4;
+        background-image: radial-gradient(at 15% 15%, rgba(76, 175, 80, 0.07) 0px, transparent 50%),
+                          radial-gradient(at 85% 80%, rgba(46, 125, 50, 0.06) 0px, transparent 50%);
+        color: #1E293B;
+    }
+    nav {
+        background: rgba(15, 41, 30, 0.94);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+        border-bottom: 1px solid rgba(255,255,255,0.08);
+        position: sticky;
+        top: 0;
+        z-index: 900;
+    }
+    .back-btn {
+        background: rgba(255,255,255,0.12);
+        border: 1px solid rgba(255,255,255,0.16);
+        border-radius: 10px;
+    }
+    .back-btn:hover { background: rgba(255,255,255,0.22); }
+    .stat-card {
+        box-shadow: 0 8px 22px rgba(15, 41, 30, 0.05);
+        border: 1px solid rgba(46, 125, 50, 0.12);
+        border-left: 5px solid #2E7D32;
+    }
+    .stat-icon { background: linear-gradient(135deg, #E8F5E9, #C8E6C9); }
+    .vara-card {
+        box-shadow: 0 4px 14px rgba(15, 41, 30, 0.04);
+        border: 1.5px solid #E2ECE5;
+        transition: all 0.2s;
+    }
+    .vara-card:hover { border-color: #4CAF50; transform: translateY(-2px); box-shadow: 0 8px 20px rgba(46, 125, 50, 0.12); }
+    .elev-card {
+        box-shadow: 0 6px 18px rgba(15, 41, 30, 0.05);
+        border: 1px solid rgba(46, 125, 50, 0.1);
+        border-left: 5px solid #2E7D32;
+        transition: all 0.22s;
+    }
+    .elev-card:hover { transform: translateY(-3px); box-shadow: 0 12px 26px rgba(15, 41, 30, 0.1); }
+    .filter-chip.active { background: linear-gradient(135deg, #4CAF50, #2E7D32); border-color: #2E7D32; box-shadow: 0 3px 10px rgba(46, 125, 50, 0.25); }
+    .btn-insattning { background: linear-gradient(135deg, #4CAF50, #2E7D32); }
 </style>
 </head>
 <body>

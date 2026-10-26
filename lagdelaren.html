@@ -9,8 +9,10 @@
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
             font-family: 'Poppins', sans-serif;
-            background-color: #F4F7F5;
-            color: #333;
+            background-color: #F3F7F4;
+            background-image: radial-gradient(at 15% 15%, rgba(76, 175, 80, 0.07) 0px, transparent 50%),
+                              radial-gradient(at 85% 80%, rgba(46, 125, 50, 0.06) 0px, transparent 50%);
+            color: #1E293B;
             min-height: 100vh;
             display: flex;
             flex-direction: column;
@@ -18,34 +20,38 @@
 
         /* ====== NAVBAR ====== */
         nav {
-            background: white;
-            padding: 14px 24px;
+            background: rgba(15, 41, 30, 0.94);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            padding: 0.75rem 5%;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            border-bottom: 1px solid rgba(255,255,255,0.08);
             position: sticky;
             top: 0;
-            z-index: 100;
+            z-index: 900;
         }
         .nav-logo {
             display: flex;
             align-items: center;
             gap: 10px;
             font-weight: 800;
-            font-size: 1.25rem;
-            color: #1E3A24;
+            font-size: 1.3rem;
+            color: white;
             text-decoration: none;
         }
         .nav-logo-icon {
-            background: #E8F5E9;
-            width: 38px;
-            height: 38px;
-            border-radius: 10px;
+            background: linear-gradient(135deg, #4CAF50, #2E7D32);
+            width: 34px;
+            height: 34px;
+            border-radius: 9px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.3rem;
+            font-size: 1.15rem;
+            box-shadow: 0 3px 10px rgba(76, 175, 80, 0.4);
         }
         .nav-actions {
             display: flex;
@@ -53,13 +59,13 @@
             gap: 10px;
         }
         .nav-btn {
-            background: #F0F4F1;
-            color: #2E7D32;
-            border: none;
-            padding: 8px 14px;
-            border-radius: 8px;
+            background: rgba(255,255,255,0.12);
+            color: rgba(255,255,255,0.92);
+            border: 1px solid rgba(255,255,255,0.16);
+            padding: 7px 14px;
+            border-radius: 10px;
             font-size: 0.85rem;
-            font-weight: 700;
+            font-weight: 600;
             cursor: pointer;
             text-decoration: none;
             display: inline-flex;
@@ -68,7 +74,7 @@
             transition: all 0.2s;
             font-family: 'Poppins', sans-serif;
         }
-        .nav-btn:hover { background: #E0EBE2; }
+        .nav-btn:hover { background: rgba(255,255,255,0.22); transform: translateY(-1px); }
 
         /* ====== CONTAINER ====== */
         .container {
@@ -94,20 +100,20 @@
             gap: 6px;
             font-family: 'Poppins', sans-serif;
         }
-        .btn-green { background: #2E7D32; color: white; }
-        .btn-green:hover { background: #256628; }
+        .btn-green { background: linear-gradient(135deg, #4CAF50 0%, #2E7D32 100%); color: white; box-shadow: 0 4px 12px rgba(46, 125, 50, 0.25); }
+        .btn-green:hover { filter: brightness(1.05); transform: translateY(-1px); }
         .btn-green-lg {
-            background: #2E7D32;
+            background: linear-gradient(135deg, #4CAF50 0%, #2E7D32 100%);
             color: white;
             font-size: 1.15rem;
             padding: 14px 28px;
             border-radius: 14px;
-            box-shadow: 0 4px 15px rgba(46, 125, 50, 0.3);
+            box-shadow: 0 8px 20px rgba(46, 125, 50, 0.32);
         }
         .btn-green-lg:hover {
-            background: #256628;
+            filter: brightness(1.05);
             transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(46, 125, 50, 0.4);
+            box-shadow: 0 10px 24px rgba(46, 125, 50, 0.42);
         }
         .btn-outline {
             background: white;
@@ -124,10 +130,11 @@
         /* ====== KORT & FORM ====== */
         .card {
             background: white;
-            border-radius: 16px;
+            border-radius: 18px;
             padding: 24px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.04);
-            border: 1px solid #EBEFEA;
+            box-shadow: 0 10px 28px rgba(15, 41, 30, 0.06);
+            border: 1px solid rgba(46, 125, 50, 0.12);
+            border-top: 4px solid #2E7D32;
             margin-bottom: 20px;
         }
         .card-header-flex {

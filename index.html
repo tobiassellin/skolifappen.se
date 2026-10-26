@@ -4,16 +4,65 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Skol-IF Webben - Det digitala verktyget för idrottslärare</title>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif; }
-        body { background-color: #F8F9FA; color: #333; line-height: 1.6; }
-        nav { background-color: #4CAF50; padding: 1rem 5%; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1); flex-wrap: wrap; }
-        .logo { color: white; font-size: 1.5rem; font-weight: 800; text-decoration: none; letter-spacing: 1px; }
-        .nav-links { display: flex; gap: 22px; align-items: center; }
-        .nav-links a { color: white; text-decoration: none; font-weight: 600; transition: color 0.3s; font-size: 1rem; }
-        .nav-links a:hover { color: #C8E6C9; }
+        html { scroll-behavior: smooth; }
+        body {
+            background-color: #F3F7F4;
+            background-image: radial-gradient(at 15% 15%, rgba(76, 175, 80, 0.07) 0px, transparent 50%),
+                              radial-gradient(at 85% 80%, rgba(46, 125, 50, 0.06) 0px, transparent 50%);
+            color: #1E293B;
+            line-height: 1.5;
+        }
+
+        /* ====== TOPPNAVIGATION ====== */
+        nav {
+            background: rgba(15, 41, 30, 0.94);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            padding: 0.65rem 5%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+            position: sticky;
+            top: 0;
+            z-index: 900;
+            flex-wrap: wrap;
+        }
+        .logo {
+            color: white;
+            font-size: 1.3rem;
+            font-weight: 800;
+            text-decoration: none;
+            letter-spacing: 0.4px;
+            display: flex;
+            align-items: center;
+            gap: 9px;
+        }
+        .logo-badge {
+            background: linear-gradient(135deg, #4CAF50, #2E7D32);
+            width: 30px;
+            height: 30px;
+            border-radius: 8px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.95rem;
+            box-shadow: 0 3px 10px rgba(76, 175, 80, 0.4);
+        }
+        .nav-links { display: flex; gap: 20px; align-items: center; }
+        .nav-links a {
+            color: rgba(255,255,255,0.9);
+            text-decoration: none;
+            font-weight: 600;
+            transition: color 0.25s;
+            font-size: 0.9rem;
+        }
+        .nav-links a:hover { color: #81C784; }
 
         /* ====== DROPDOWN FÖR IDROTTSLÄRAREN ====== */
         .nav-dropdown {
@@ -24,26 +73,26 @@
         .nav-dropdown-btn {
             background: none;
             border: none;
-            color: white;
-            font-size: 1rem;
+            color: rgba(255,255,255,0.9);
+            font-size: 0.9rem;
             font-weight: 600;
             font-family: inherit;
             cursor: pointer;
             display: flex;
             align-items: center;
             gap: 6px;
-            padding: 6px 0;
-            transition: color 0.3s;
+            padding: 4px 0;
+            transition: color 0.25s;
         }
 
         .nav-dropdown-btn:hover,
         .nav-dropdown:hover .nav-dropdown-btn,
         .nav-dropdown.active .nav-dropdown-btn {
-            color: #C8E6C9;
+            color: #81C784;
         }
 
         .nav-dropdown-arrow {
-            font-size: 0.72rem;
+            font-size: 0.7rem;
             transition: transform 0.25s ease;
             display: inline-block;
         }
@@ -59,11 +108,11 @@
             top: 100%;
             right: 0;
             background: white;
-            min-width: 210px;
+            min-width: 220px;
             border-radius: 14px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
-            border: 1px solid #EBEFEA;
-            padding: 8px 0;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.2);
+            border: 1px solid #E2E8F0;
+            padding: 6px 0;
             z-index: 1000;
             margin-top: 8px;
         }
@@ -92,9 +141,9 @@
             display: flex;
             align-items: center;
             gap: 12px;
-            padding: 10px 18px;
+            padding: 9px 16px;
             color: #1E3A24 !important;
-            font-size: 0.92rem;
+            font-size: 0.88rem;
             font-weight: 600;
             text-decoration: none;
             transition: background 0.15s, color 0.15s, padding-left 0.15s;
@@ -103,62 +152,390 @@
         .nav-dropdown-menu a:hover {
             background: #E8F5E9;
             color: #2E7D32 !important;
-            padding-left: 22px;
+            padding-left: 20px;
         }
 
-        .hero { text-align: center; padding: 100px 20px; background-color: #ffffff; border-bottom: 1px solid #eee; }
-        .hero h1 { font-size: 3rem; color: #2E7D32; margin-bottom: 20px; }
-        .hero p { font-size: 1.2rem; color: #666; max-width: 600px; margin: 0 auto 30px auto; }
-        .cta-button { display: inline-block; background-color: #4CAF50; color: white; padding: 15px 30px; border-radius: 30px; text-decoration: none; font-weight: bold; font-size: 1.1rem; border: none; cursor: pointer; transition: transform 0.2s, background-color 0.2s; box-shadow: 0 4px 15px rgba(76, 175, 80, 0.4); }
-        .cta-button:hover { background-color: #388E3C; transform: translateY(-2px); }
-        .cta-button-secondary { display: inline-flex; align-items: center; gap: 8px; background-color: white; color: #2E7D32; padding: 13px 26px; border-radius: 30px; text-decoration: none; font-weight: 700; font-size: 1.02rem; border: 2px solid #4CAF50; cursor: pointer; transition: transform 0.2s, background-color 0.2s, box-shadow 0.2s; }
-        .cta-button-secondary:hover { background-color: #E8F5E9; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(76, 175, 80, 0.2); }
-        .features-container { max-width: 1200px; margin: 0 auto; }
-        .features { display: flex; justify-content: center; gap: 20px; padding: 60px 5%; flex-wrap: nowrap; align-items: flex-start; }
-        .card { background: white; border-radius: 12px; padding: 30px; flex: 1; box-shadow: 0 4px 10px rgba(0,0,0,0.05); text-align: center; transition: transform 0.3s; }
-        .card:hover { transform: translateY(-5px); box-shadow: 0 8px 20px rgba(0,0,0,0.1); }
-        .card-icon { font-size: 3rem; margin-bottom: 15px; }
-        .card h3 { color: #2E7D32; margin-bottom: 15px; font-size: 1.3rem; }
-        .card p { font-size: 0.95rem; color: #555; margin-bottom: 15px; }
-        footer { background-color: #333; color: white; text-align: center; padding: 20px; margin-top: 40px; font-size: 0.9rem; }
-        
-        /* Input-fältet för koden */
-        .kod-input { padding: 12px; width: 100%; max-width: 200px; border: 2px solid #ddd; border-radius: 8px; text-transform: uppercase; text-align: center; font-size: 1.2rem; font-weight: bold; margin-bottom: 15px; outline: none; }
-        .kod-input:focus { border-color: #4CAF50; }
+        /* ====== KOMPAKT & LYXIG HERO-SEKTION ====== */
+        .hero {
+            text-align: center;
+            padding: 32px 20px 64px 20px;
+            background: linear-gradient(135deg, #0B2218 0%, #163A29 45%, #1E5238 100%);
+            color: white;
+            position: relative;
+            overflow: hidden;
+        }
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: -120px;
+            left: -100px;
+            width: 360px;
+            height: 360px;
+            background: radial-gradient(circle, rgba(76, 175, 80, 0.25) 0%, transparent 70%);
+            pointer-events: none;
+        }
+        .hero::after {
+            content: '';
+            position: absolute;
+            bottom: -140px;
+            right: -80px;
+            width: 380px;
+            height: 380px;
+            background: radial-gradient(circle, rgba(129, 199, 132, 0.2) 0%, transparent 70%);
+            pointer-events: none;
+        }
+        .hero-inner {
+            position: relative;
+            z-index: 2;
+            max-width: 820px;
+            margin: 0 auto;
+        }
+        .hero-top-row {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-bottom: 10px;
+        }
+        .hero-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(129, 199, 132, 0.35);
+            color: #A5D6A7;
+            font-size: 0.74rem;
+            font-weight: 700;
+            padding: 4px 13px;
+            border-radius: 30px;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            backdrop-filter: blur(6px);
+        }
+        .hero-app-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(76, 175, 80, 0.25);
+            border: 1px solid rgba(129, 199, 132, 0.55);
+            color: #FFFFFF;
+            font-size: 0.76rem;
+            font-weight: 700;
+            padding: 4px 13px;
+            border-radius: 30px;
+            text-decoration: none;
+            transition: all 0.2s;
+        }
+        .hero-app-pill:hover {
+            background: rgba(76, 175, 80, 0.45);
+            transform: translateY(-1px);
+        }
+        .hero h1 {
+            font-size: 2.25rem;
+            font-weight: 800;
+            color: #FFFFFF;
+            margin-bottom: 8px;
+            line-height: 1.18;
+            letter-spacing: -0.4px;
+        }
+        .hero h1 span {
+            background: linear-gradient(90deg, #81C784, #A5D6A7);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .hero p {
+            font-size: 0.96rem;
+            color: rgba(255, 255, 255, 0.84);
+            max-width: 680px;
+            margin: 0 auto;
+            font-weight: 400;
+            line-height: 1.55;
+        }
 
-        /* ====== IDROTTSLÄRARENS VERKTYGSLÅDA ====== */
-        .teacher-tools-section { margin: 10px 5% 50px 5%; }
-        .tools-header { text-align: center; margin-bottom: 25px; }
-        .tools-badge { background: #E8F5E9; color: #2E7D32; font-weight: 700; font-size: 0.8rem; padding: 5px 14px; border-radius: 20px; text-transform: uppercase; letter-spacing: 0.5px; display: inline-block; }
-        .tools-header h2 { color: #1E3A24; font-size: 1.8rem; font-weight: 800; margin-top: 8px; }
-        .tools-header p { color: #666; font-size: 0.95rem; max-width: 550px; margin: 6px auto 0 auto; }
-        .tools-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 16px; }
-        .tool-card { background: white; border-radius: 14px; padding: 22px 18px; box-shadow: 0 4px 12px rgba(0,0,0,0.04); border: 2px solid #EBEFEA; transition: all 0.25s; cursor: pointer; position: relative; display: flex; flex-direction: column; justify-content: space-between; text-decoration: none; color: inherit; }
-        .tool-card:hover { transform: translateY(-4px); border-color: #4CAF50; box-shadow: 0 8px 24px rgba(76, 175, 80, 0.15); }
-        .tool-card.coming-soon { opacity: 0.75; cursor: default; }
-        .tool-card.coming-soon:hover { transform: none; border-color: #EBEFEA; box-shadow: 0 4px 12px rgba(0,0,0,0.04); }
-        .tool-badge { position: absolute; top: 12px; right: 12px; font-size: 0.7rem; font-weight: 700; padding: 2px 8px; border-radius: 10px; background: #EEEEEE; color: #666; }
-        .tool-badge.new { background: #E8F5E9; color: #2E7D32; }
-        .tool-icon { font-size: 2.2rem; margin-bottom: 12px; }
-        .tool-card h4 { font-size: 1.1rem; font-weight: 700; color: #1E3A24; margin-bottom: 6px; }
-        .tool-card p { font-size: 0.85rem; color: #666; line-height: 1.4; margin-bottom: 14px; }
-        .tool-link { font-size: 0.82rem; font-weight: 700; color: #2E7D32; display: flex; align-items: center; gap: 4px; }
-        .tool-link.disabled { color: #999; }
+        /* ====== KNAPPAR ====== */
+        .cta-button {
+            display: inline-block;
+            background: linear-gradient(135deg, #4CAF50 0%, #2E7D32 100%);
+            color: white;
+            padding: 11px 24px;
+            border-radius: 26px;
+            text-decoration: none;
+            font-weight: 700;
+            font-size: 0.94rem;
+            border: none;
+            cursor: pointer;
+            transition: transform 0.22s, box-shadow 0.22s, filter 0.22s;
+            box-shadow: 0 6px 16px rgba(46, 125, 50, 0.3);
+        }
+        .cta-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 22px rgba(46, 125, 50, 0.42);
+            filter: brightness(1.05);
+        }
 
-        @media (max-width: 768px) {
-            nav { flex-direction: column; gap: 15px; }
-            .nav-links { flex-wrap: wrap; justify-content: center; gap: 16px; }
+        /* ====== HUVUDKORT (3 ST) - RYMS DIREKT PÅ SKÄRMEN ====== */
+        .features-container { max-width: 1180px; margin: 0 auto; }
+        .features {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            padding: 0 4% 22px 4%;
+            margin-top: -38px;
+            position: relative;
+            z-index: 10;
+            flex-wrap: nowrap;
+            align-items: stretch;
+            scroll-margin-top: 75px;
+        }
+        .card {
+            background: white;
+            border-radius: 18px;
+            padding: 22px 22px 20px 22px;
+            flex: 1;
+            box-shadow: 0 12px 30px rgba(15, 41, 30, 0.08);
+            border: 1px solid rgba(46, 125, 50, 0.14);
+            text-align: center;
+            transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.28s, border-color 0.28s;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            position: relative;
+            overflow: hidden;
+            scroll-margin-top: 75px;
+        }
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #4CAF50, #2E7D32);
+        }
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 18px 38px rgba(15, 41, 30, 0.14);
+            border-color: rgba(76, 175, 80, 0.45);
+        }
+        .card-top-header {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 10px;
+        }
+        .card-icon {
+            width: 50px;
+            height: 50px;
+            font-size: 1.65rem;
+            background: linear-gradient(135deg, #E8F5E9 0%, #C8E6C9 100%);
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 12px rgba(46, 125, 50, 0.12);
+            flex-shrink: 0;
+        }
+        .card h3 {
+            color: #143321;
+            margin-bottom: 6px;
+            font-size: 1.22rem;
+            font-weight: 800;
+        }
+        .card p {
+            font-size: 0.85rem;
+            color: #475569;
+            margin-bottom: 12px;
+            line-height: 1.5;
+        }
+        .card-tags {
+            display: flex;
+            justify-content: center;
+            gap: 5px;
+            flex-wrap: wrap;
+            margin-bottom: 8px;
+        }
+        .card-tag {
+            background: #F1F8E9;
+            color: #2E7D32;
+            font-size: 0.69rem;
+            font-weight: 700;
+            padding: 2px 9px;
+            border-radius: 20px;
+            border: 1px solid #DCEDC8;
+        }
+
+        /* ====== SYNK & APP-BANNER (ALLT-I-ETT) ====== */
+        .sync-banner {
+            background: linear-gradient(135deg, #143625 0%, #1E4E35 60%, #2E7D32 100%);
+            color: white;
+            border-radius: 16px;
+            padding: 16px 24px;
+            margin: 0 4% 34px 4%;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            flex-wrap: wrap;
+            box-shadow: 0 10px 25px rgba(20, 54, 37, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+        }
+        .sync-banner-left {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            flex: 1;
+            min-width: 260px;
+        }
+        .sync-banner-icon {
+            width: 46px;
+            height: 46px;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.14);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.55rem;
+            flex-shrink: 0;
+        }
+        .sync-banner strong {
+            color: #FFFFFF;
+            font-size: 0.96rem;
+            display: block;
+            margin-bottom: 2px;
+        }
+        .sync-banner span {
+            color: rgba(255, 255, 255, 0.86);
+            font-size: 0.83rem;
+        }
+        .sync-banner-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: #FFFFFF;
+            color: #1B4332;
+            padding: 9px 18px;
+            border-radius: 24px;
+            text-decoration: none;
+            font-size: 0.84rem;
+            font-weight: 800;
+            white-space: nowrap;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.16);
+        }
+        .sync-banner-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
+        }
+
+        /* ====== IDROTTSLÄRARENS VERKTYGSLÅDA (KOMPAKT 3x2 GRID) ====== */
+        .teacher-tools-section { margin: 0 4% 36px 4%; }
+        .tools-header { text-align: center; margin-bottom: 18px; }
+        .tools-badge {
+            background: linear-gradient(135deg, #E8F5E9, #C8E6C9);
+            color: #1B5E20;
+            font-weight: 800;
+            font-size: 0.72rem;
+            padding: 4px 12px;
+            border-radius: 20px;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            display: inline-block;
+            border: 1px solid #A5D6A7;
+        }
+        .tools-header h2 { color: #143321; font-size: 1.5rem; font-weight: 800; margin-top: 6px; }
+        .tools-header p { color: #52606D; font-size: 0.88rem; max-width: 520px; margin: 2px auto 0 auto; }
+        .tools-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 14px;
+        }
+        .tool-card {
+            background: white;
+            border-radius: 14px;
+            padding: 16px 16px;
+            box-shadow: 0 6px 18px rgba(15, 41, 30, 0.04);
+            border: 1.5px solid #E2ECE5;
+            transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+            cursor: pointer;
+            position: relative;
+            display: flex;
+            align-items: flex-start;
+            gap: 13px;
+            text-decoration: none;
+            color: inherit;
+        }
+        .tool-card:hover {
+            transform: translateY(-3px);
+            border-color: #4CAF50;
+            box-shadow: 0 12px 24px rgba(46, 125, 50, 0.12);
+        }
+        .tool-badge {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            font-size: 0.65rem;
+            font-weight: 800;
+            padding: 2px 8px;
+            border-radius: 10px;
+            background: #EEEEEE;
+            color: #666;
+        }
+        .tool-badge.new { background: #E8F5E9; color: #2E7D32; border: 1px solid #C8E6C9; }
+        .tool-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            background: #F1F8E9;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.45rem;
+            flex-shrink: 0;
+        }
+        .tool-body { flex: 1; min-width: 0; }
+        .tool-card h4 { font-size: 0.98rem; font-weight: 800; color: #143321; margin-bottom: 3px; padding-right: 45px; }
+        .tool-card p { font-size: 0.8rem; color: #52606D; line-height: 1.4; margin-bottom: 6px; }
+        .tool-link { font-size: 0.78rem; font-weight: 700; color: #2E7D32; display: inline-flex; align-items: center; gap: 4px; transition: gap 0.2s; }
+        .tool-card:hover .tool-link { gap: 7px; }
+
+        /* ====== FOOTER ====== */
+        footer {
+            background: #0B2218;
+            color: rgba(255, 255, 255, 0.75);
+            text-align: center;
+            padding: 18px 20px;
+            margin-top: 20px;
+            font-size: 0.84rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        @media (max-width: 900px) {
+            .features { flex-direction: column; align-items: center; margin-top: -28px; }
+            .card { width: 100%; max-width: 440px; }
+            .tools-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+
+        @media (max-width: 640px) {
+            nav { flex-direction: column; gap: 10px; position: relative; }
+            .nav-links { flex-wrap: wrap; justify-content: center; gap: 12px; }
             .nav-dropdown-menu { left: 50%; right: auto; transform: translateX(-50%); }
-            .hero h1 { font-size: 2.2rem; }
-            .features { flex-direction: column; align-items: center; }
-            .card { width: 100%; max-width: 350px; }
+            .hero { padding: 26px 16px 50px 16px; }
+            .hero h1 { font-size: 1.75rem; }
+            .tools-grid { grid-template-columns: 1fr; }
+            .sync-banner { text-align: center; justify-content: center; padding: 18px 16px; }
+            .sync-banner-left { flex-direction: column; text-align: center; }
         }
     </style>
 </head>
 <body>
 
     <nav>
-        <a href="#" class="logo">Skol-IF Webben</a>
+        <a href="#" class="logo">
+            <span class="logo-badge">🏆</span>
+            Skol-IF Webben
+        </a>
         <div class="nav-links">
             <a href="kiosk.html">Skol IF Kassa</a>
             <a href="redskapsboden.html">Redskapsboden</a>
@@ -182,72 +559,98 @@
     </nav>
 
     <header class="hero">
-        <h1>Skol-IF Webben</h1>
-        <p>Det kompletta digitala verktyget för idrottslärare och Skol-IF-ledare. Samla kioskkassan, utlåning, spelscheman och lektionsverktyg på ett ställe – och koppla ihop dem med mobilappen och kollegor i realtid.</p>
-        <div style="display: flex; justify-content: center; align-items: center; gap: 14px; flex-wrap: wrap;">
-            <a href="#kassa" class="cta-button">Öppna verktygen</a>
-            <a href="https://play.google.com/store/apps/details?id=com.sellin.tabatatimer" target="_blank" class="cta-button-secondary">📱 Hämta Android-appen</a>
+        <div class="hero-inner">
+            <div class="hero-top-row">
+                <span class="hero-pill">✨ Digital plattform för Skol-IF & Idrott</span>
+                <a href="https://play.google.com/store/apps/details?id=com.sellin.tabatatimer" target="_blank" class="hero-app-pill">📱 Hämta Android-appen →</a>
+            </div>
+            <h1>Allt för Skol-IF & Idrotten <span>på ett ställe</span></h1>
+            <p>Samla kioskkassan, utlåning, spelscheman och lektionsverktyg direkt i webbläsaren – och koppla ihop dem med mobilappen och kollegor i realtid.</p>
         </div>
     </header>
 
     <div class="features-container">
         <section class="features">
             <!-- KASSA KORTET -->
-<div class="card" id="kassa" onclick="gaTillKiosk()" style="cursor: pointer;">
-    <div class="card-icon">☕</div>
-    <h3>Skol IF Kassa</h3>
-    <p>Smidig kioskförsäljning för mobilfria skolor med förladdade elevsaldon. Koppla kassan via Google för att synka i realtid med mobilappen och dela hanteringen med kollegor och elever!</p>
-    
-    <div style="margin-top: 20px;">
-        <button id="kioskBtn" onclick="klickaPaKnapp(event)" class="cta-button" style="width: 100%; max-width: 250px;">Logga in med Google</button>
-        <div id="kioskOfflineText" style="margin-top: 10px;">
-            <a href="kiosk.html" onclick="event.stopPropagation();" style="font-size: 0.82rem; color: #2E7D32; font-weight: 600; text-decoration: underline;">Eller öppna direkt utan inloggning →</a>
-        </div>
-    </div>
-</div>
+            <div class="card" id="kassa" onclick="gaTillKiosk()" style="cursor: pointer;">
+                <div>
+                    <div class="card-top-header">
+                        <div class="card-icon">☕</div>
+                    </div>
+                    <div class="card-tags">
+                        <span class="card-tag">💳 Elevsaldon & Blipp</span>
+                        <span class="card-tag">☁️ Molnsynk</span>
+                    </div>
+                    <h3>Skol IF Kassa</h3>
+                    <p>Smidig kioskförsäljning för mobilfria skolor med förladdade saldon. Koppla kassan via Google för att synka med mobilappen och dela med kollegor och elever!</p>
+                </div>
+                
+                <div style="margin-top: 8px;">
+                    <button id="kioskBtn" onclick="klickaPaKnapp(event)" class="cta-button" style="width: 100%; max-width: 230px;">Logga in med Google</button>
+                    <div id="kioskOfflineText" style="margin-top: 7px;">
+                        <a href="kiosk.html" onclick="event.stopPropagation();" style="font-size: 0.78rem; color: #2E7D32; font-weight: 600; text-decoration: underline;">Eller öppna direkt utan inloggning →</a>
+                    </div>
+                </div>
+            </div>
 
             <!-- REDSKAPSBODEN KORTET -->
             <div class="card" id="redskapsboden" onclick="gaTillBod()" style="cursor: pointer;">
-                <div class="card-icon">⚽</div>
-                <h3>Redskapsboden</h3>
-                <p>Håll ordning på rasternas utrustning och registrera lån på sekunder. Koppla boden via Google för att synka direkt med mobilappen och låta kollegor och rastvärdar hjälpas åt i realtid.</p>
+                <div>
+                    <div class="card-top-header">
+                        <div class="card-icon">⚽</div>
+                    </div>
+                    <div class="card-tags">
+                        <span class="card-tag">🔄 Snabblån</span>
+                        <span class="card-tag">📱 Synkar med appen</span>
+                    </div>
+                    <h3>Redskapsboden</h3>
+                    <p>Håll ordning på rasternas utrustning och registrera lån på sekunder. Koppla boden via Google för att synka med mobilappen och låta kollegor och rastvärdar hjälpas åt.</p>
+                </div>
                 
-                <div style="margin-top: 20px;">
-                    <button id="bodBtn" onclick="klickaPaBodKnapp(event)" class="cta-button" style="width: 100%; max-width: 250px;">Logga in med Google</button>
-                    <div id="bodOfflineText" style="margin-top: 10px;">
-                        <a href="redskapsboden.html" onclick="event.stopPropagation();" style="font-size: 0.82rem; color: #2E7D32; font-weight: 600; text-decoration: underline;">Eller öppna direkt utan inloggning →</a>
+                <div style="margin-top: 8px;">
+                    <button id="bodBtn" onclick="klickaPaBodKnapp(event)" class="cta-button" style="width: 100%; max-width: 230px;">Logga in med Google</button>
+                    <div id="bodOfflineText" style="margin-top: 7px;">
+                        <a href="redskapsboden.html" onclick="event.stopPropagation();" style="font-size: 0.78rem; color: #2E7D32; font-weight: 600; text-decoration: underline;">Eller öppna direkt utan inloggning →</a>
                     </div>
                 </div>
             </div>
 
             <!-- TURNERING KORTET -->
             <div class="card" id="turnering" onclick="window.location.href='turnering.html'" style="cursor: pointer;">
-                <div class="card-icon">🏆</div>
-                <h3 id="turneringTitel">Skapa Turnering</h3>
-                <p id="turneringDesc">Arrangera rastturneringar utan papperskaos. Skapa spelscheman automatiskt och följ tabeller och slutspelsträd live.</p>
+                <div>
+                    <div class="card-top-header">
+                        <div class="card-icon">🏆</div>
+                    </div>
+                    <div class="card-tags">
+                        <span class="card-tag">⚡ Automatiskt schema</span>
+                        <span class="card-tag">🥇 Slutspelsträd</span>
+                    </div>
+                    <h3 id="turneringTitel">Skapa Turnering</h3>
+                    <p id="turneringDesc">Arrangera rastturneringar utan papperskaos. Skapa spelscheman automatiskt och följ tabeller och slutspelsträd live.</p>
+                </div>
                 
-                <div style="margin-top: 20px;">
-                    <button id="turneringBtn" onclick="event.stopPropagation(); window.location.href='turnering.html';" class="cta-button" style="width: 100%; max-width: 250px;">Skapa Turnering</button>
+                <div style="margin-top: 8px;">
+                    <button id="turneringBtn" onclick="event.stopPropagation(); window.location.href='turnering.html';" class="cta-button" style="width: 100%; max-width: 230px;">Skapa Turnering</button>
                 </div>
             </div>
         </section>
 
-        <!-- SYNK & SAMARBETE-BANNER -->
-        <div style="background: linear-gradient(135deg, #E8F5E9 0%, #F1F8E9 100%); border: 1.5px solid #C8E6C9; border-radius: 14px; padding: 18px 24px; margin: -25px 5% 40px 5%; display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; text-align: left; box-shadow: 0 4px 12px rgba(46,125,50,0.06);">
-            <div style="display: flex; align-items: center; gap: 16px; flex: 1; min-width: 260px;">
-                <div style="font-size: 2rem; line-height: 1;">📲</div>
+        <!-- SYNK & APP-BANNER -->
+        <div class="sync-banner">
+            <div class="sync-banner-left">
+                <div class="sync-banner-icon">📲</div>
                 <div>
-                    <strong style="color: #1E3A24; font-size: 0.98rem; display: block; margin-bottom: 2px;">Koppla ihop Kiosken & Redskapsboden för enklare hantering</strong>
-                    <span style="color: #445; font-size: 0.88rem;">Logga in med Google för att synka saldon, varor och utlåningar i realtid med <strong>Skol-IF Appen</strong> och dela tillgången med kollegor eller elever på flera enheter samtidigt.</span>
+                    <strong>Koppla ihop Kiosken & Redskapsboden med Skol-IF Appen (Android)</strong>
+                    <span>Logga in med Google för att synka saldon, varor och utlåningar i realtid mellan dator och mobil – och bjud in kollegor eller elever så att ni enkelt kan hjälpas åt.</span>
                 </div>
             </div>
-            <a href="https://play.google.com/store/apps/details?id=com.sellin.tabatatimer" target="_blank" style="display: inline-flex; align-items: center; gap: 6px; background: #2E7D32; color: white; padding: 10px 18px; border-radius: 20px; text-decoration: none; font-size: 0.88rem; font-weight: 700; white-space: nowrap; transition: background 0.2s, transform 0.2s; box-shadow: 0 3px 10px rgba(46,125,50,0.2);" onmouseover="this.style.background='#1B5E20'; this.style.transform='translateY(-1px)'" onmouseout="this.style.background='#2E7D32'; this.style.transform='none'">📱 Hämta på Google Play →</a>
+            <a href="https://play.google.com/store/apps/details?id=com.sellin.tabatatimer" target="_blank" class="sync-banner-btn">📱 Hämta på Google Play →</a>
         </div>
 
         <!-- IDROTTSLÄRARENS VERKTYGSLÅDA -->
         <section class="teacher-tools-section">
             <div class="tools-header">
-                <span class="tools-badge">Lektionsverktyg</span>
+                <span class="tools-badge">⚡ Lektionsverktyg</span>
                 <h2>Idrottslärarens Verktygslåda</h2>
                 <p>Smidiga och blixtsnabba digitala verktyg direkt i webbläsaren för lektionen och idrottshallen.</p>
             </div>
@@ -257,64 +660,68 @@
                 <a href="lopning.html" class="tool-card">
                     <div class="tool-badge new">Ny!</div>
                     <div class="tool-icon">⏱️</div>
-                    <h4>Löprundan</h4>
-                    <p>Klasstidtagning vid terränglopp och skoljoggen. Klicka in elever när de springer i mål.</p>
-                    <span class="tool-link">Öppna tidtagare →</span>
+                    <div class="tool-body">
+                        <h4>Löprundan</h4>
+                        <p>Klasstidtagning vid terränglopp och skoljoggen. Klicka in elever i mål.</p>
+                        <span class="tool-link">Öppna tidtagare →</span>
+                    </div>
                 </a>
 
                 <!-- TABATATIMER (AKTIV) -->
                 <a href="tabata.html" class="tool-card">
                     <div class="tool-badge new">Ny!</div>
                     <div class="tool-icon">🔔</div>
-                    <h4>Tabatatimer</h4>
-                    <p>Intervallklocka för hallen med storskärm, färger och ljudsignaler för cirkelträning.</p>
-                    <span class="tool-link">Öppna timer →</span>
+                    <div class="tool-body">
+                        <h4>Tabatatimer</h4>
+                        <p>Intervallklocka för hallen med storskärm, färger och ljudsignaler.</p>
+                        <span class="tool-link">Öppna timer →</span>
+                    </div>
                 </a>
 
                 <!-- BEEP-TEST (AKTIV) -->
                 <a href="beeptest.html" class="tool-card">
                     <div class="tool-badge new">Ny!</div>
                     <div class="tool-icon">📢</div>
-                    <h4>Beep-test</h4>
-                    <p>Officiellt 20m konditionstest med synkat beepljud och direkt klickutslagning.</p>
-                    <span class="tool-link">Öppna test →</span>
+                    <div class="tool-body">
+                        <h4>Beep-test</h4>
+                        <p>Officiellt 20m konditionstest med synkat beepljud och klickutslagning.</p>
+                        <span class="tool-link">Öppna test →</span>
+                    </div>
                 </a>
 
                 <!-- LAGDELAREN (AKTIV) -->
                 <a href="lagdelaren.html" class="tool-card">
                     <div class="tool-badge new">Ny!</div>
                     <div class="tool-icon">🎲</div>
-                    <h4>Lagdelaren</h4>
-                    <p>Blanda klassen blixtsnabbt i slumpade lag med västfärger och storskärmsvy.</p>
-                    <span class="tool-link">Öppna lagdelaren →</span>
+                    <div class="tool-body">
+                        <h4>Lagdelaren</h4>
+                        <p>Blanda klassen blixtsnabbt i slumpade lag med västfärger på storskärm.</p>
+                        <span class="tool-link">Öppna lagdelaren →</span>
+                    </div>
                 </a>
 
                 <!-- UPPVÄRMNINGSHJULET (AKTIV) -->
                 <a href="hjulet.html" class="tool-card">
                     <div class="tool-badge new">Ny!</div>
                     <div class="tool-icon">🎡</div>
-                    <h4>Uppvärmningshjulet</h4>
-                    <p>Snurra fram lektionens uppvärmningslek, styrkestation eller slumpa elev på storskärm.</p>
-                    <span class="tool-link">Snurra hjulet →</span>
+                    <div class="tool-body">
+                        <h4>Uppvärmningshjulet</h4>
+                        <p>Snurra fram uppvärmningslek, styrkestation eller slumpa elev.</p>
+                        <span class="tool-link">Snurra hjulet →</span>
+                    </div>
                 </a>
 
                 <!-- MINA KLASSER I MOLNET (AKTIV) -->
                 <div class="tool-card" onclick="SkolIFKlasser.openModal()">
                     <div class="tool-badge new">Molnsynk!</div>
                     <div class="tool-icon">📋</div>
-                    <h4>Mina Klasser</h4>
-                    <p>Lägg in dina klasslistor en gång – hämta dem med ett klick i Lagdelaren, Beep-test, Löprundan och Hjulet.</p>
-                    <span class="tool-link">Hantera klasser →</span>
+                    <div class="tool-body">
+                        <h4>Mina Klasser</h4>
+                        <p>Lägg in klasslistor en gång – hämta dem med ett klick i alla verktyg.</p>
+                        <span class="tool-link">Hantera klasser →</span>
+                    </div>
                 </div>
             </div>
-        </section>
-
-        <!-- APP / GOOGLE PLAY SEKTION UNDER BOXARNA -->
-        <section style="text-align: center; padding: 35px 20px; background: white; border-radius: 16px; margin: 0 5% 40px 5%; box-shadow: 0 4px 15px rgba(0,0,0,0.03); border: 1px solid #EEEEEE;">
-            <div style="font-size: 2.2rem; margin-bottom: 8px;">📱</div>
-            <h4 style="color: #2E7D32; font-size: 1.2rem; margin-bottom: 6px; font-weight: 700;">Skol IF Appen till Android – Koppla Kiosk & Redskapsbod</h4>
-            <p style="color: #666; font-size: 0.95rem; max-width: 640px; margin: 0 auto 16px auto;">Koppla ihop <strong>Skol IF Kassa</strong> och <strong>Redskapsboden</strong> mellan webben och Android-appen genom att logga in med Google. Du kan även bjuda in kollegor och elever så att alla saldon, köp och utlåningar synkas i realtid mellan alla enheter!</p>
-            <a href="https://play.google.com/store/apps/details?id=com.sellin.tabatatimer" target="_blank" style="display: inline-block; background: #333; color: white; padding: 10px 22px; border-radius: 20px; text-decoration: none; font-size: 0.9rem; font-weight: 600; transition: background 0.2s;" onmouseover="this.style.background='#555'" onmouseout="this.style.background='#333'">Hämta på Google Play</a>
         </section>
     </div>
 

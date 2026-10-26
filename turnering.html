@@ -8,31 +8,43 @@
 
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif; }
-        body { background-color: #F4F7F6; color: #333; line-height: 1.6; }
+        body {
+            background-color: #F3F7F4;
+            background-image: radial-gradient(at 15% 15%, rgba(76, 175, 80, 0.07) 0px, transparent 50%),
+                              radial-gradient(at 85% 80%, rgba(46, 125, 50, 0.06) 0px, transparent 50%);
+            color: #1E293B;
+            line-height: 1.6;
+        }
 
         nav {
-            background: linear-gradient(135deg, #2E7D32, #4CAF50);
-            padding: 1rem 5%;
+            background: rgba(15, 41, 30, 0.94);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            padding: 0.75rem 5%;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+            position: sticky;
+            top: 0;
+            z-index: 900;
             flex-wrap: wrap;
             gap: 10px;
         }
-        .logo { color: white; font-size: 1.4rem; font-weight: 800; text-decoration: none; }
+        .logo { color: white; font-size: 1.35rem; font-weight: 800; text-decoration: none; letter-spacing: 0.4px; }
         .nav-right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
         .nav-btn {
-            color: white; text-decoration: none; font-weight: 600;
-            background: rgba(255,255,255,0.18); padding: 8px 16px;
-            border-radius: 8px; transition: background 0.2s; font-size: 0.9rem;
-            border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;
+            color: rgba(255,255,255,0.92); text-decoration: none; font-weight: 600;
+            background: rgba(255,255,255,0.12); padding: 7px 15px;
+            border-radius: 10px; transition: all 0.2s; font-size: 0.86rem;
+            border: 1px solid rgba(255,255,255,0.16); cursor: pointer; display: inline-flex; align-items: center; gap: 6px;
         }
-        .nav-btn:hover { background: rgba(255,255,255,0.28); }
-        .nav-btn.gold { background: #D4AF37; color: #111; font-weight: 700; }
-        .nav-btn.gold:hover { background: #E5BE48; }
+        .nav-btn:hover { background: rgba(255,255,255,0.22); transform: translateY(-1px); }
+        .nav-btn.gold { background: linear-gradient(135deg, #F59E0B, #D4AF37); color: #111; font-weight: 700; border: none; box-shadow: 0 3px 10px rgba(212,175,55,0.3); }
+        .nav-btn.gold:hover { filter: brightness(1.06); }
 
-        .container { max-width: 1100px; margin: 30px auto; padding: 0 20px; }
+        .container { max-width: 1120px; margin: 26px auto; padding: 0 20px; }
 
         /* ====== BUTTONS ====== */
         .btn {
@@ -40,8 +52,8 @@
             font-size: 0.9rem; cursor: pointer; transition: all 0.2s; display: inline-flex;
             align-items: center; gap: 6px; font-family: 'Poppins', sans-serif; text-decoration: none;
         }
-        .btn-green { background: #4CAF50; color: white; }
-        .btn-green:hover { background: #388E3C; }
+        .btn-green { background: linear-gradient(135deg, #4CAF50 0%, #2E7D32 100%); color: white; box-shadow: 0 4px 12px rgba(46, 125, 50, 0.25); }
+        .btn-green:hover { filter: brightness(1.05); transform: translateY(-1px); }
         .btn-gold { background: #D4AF37; color: #111; font-weight: 800; }
         .btn-gold:hover { background: #C5A030; }
         .btn-blue { background: #1976D2; color: white; }
@@ -54,8 +66,11 @@
 
         /* ====== CARD ====== */
         .card {
-            background: white; border-radius: 16px; padding: 26px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.04); margin-bottom: 24px;
+            background: white; border-radius: 18px; padding: 26px;
+            box-shadow: 0 10px 28px rgba(15, 41, 30, 0.06);
+            border: 1px solid rgba(46, 125, 50, 0.12);
+            border-top: 4px solid #2E7D32;
+            margin-bottom: 24px;
         }
         .card-header {
             display: flex; justify-content: space-between; align-items: center;
