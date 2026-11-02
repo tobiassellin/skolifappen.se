@@ -1555,13 +1555,17 @@
         const banner = document.getElementById('skolifModalAuthBanner');
         if (banner) {
             if (currentUser && currentUser.email) {
+                const isOwner = currentUser.email.trim().toLowerCase() === 'tobias.sellin@gmail.com';
                 banner.className = 'skolif-auth-banner';
                 banner.innerHTML = `
                     <div>
                         <strong>☁️ Synkad med Google (${escapeHtml(currentUser.email)})</strong><br>
                         <span style="font-size: 0.78rem;">Alla klasser och elever hämtas och synkas direkt med din databas och Kiosken.</span>
                     </div>
-                    <button type="button" class="skolif-btn-sm" onclick="SkolIFKlasser.logout()">Logga ut</button>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        ${isOwner ? `<a href="statistik.html" class="skolif-btn-sm primary" style="text-decoration: none;">📊 Webbstatistik</a>` : ''}
+                        <button type="button" class="skolif-btn-sm" onclick="SkolIFKlasser.logout()">Logga ut</button>
+                    </div>
                 `;
             } else {
                 banner.className = 'skolif-auth-banner logged-out';
@@ -1821,10 +1825,259 @@
         }
     }
 
+    // ==========================================
+    //  BESÖKSSTATISTIK & DOLD GENVÄG (statistik.html)
+    // ==========================================
+    const STATS_DOC_ID = '_webb_statistik_';
+    const STATS_QUEUE_KEY = 'skolif_pending_stats_v1';
+    const LOCAL_STATS_MIRROR_KEY = 'skolif_local_stats_mirror_v1';
+
+    function detectPageKey() {
+        const path = (window.location.pathname || '').toLowerCase();
+        if (path.includes('statistik')) return 'statistik';
+        if (path.includes('kiosk')) return 'kiosk';
+        if (path.includes('redskapsboden')) return 'redskapsboden';
+        if (path.includes('turnering')) return 'turnering';
+        if (path.includes('lopning')) return 'lopning';
+        if (path.includes('beeptest')) return 'beeptest';
+        if (path.includes('lagdelaren')) return 'lagdelaren';
+        if (path.includes('tabata')) return 'tabata';
+        if (path.includes('hjulet')) return 'hjulet';
+        return 'index';
+    }
+
+    function detectDeviceType() {
+        const ua = navigator.userAgent || '';
+        if (/ipad|tablet|playbook|silk/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)) {
+            return 'surfplatta';
+        }
+        if (/mobile|iphone|ipod|android.*mobile|windows phone/i.test(ua) || window.innerWidth < 768) {
+            return 'mobil';
+        }
+        return 'dator';
+    }
+
+    function getTodayDateString() {
+        const d = new Date();
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    }
+
+    function updateLocalStatsMirror(eventObj) {
+        try {
+            const raw = localStorage.getItem(LOCAL_STATS_MIRROR_KEY);
+            const mirror = raw ? JSON.parse(raw) : {
+                totalaSidvisningar: 0,
+                unikaBesokare: 0,
+                totalaSessioner: 0,
+                sidor: {},
+                enheter: {},
+                dagar: {}
+            };
+            mirror.totalaSidvisningar = (mirror.totalaSidvisningar || 0) + 1;
+            if (eventObj.isNewVisitor) mirror.unikaBesokare = (mirror.unikaBesokare || 0) + 1;
+            if (eventObj.isNewSession) mirror.totalaSessioner = (mirror.totalaSessioner || 0) + 1;
+
+            mirror.sidor = mirror.sidor || {};
+            mirror.sidor[eventObj.pageKey] = (mirror.sidor[eventObj.pageKey] || 0) + 1;
+
+            mirror.enheter = mirror.enheter || {};
+            mirror.enheter[eventObj.deviceType] = (mirror.enheter[eventObj.deviceType] || 0) + 1;
+
+            mirror.dagar = mirror.dagar || {};
+            const day = mirror.dagar[eventObj.todayStr] || { visningar: 0, besokare: 0, sidor: {} };
+            day.visningar = (day.visningar || 0) + 1;
+            if (eventObj.isNewDailyVisitor) day.besokare = (day.besokare || 0) + 1;
+            day.sidor = day.sidor || {};
+            day.sidor[eventObj.pageKey] = (day.sidor[eventObj.pageKey] || 0) + 1;
+            mirror.dagar[eventObj.todayStr] = day;
+            mirror.senastUppdaterad = Date.now();
+            mirror.senastAktivSida = eventObj.pageKey;
+
+            localStorage.setItem(LOCAL_STATS_MIRROR_KEY, JSON.stringify(mirror));
+        } catch (e) {}
+    }
+
+    async function sendStatEventToFirestore(eventObj) {
+        if (!db || typeof firebase === 'undefined' || !firebase.firestore || !firebase.firestore.FieldValue) {
+            return false;
+        }
+        const inc = firebase.firestore.FieldValue.increment;
+        const payload = {
+            kassaId: STATS_DOC_ID,
+            namn: 'Skol-IF Webbstatistik',
+            senastUppdaterad: Date.now(),
+            senastAktivSida: eventObj.pageKey,
+            senastEnhet: eventObj.deviceType,
+            totalaSidvisningar: inc(eventObj.views || 1),
+            sidor: {
+                [eventObj.pageKey]: inc(eventObj.views || 1)
+            },
+            enheter: {
+                [eventObj.deviceType]: inc(eventObj.views || 1)
+            },
+            dagar: {
+                [eventObj.todayStr]: {
+                    visningar: inc(eventObj.views || 1),
+                    sidor: {
+                        [eventObj.pageKey]: inc(eventObj.views || 1)
+                    }
+                }
+            }
+        };
+
+        if (eventObj.isNewVisitor) {
+            payload.unikaBesokare = inc(1);
+        }
+        if (eventObj.isNewSession) {
+            payload.totalaSessioner = inc(1);
+        }
+        if (eventObj.isNewDailyVisitor) {
+            payload.dagar[eventObj.todayStr].besokare = inc(1);
+        }
+
+        await db.collection('skolif_kassa').doc(STATS_DOC_ID).set(payload, { merge: true });
+        return true;
+    }
+
+    async function flushPendingStatsQueue() {
+        try {
+            const raw = localStorage.getItem(STATS_QUEUE_KEY);
+            if (!raw) return;
+            const queue = JSON.parse(raw);
+            if (!Array.isArray(queue) || queue.length === 0) return;
+
+            localStorage.removeItem(STATS_QUEUE_KEY);
+            for (const ev of queue) {
+                try {
+                    await sendStatEventToFirestore(ev);
+                } catch (err) {
+                    // Om det fortfarande inte går (t.ex. ej inloggad), spara kvar i kön
+                    const currentRaw = localStorage.getItem(STATS_QUEUE_KEY);
+                    const currentQ = currentRaw ? JSON.parse(currentRaw) : [];
+                    currentQ.push(ev);
+                    localStorage.setItem(STATS_QUEUE_KEY, JSON.stringify(currentQ.slice(-50)));
+                    break;
+                }
+            }
+        } catch (e) {}
+    }
+
+    async function recordPageVisit() {
+        const pageKey = detectPageKey();
+        if (pageKey === 'statistik') return;
+
+        const todayStr = getTodayDateString();
+        const deviceType = detectDeviceType();
+
+        let isNewVisitor = false;
+        let isNewDailyVisitor = false;
+        let isNewSession = false;
+
+        try {
+            let visitorId = localStorage.getItem('skolif_visitor_id');
+            if (!visitorId) {
+                visitorId = 'v_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+                localStorage.setItem('skolif_visitor_id', visitorId);
+                isNewVisitor = true;
+            }
+
+            const lastVisitDate = localStorage.getItem('skolif_last_visit_date');
+            if (lastVisitDate !== todayStr) {
+                localStorage.setItem('skolif_last_visit_date', todayStr);
+                isNewDailyVisitor = true;
+            }
+
+            if (!sessionStorage.getItem('skolif_session_active')) {
+                sessionStorage.setItem('skolif_session_active', '1');
+                isNewSession = true;
+            }
+        } catch (e) {}
+
+        const eventObj = {
+            pageKey,
+            todayStr,
+            deviceType,
+            isNewVisitor,
+            isNewDailyVisitor,
+            isNewSession,
+            views: 1,
+            ts: Date.now()
+        };
+
+        updateLocalStatsMirror(eventObj);
+
+        try {
+            await flushPendingStatsQueue();
+            await sendStatEventToFirestore(eventObj);
+        } catch (err) {
+            try {
+                const raw = localStorage.getItem(STATS_QUEUE_KEY);
+                const queue = raw ? JSON.parse(raw) : [];
+                queue.push(eventObj);
+                localStorage.setItem(STATS_QUEUE_KEY, JSON.stringify(queue.slice(-50)));
+            } catch (e) {}
+        }
+    }
+
+    const ADMIN_STATS_EMAIL = 'tobias.sellin@gmail.com';
+
+    function isStatsAdminUser(userObj) {
+        const u = userObj !== undefined ? userObj : currentUser;
+        return Boolean(u && u.email && u.email.trim().toLowerCase() === ADMIN_STATS_EMAIL);
+    }
+
+    function updateHiddenStatsButtonVisibility() {
+        if (!document.body) return;
+        let btn = document.getElementById('skolifHiddenStatsBtn');
+
+        if (isStatsAdminUser()) {
+            if (!btn) {
+                btn = document.createElement('a');
+                btn.id = 'skolifHiddenStatsBtn';
+                btn.href = 'statistik.html';
+                btn.title = 'Öppna webbstatistik (Endast synlig för dig)';
+                btn.innerHTML = '📊 <span>Statistik</span>';
+                btn.style.cssText = 'position:fixed;bottom:14px;right:16px;padding:7px 14px;display:inline-flex;align-items:center;gap:6px;font-size:0.8rem;font-weight:700;font-family:Poppins,sans-serif;color:#4ADE80;background:rgba(7,18,12,0.92);border:1px solid rgba(74,222,128,0.4);border-radius:99px;text-decoration:none;box-shadow:0 8px 24px rgba(0,0,0,0.45);transition:all 0.2s;z-index:9990;user-select:none;';
+                btn.onmouseover = function () {
+                    btn.style.transform = 'translateY(-2px)';
+                    btn.style.background = 'rgba(22,101,52,0.95)';
+                    btn.style.color = '#FFFFFF';
+                };
+                btn.onmouseout = function () {
+                    btn.style.transform = 'translateY(0)';
+                    btn.style.background = 'rgba(7,18,12,0.92)';
+                    btn.style.color = '#4ADE80';
+                };
+                document.body.appendChild(btn);
+            }
+            btn.style.display = 'inline-flex';
+        } else if (btn) {
+            btn.style.display = 'none';
+        }
+    }
+
+    window.addEventListener('keydown', function (e) {
+        if (e.altKey && (e.key === 's' || e.key === 'S') && isStatsAdminUser()) {
+            e.preventDefault();
+            window.location.href = 'statistik.html';
+        }
+    });
+
+    if (auth) {
+        auth.onAuthStateChanged((user) => {
+            updateHiddenStatsButtonVisibility();
+            if (user) {
+                flushPendingStatsQueue();
+            }
+        });
+    }
+
     window.addEventListener('DOMContentLoaded', () => {
         injectStylesAndModal();
+        updateHiddenStatsButtonVisibility();
         updateAuthUI();
         renderAllClassBars();
+        recordPageVisit();
     });
 
     window.SkolIFKlasser = {

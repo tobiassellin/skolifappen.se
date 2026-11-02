@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>Webbstatistik – Skol-IF Webben</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        html { font-size: 14px; }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif; }
+
+        body {
+            background-color: #07120c;
+            background-image:
+                radial-gradient(at 15% 10%, rgba(34, 197, 94, 0.14) 0px, transparent 45%),
+                radial-gradient(at 85% 20%, rgba(16, 185, 129, 0.10) 0px, transparent 45%),
+                radial-gradient(at 50% 90%, rgba(234, 179, 8, 0.06) 0px, transparent 50%);
+            background-attachment: fixed;
+            color: #F8FAFC;
+            min-height: 100vh;
+            line-height: 1.5;
+        }
+
+        nav {
+            background: rgba(7, 18, 12, 0.85);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border-bottom: 1px solid rgba(74, 222, 128, 0.16);
+            padding: 0.7rem 4%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .logo {
+            color: #FFFFFF;
+            font-size: 1.25rem;
+            font-weight: 800;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .nav-right {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .nav-btn {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            color: #E2E8F0;
+            padding: 6px 14px;
+            border-radius: 99px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-decoration: none;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .nav-btn:hover {
+            background: rgba(74, 222, 128, 0.16);
+            border-color: rgba(74, 222, 128, 0.45);
+            color: #4ADE80;
+        }
+
+        .container {
+            max-width: 1120px;
+            margin: 22px auto 40px auto;
+            padding: 0 18px;
+        }
+
+        .top-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 14px;
+            background: linear-gradient(145deg, rgba(16, 36, 24, 0.88), rgba(10, 24, 16, 0.94));
+            border: 1px solid rgba(74, 222, 128, 0.22);
+            border-radius: 16px;
+            padding: 16px 22px;
+            margin-bottom: 18px;
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
+        }
+
+        .top-header h1 {
+            font-size: 1.45rem;
+            font-weight: 800;
+            color: #FFFFFF;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .live-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            background: rgba(34, 197, 94, 0.15);
+            border: 1px solid rgba(74, 222, 128, 0.35);
+            color: #4ADE80;
+            padding: 5px 13px;
+            border-radius: 99px;
+            font-size: 0.8rem;
+            font-weight: 700;
+        }
+
+        .live-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #4ADE80;
+            box-shadow: 0 0 8px #4ADE80;
+            animation: pulseDot 1.8s infinite;
+        }
+
+        @keyframes pulseDot {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.45; transform: scale(0.85); }
+        }
+
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 14px;
+            margin-bottom: 18px;
+        }
+
+        .kpi-card {
+            background: linear-gradient(145deg, rgba(16, 36, 24, 0.85), rgba(10, 24, 16, 0.92));
+            border: 1px solid rgba(74, 222, 128, 0.18);
+            border-radius: 16px;
+            padding: 16px 18px;
+            box-shadow: 0 10px 26px rgba(0, 0, 0, 0.3);
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .kpi-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: #94A3B8;
+            font-size: 0.8rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .kpi-icon {
+            width: 34px;
+            height: 34px;
+            border-radius: 10px;
+            background: rgba(74, 222, 128, 0.14);
+            border: 1px solid rgba(74, 222, 128, 0.25);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+        }
+
+        .kpi-value {
+            font-size: 2rem;
+            font-weight: 800;
+            color: #4ADE80;
+            line-height: 1.15;
+            margin-top: 2px;
+        }
+
+        .kpi-sub {
+            font-size: 0.8rem;
+            color: #CBD5E1;
+            opacity: 0.85;
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1.35fr 1fr;
+            gap: 18px;
+            margin-bottom: 18px;
+        }
+
+        @media (max-width: 860px) {
+            .main-grid { grid-template-columns: 1fr; }
+        }
+
+        .panel-card {
+            background: linear-gradient(145deg, rgba(16, 36, 24, 0.85), rgba(10, 24, 16, 0.92));
+            border: 1px solid rgba(74, 222, 128, 0.18);
+            border-radius: 16px;
+            padding: 18px 20px;
+            box-shadow: 0 10px 28px rgba(0, 0, 0, 0.32);
+        }
+
+        .panel-title {
+            font-size: 1.05rem;
+            font-weight: 800;
+            color: #FFFFFF;
+            margin-bottom: 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .panel-subtitle {
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: #94A3B8;
+        }
+
+        /* 14-DAGARS STAPELDIAGRAM */
+        .chart-bars {
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-between;
+            gap: 6px;
+            height: 175px;
+            padding: 18px 4px 6px 4px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .chart-col {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            height: 100%;
+            justify-content: flex-end;
+            gap: 5px;
+            min-width: 0;
+        }
+
+        .chart-val {
+            font-size: 0.72rem;
+            font-weight: 700;
+            color: #86EFAC;
+        }
+
+        .chart-bar {
+            width: 100%;
+            max-width: 28px;
+            background: linear-gradient(180deg, #4ADE80 0%, #16A34A 100%);
+            border-radius: 6px 6px 2px 2px;
+            min-height: 4px;
+            transition: height 0.35s ease;
+            box-shadow: 0 4px 12px rgba(34, 197, 94, 0.25);
+        }
+
+        .chart-bar.today {
+            background: linear-gradient(180deg, #FACC15 0%, #EAB308 100%);
+            box-shadow: 0 4px 14px rgba(250, 204, 21, 0.35);
+        }
+
+        .chart-lbl {
+            font-size: 0.68rem;
+            color: #94A3B8;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        /* TOPPLISTA SIDOR / VERKTYG */
+        .pages-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .page-row {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.07);
+            border-radius: 12px;
+            padding: 10px 14px;
+        }
+
+        .page-row-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+            gap: 8px;
+        }
+
+        .page-name {
+            font-weight: 700;
+            font-size: 0.9rem;
+            color: #F8FAFC;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .page-counts {
+            font-size: 0.82rem;
+            font-weight: 700;
+            color: #4ADE80;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .page-today-badge {
+            background: rgba(74, 222, 128, 0.14);
+            border: 1px solid rgba(74, 222, 128, 0.3);
+            color: #86EFAC;
+            padding: 1px 8px;
+            border-radius: 99px;
+            font-size: 0.72rem;
+        }
+
+        .progress-track {
+            width: 100%;
+            height: 7px;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 99px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #22C55E, #4ADE80);
+            border-radius: 99px;
+            transition: width 0.4s ease;
+        }
+
+        /* ENHETER & SENASTE AKTIVITET */
+        .device-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+
+        .device-box {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+            padding: 12px;
+            text-align: center;
+        }
+
+        .device-emoji { font-size: 1.5rem; margin-bottom: 4px; }
+        .device-val { font-size: 1.25rem; font-weight: 800; color: #FFFFFF; }
+        .device-lbl { font-size: 0.75rem; color: #94A3B8; font-weight: 600; }
+
+        .meta-box {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+            padding: 12px 14px;
+            font-size: 0.84rem;
+            color: #CBD5E1;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .danger-btn {
+            background: rgba(239, 68, 68, 0.14);
+            border: 1px solid rgba(239, 68, 68, 0.35);
+            color: #FCA5A5;
+            padding: 7px 14px;
+            border-radius: 10px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .danger-btn:hover {
+            background: rgba(239, 68, 68, 0.28);
+            color: #FFFFFF;
+        }
+    </style>
+</head>
+<body>
+
+    <nav>
+        <a href="index.html" class="logo">📊 Skol-IF Webbstatistik</a>
+        <div class="nav-right">
+            <button type="button" class="nav-btn" data-skolif-auth-btn>👤 Logga in</button>
+            <a href="kiosk.html" class="nav-btn">☕ Kassan</a>
+            <a href="redskapsboden.html" class="nav-btn">⚽ Redskapsboden</a>
+            <a href="index.html" class="nav-btn">← Till startsidan</a>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div id="adminLockView" class="panel-card" style="max-width: 520px; margin: 60px auto; text-align: center; padding: 36px 28px;">
+            <div style="font-size: 3rem; margin-bottom: 12px;">🔒</div>
+            <h2 style="font-family: 'Outfit', sans-serif; font-size: 1.5rem; font-weight: 900; margin-bottom: 8px; color: #F8FAFC;">Endast för administratören</h2>
+            <p id="adminLockMessage" style="font-size: 0.92rem; color: #94A3B8; line-height: 1.5; margin-bottom: 22px;">
+                Den här statistiksidan är låst och kan endast visas när du är inloggad med <strong>tobias.sellin@gmail.com</strong>.
+            </p>
+            <button type="button" onclick="window.loggaInMedGoogle && window.loggaInMedGoogle()" style="background: linear-gradient(135deg, #10B981, #059669); color: white; border: none; padding: 12px 24px; border-radius: 99px; font-weight: 800; font-size: 0.92rem; cursor: pointer; box-shadow: 0 8px 24px rgba(16, 185, 129, 0.3);">
+                🔑 Logga in med Google
+            </button>
+        </div>
+
+        <div id="adminDashboardContent" style="display: none;">
+        <div class="top-header">
+            <div>
+                <h1>📊 Besöksstatistik – skolifappen.se</h1>
+                <p style="font-size: 0.85rem; color: #94A3B8; margin-top: 2px;">
+                    Visar unika besökare, sidvisningar och mest använda verktyg på hela webbplatsen.
+                </p>
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                <span class="live-pill" id="syncStatusPill">
+                    <span class="live-dot"></span>
+                    <span id="syncStatusText">Ansluter till statistiken...</span>
+                </span>
+            </div>
+        </div>
+
+        <!-- NYCKELTAL (KPI) -->
+        <div class="kpi-grid">
+            <div class="kpi-card">
+                <div class="kpi-top">
+                    <span>Unika besökare</span>
+                    <span class="kpi-icon">👥</span>
+                </div>
+                <div class="kpi-value" id="kpiUnika">0</div>
+                <div class="kpi-sub" id="kpiUnikaIdag">0 unika besökare idag</div>
+            </div>
+
+            <div class="kpi-card">
+                <div class="kpi-top">
+                    <span>Sidvisningar idag</span>
+                    <span class="kpi-icon">👀</span>
+                </div>
+                <div class="kpi-value" id="kpiIdag">0</div>
+                <div class="kpi-sub" id="kpiIgar">Igår: 0 visningar</div>
+            </div>
+
+            <div class="kpi-card">
+                <div class="kpi-top">
+                    <span>Senaste 7 dagarna</span>
+                    <span class="kpi-icon">📈</span>
+                </div>
+                <div class="kpi-value" id="kpi7Dagar">0</div>
+                <div class="kpi-sub" id="kpi30Dagar">Senaste 30 dagarna: 0</div>
+            </div>
+
+            <div class="kpi-card">
+                <div class="kpi-top">
+                    <span>Totala sidvisningar</span>
+                    <span class="kpi-icon">🌐</span>
+                </div>
+                <div class="kpi-value" id="kpiTotalt">0</div>
+                <div class="kpi-sub" id="kpiSessioner">0 besökssessioner totalt</div>
+            </div>
+        </div>
+
+        <div class="main-grid">
+            <!-- VÄNSTER: POPULÄRASTE SIDORNA & VERKTYGEN -->
+            <div class="panel-card">
+                <div class="panel-title">
+                    <span>🏆 Visningar per sida & verktyg</span>
+                    <span class="panel-subtitle">Idag / Totalt</span>
+                </div>
+                <div class="pages-list" id="pagesListContainer"></div>
+            </div>
+
+            <!-- HÖGER: 14-DAGARS DIAGRAM & ENHETER -->
+            <div style="display: flex; flex-direction: column; gap: 18px;">
+                <div class="panel-card">
+                    <div class="panel-title">
+                        <span>📅 Sidvisningar (Senaste 14 dagarna)</span>
+                        <span class="panel-subtitle">Gul stapel = Idag</span>
+                    </div>
+                    <div class="chart-bars" id="dailyChartContainer"></div>
+                </div>
+
+                <div class="panel-card">
+                    <div class="panel-title">
+                        <span>💻 Enheter & Senaste aktivitet</span>
+                    </div>
+                    <div class="device-grid">
+                        <div class="device-box">
+                            <div class="device-emoji">💻</div>
+                            <div class="device-val" id="devDator">0%</div>
+                            <div class="device-lbl" id="devDatorAntal">Dator (0)</div>
+                        </div>
+                        <div class="device-box">
+                            <div class="device-emoji">📱</div>
+                            <div class="device-val" id="devMobil">0%</div>
+                            <div class="device-lbl" id="devMobilAntal">Mobil (0)</div>
+                        </div>
+                        <div class="device-box">
+                            <div class="device-emoji">📟</div>
+                            <div class="device-val" id="devPlatta">0%</div>
+                            <div class="device-lbl" id="devPlattaAntal">Surfplatta (0)</div>
+                        </div>
+                    </div>
+
+                    <div class="meta-box">
+                        <div>🕒 <strong>Senaste sidvisning:</strong> <span id="lastVisitTime">–</span></div>
+                        <div>📍 <strong>Senast besökta sida:</strong> <span id="lastVisitPage">–</span></div>
+                        <div>💡 <strong>Genväg hit (endast för dig):</strong> Knappen <code>📊 Statistik</code> nere i högra hörnet (samt i menyn <em>Mina Klasser</em> och <code>Alt + S</code>) syns bara när du är inloggad som <code>tobias.sellin@gmail.com</code>.</div>
+                    </div>
+
+                    <div style="margin-top: 14px; display: flex; justify-content: flex-end;">
+                        <button type="button" class="danger-btn" onclick="nollstallStatistik()">🗑️ Nollställ statistik</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        </div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="klasser.js"></script>
+
+    <script>
+        const PAGE_META = {
+            index: { label: 'Startsidan (Hem)', icon: '🏠' },
+            kiosk: { label: 'Skol-IF Kassa', icon: '☕' },
+            redskapsboden: { label: 'Redskapsboden', icon: '⚽' },
+            turnering: { label: 'Turneringsgenerator', icon: '🏆' },
+            lagdelaren: { label: 'Lagdelaren', icon: '⚡' },
+            lopning: { label: 'Löpning / Terränglopp', icon: '🏃' },
+            beeptest: { label: 'Beep-test', icon: '📶' },
+            tabata: { label: 'Tabata / Intervalltimer', icon: '⏱️' },
+            hjulet: { label: 'Aktivitetshjulet', icon: '🎡' }
+        };
+
+        const db = firebase.firestore();
+        let statsUnsubscribe = null;
+
+        function getDateStr(daysOffset = 0) {
+            const d = new Date();
+            d.setDate(d.getDate() + daysOffset);
+            return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        }
+
+        function readLocalStatsFallback() {
+            try {
+                const raw = localStorage.getItem('skolif_local_stats_mirror_v1');
+                if (raw) return JSON.parse(raw);
+            } catch (e) {}
+            return {};
+        }
+
+        function renderStats(data, isCloud) {
+            const d = data || {};
+            const todayStr = getDateStr(0);
+            const yesterdayStr = getDateStr(-1);
+            const dagar = d.dagar || {};
+            const sidor = d.sidor || {};
+            const enheter = d.enheter || {};
+
+            const todayObj = dagar[todayStr] || { visningar: 0, besokare: 0, sidor: {} };
+            const yesterdayObj = dagar[yesterdayStr] || { visningar: 0, besokare: 0 };
+
+            // Räkna 7 och 30 dagar
+            let sum7 = 0;
+            let sum30 = 0;
+            for (let i = 0; i < 30; i++) {
+                const ds = getDateStr(-i);
+                const v = (dagar[ds] && Number(dagar[ds].visningar)) || 0;
+                if (i < 7) sum7 += v;
+                sum30 += v;
+            }
+
+            const totalViews = Number(d.totalaSidvisningar) || sum30 || 0;
+            const totalVisitors = Number(d.unikaBesokare) || (totalViews > 0 ? 1 : 0);
+            const totalSessions = Number(d.totalaSessioner) || totalVisitors;
+
+            document.getElementById('kpiUnika').textContent = totalVisitors.toLocaleString('sv-SE');
+            document.getElementById('kpiUnikaIdag').textContent = `${Number(todayObj.besokare) || 0} unika besökare idag`;
+
+            document.getElementById('kpiIdag').textContent = (Number(todayObj.visningar) || 0).toLocaleString('sv-SE');
+            document.getElementById('kpiIgar').textContent = `Igår: ${(Number(yesterdayObj.visningar) || 0).toLocaleString('sv-SE')} visningar`;
+
+            document.getElementById('kpi7Dagar').textContent = sum7.toLocaleString('sv-SE');
+            document.getElementById('kpi30Dagar').textContent = `Senaste 30 dagarna: ${sum30.toLocaleString('sv-SE')}`;
+
+            document.getElementById('kpiTotalt').textContent = totalViews.toLocaleString('sv-SE');
+            document.getElementById('kpiSessioner').textContent = `${totalSessions.toLocaleString('sv-SE')} besökssessioner totalt`;
+
+            // Topplista sidor
+            const allKeys = Object.keys(PAGE_META);
+            const rows = allKeys.map(key => ({
+                key,
+                label: PAGE_META[key].label,
+                icon: PAGE_META[key].icon,
+                total: Number(sidor[key]) || 0,
+                today: Number(todayObj.sidor && todayObj.sidor[key]) || 0
+            })).sort((a, b) => b.total - a.total);
+
+            const maxPageTotal = Math.max(1, ...rows.map(r => r.total));
+            document.getElementById('pagesListContainer').innerHTML = rows.map(r => {
+                const pct = totalViews > 0 ? Math.round((r.total / totalViews) * 100) : 0;
+                const barWidth = r.total > 0 ? Math.max(4, Math.round((r.total / maxPageTotal) * 100)) : 0;
+                return `
+                    <div class="page-row">
+                        <div class="page-row-top">
+                            <div class="page-name">
+                                <span>${r.icon}</span>
+                                <span>${r.label}</span>
+                            </div>
+                            <div class="page-counts">
+                                ${r.today > 0 ? `<span class="page-today-badge">+${r.today} idag</span>` : ''}
+                                <span>${r.total.toLocaleString('sv-SE')} st (${pct}%)</span>
+                            </div>
+                        </div>
+                        <div class="progress-track">
+                            <div class="progress-fill" style="width: ${barWidth}%;"></div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            // 14-dagars diagram
+            const chartDays = [];
+            for (let i = 13; i >= 0; i--) {
+                const ds = getDateStr(-i);
+                const v = (dagar[ds] && Number(dagar[ds].visningar)) || 0;
+                const b = (dagar[ds] && Number(dagar[ds].besokare)) || 0;
+                const label = ds.slice(8, 10) + '/' + ds.slice(5, 7);
+                chartDays.push({ ds, label, v, b, isToday: i === 0 });
+            }
+            const maxDayVal = Math.max(1, ...chartDays.map(c => c.v));
+            document.getElementById('dailyChartContainer').innerHTML = chartDays.map(c => {
+                const h = c.v > 0 ? Math.max(8, Math.round((c.v / maxDayVal) * 125)) : 4;
+                return `
+                    <div class="chart-col" title="${c.ds}: ${c.v} sidvisningar (${c.b} unika besökare)">
+                        <span class="chart-val">${c.v > 0 ? c.v : ''}</span>
+                        <div class="chart-bar ${c.isToday ? 'today' : ''}" style="height: ${h}px;"></div>
+                        <span class="chart-lbl">${c.isToday ? 'Idag' : c.label}</span>
+                    </div>
+                `;
+            }).join('');
+
+            // Enheter
+            const dCnt = Number(enheter.dator) || 0;
+            const mCnt = Number(enheter.mobil) || 0;
+            const pCnt = Number(enheter.surfplatta) || 0;
+            const devSum = Math.max(1, dCnt + mCnt + pCnt);
+
+            document.getElementById('devDator').textContent = (dCnt + mCnt + pCnt > 0 ? Math.round((dCnt / devSum) * 100) : 0) + '%';
+            document.getElementById('devDatorAntal').textContent = `Dator (${dCnt})`;
+
+            document.getElementById('devMobil').textContent = (dCnt + mCnt + pCnt > 0 ? Math.round((mCnt / devSum) * 100) : 0) + '%';
+            document.getElementById('devMobilAntal').textContent = `Mobil (${mCnt})`;
+
+            document.getElementById('devPlatta').textContent = (dCnt + mCnt + pCnt > 0 ? Math.round((pCnt / devSum) * 100) : 0) + '%';
+            document.getElementById('devPlattaAntal').textContent = `Surfplatta (${pCnt})`;
+
+            // Senaste besök
+            if (d.senastUppdaterad) {
+                document.getElementById('lastVisitTime').textContent = new Date(d.senastUppdaterad).toLocaleString('sv-SE', {
+                    day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', second: '2-digit'
+                });
+            }
+            if (d.senastAktivSida && PAGE_META[d.senastAktivSida]) {
+                document.getElementById('lastVisitPage').textContent = `${PAGE_META[d.senastAktivSida].icon} ${PAGE_META[d.senastAktivSida].label}`;
+            }
+
+            const statusText = document.getElementById('syncStatusText');
+            if (statusText) {
+                statusText.textContent = isCloud ? '☁️ Live-statistik (Synkad i realtid)' : '💻 Visar lokal statistik (Logga in för molnstatistik)';
+            }
+        }
+
+        function startListeningStats() {
+            if (statsUnsubscribe) {
+                statsUnsubscribe();
+                statsUnsubscribe = null;
+            }
+
+            statsUnsubscribe = db.collection('skolif_kassa').doc('_webb_statistik_').onSnapshot((docSnap) => {
+                if (docSnap.exists) {
+                    renderStats(docSnap.data(), true);
+                } else {
+                    renderStats(readLocalStatsFallback(), true);
+                }
+            }, (err) => {
+                console.warn('Kunde inte läsa molnstatistik direkt, visar lokal spegling:', err.message);
+                renderStats(readLocalStatsFallback(), false);
+            });
+        }
+
+        async function nollstallStatistik() {
+            if (!confirm('Är du säker på att du vill nollställa besöksstatistiken?')) return;
+            try {
+                localStorage.removeItem('skolif_local_stats_mirror_v1');
+                localStorage.removeItem('skolif_pending_stats_v1');
+                await db.collection('skolif_kassa').doc('_webb_statistik_').set({
+                    kassaId: '_webb_statistik_',
+                    namn: 'Skol-IF Webbstatistik',
+                    totalaSidvisningar: 0,
+                    unikaBesokare: 0,
+                    totalaSessioner: 0,
+                    sidor: {},
+                    enheter: {},
+                    dagar: {},
+                    senastUppdaterad: Date.now()
+                });
+                if (window.visaNotis) window.visaNotis('Statistiken har nollställts!', 'info');
+            } catch (err) {
+                renderStats({}, false);
+                if (window.visaNotis) window.visaNotis('Lokal statistik nollställd (logga in för att nollställa i molnet).', 'warning');
+            }
+        }
+
+        const ADMIN_EMAIL = 'tobias.sellin@gmail.com';
+
+        firebase.auth().onAuthStateChanged((user) => {
+            const lockView = document.getElementById('adminLockView');
+            const dashView = document.getElementById('adminDashboardContent');
+            const lockMsg = document.getElementById('adminLockMessage');
+            const isAdmin = Boolean(user && user.email && user.email.toLowerCase() === ADMIN_EMAIL);
+
+            if (isAdmin) {
+                if (lockView) lockView.style.display = 'none';
+                if (dashView) dashView.style.display = 'block';
+                renderStats(readLocalStatsFallback(), false);
+                startListeningStats();
+            } else {
+                if (statsUnsubscribe) {
+                    statsUnsubscribe();
+                    statsUnsubscribe = null;
+                }
+                if (dashView) dashView.style.display = 'none';
+                if (lockView) lockView.style.display = 'block';
+                if (lockMsg) {
+                    lockMsg.innerHTML = user && user.email
+                        ? `Du är inloggad som <strong>${user.email}</strong>, men statistiken är låst till <strong>${ADMIN_EMAIL}</strong>.`
+                        : `Den här statistiksidan är låst och kan endast visas när du är inloggad med <strong>${ADMIN_EMAIL}</strong>.`;
+                }
+            }
+        });
+    </script>
+</body>
+</html>
+
