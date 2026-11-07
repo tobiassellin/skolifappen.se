@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+Disallow: /statistik.html
+
+Sitemap: https://skolifappen.se/sitemap.xml
