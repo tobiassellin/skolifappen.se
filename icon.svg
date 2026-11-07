@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1E5631"/>
+      <stop offset="50%" stop-color="#143625"/>
+      <stop offset="100%" stop-color="#0A1C13"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FDE047"/>
+      <stop offset="100%" stop-color="#F59E0B"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  <circle cx="256" cy="215" r="126" fill="none" stroke="rgba(255,255,255,0.12)" stroke-width="10"/>
+  <!-- Trophy / Skol-IF Emblem -->
+  <path d="M186 120 h140 v58 c0 44 -30 78 -70 78 s-70 -34 -70 -78 z" fill="url(#gold)"/>
+  <path d="M186 136 h-28 c-14 0 -24 10 -24 24 c0 26 20 46 46 46 h6 v-18 h-6 c-14 0 -28 -12 -28 -28 c0 -4 4 -6 8 -6 h26 z" fill="url(#gold)"/>
+  <path d="M326 136 h28 c14 0 24 10 24 24 c0 26 -20 46 -46 46 h-6 v-18 h6 c14 0 28 -12 28 -28 c0 -4 -4 -6 -8 -6 h-26 z" fill="url(#gold)"/>
+  <rect x="238" y="250" width="36" height="44" rx="6" fill="url(#gold)"/>
+  <rect x="196" y="288" width="120" height="24" rx="10" fill="url(#gold)"/>
+  <!-- Star inside trophy -->
+  <polygon points="256,144 266,166 290,169 272,185 277,209 256,197 235,209 240,185 222,169 246,166" fill="#143625"/>
+  <!-- SKOL-IF Text -->
+  <text x="256" y="412" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" font-weight="900" font-size="68" fill="#FFFFFF" letter-spacing="3">SKOL-IF</text>
+  <text x="256" y="454" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" font-weight="700" font-size="26" fill="#6EE7B7" letter-spacing="4">IDROTTSHUB</text>
+</svg>

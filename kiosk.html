@@ -8,6 +8,9 @@
     <meta name="keywords" content="Skol-IF kassa, skolkiosk, mobilfri skola kassa, Skol-IF förening, elevsaldo kiosk, Skol-IF app">
     <meta name="robots" content="index, follow">
     <link rel="canonical" href="https://skolifappen.se/kiosk.html">
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/svg+xml" href="icon.svg">
+    <link rel="apple-touch-icon" href="icon.svg">
     <meta property="og:title" content="Skol-IF Kassa – Kioskkassa för Skol-IF-föreningar & Mobilfria Skolor">
     <meta property="og:description" content="Digital kioskkassa med elevsaldon och molnsynk för Skol-IF-föreningar och skolor.">
     <meta property="og:url" content="https://skolifappen.se/kiosk.html">
@@ -424,6 +427,7 @@
                 </div>
             </div>
             <div id="varorLista" class="varor-grid"></div>
+            <div id="snabbkorgBanner" style="display: none; background: linear-gradient(135deg, #1B5E20 0%, #2E7D32 100%); color: white; border-radius: 12px; padding: 12px 16px; margin-bottom: 18px; box-shadow: 0 6px 18px rgba(46, 125, 50, 0.25); align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;"></div>
 
             <input type="text" id="sokElev" class="search-box" placeholder="🔍 Sök på elevnamn (eller blippa elevens tagg direkt med USB-läsaren)..." oninput="filtreraOchVisa()">
             <div style="display: flex; justify-content: space-between; align-items: center; gap: 15px; margin-bottom: 20px;">
@@ -2454,6 +2458,130 @@
         // Uppdatera filtreraOchVisa så att:
         // 1. Man även kan söka på tagg-nummer
         // 2. Elever med kopplad blipp får en liten 💳-ikon på sitt kort
+        let snabbkorg = [];
+
+        visaVaror = function(varor) {
+            const div = document.getElementById("varorLista");
+            if (!div) return;
+            div.innerHTML = varor.length === 0 ? "<p style='color:gray;'>Inga varor inlagda.</p>" : 
+                varor.map((v, idx) => {
+                    const arSlut = v.slut === true;
+                    const iKorg = snabbkorg.find(item => item.namn === v.namn && item.pris === v.pris);
+                    const antal = iKorg ? iKorg.antal : 0;
+                    const valdaStil = antal > 0 ? "border: 2px solid #2E7D32; background: #E8F5E9; transform: translateY(-2px); box-shadow: 0 6px 14px rgba(46,125,50,0.18);" : "";
+                    return `
+                    <div class="vara-card ${arSlut ? 'slut' : ''}" style="position: relative; ${valdaStil}" onclick="${arSlut ? '' : `kopFardigVaraIdx(${idx})`}" title="${arSlut ? 'Slut i lager' : 'Klicka för att lägga i snabbkorgen (välj sedan elev eller blippa tagg)'}">
+                        ${arSlut ? '<span class="slut-badge">Slut</span>' : ''}
+                        ${antal > 0 ? `<button type="button" onclick="event.stopPropagation(); minskaSnabbkorgIdx(${idx})" style="position:absolute; top:6px; left:6px; width:24px; height:24px; border-radius:50%; background:#FFEBEE; color:#C62828; border:1px solid #FFCDD2; font-weight:800; font-size:0.85rem; cursor:pointer; display:flex; align-items:center; justify-content:center; line-height:1;" title="Ta bort 1 st">−</button><span style="position:absolute; top:6px; right:6px; background:#2E7D32; color:white; font-size:0.75rem; font-weight:800; padding:2px 8px; border-radius:999px; box-shadow:0 2px 6px rgba(0,0,0,0.15);">${antal}x</span>` : ''}
+                        <div class="vara-emoji">${v.emoji||'🍬'}</div>
+                        <div class="vara-namn">${escapeHtmlKassa(v.namn)}</div>
+                        <div class="vara-pris">${v.pris} kr</div>
+                    </div>`;
+                }).join('');
+            uppdateraSnabbkorgBanner();
+        };
+
+        window.kopFardigVaraIdx = function(idx) {
+            const v = allaVarorCache[idx];
+            if (!v || v.slut) return;
+            kopFardigVara(v.namn, v.pris, v.emoji || '🍬');
+        };
+
+        window.minskaSnabbkorgIdx = function(idx) {
+            const v = allaVarorCache[idx];
+            if (!v) return;
+            const i = snabbkorg.findIndex(item => item.namn === v.namn && item.pris === v.pris);
+            if (i !== -1) {
+                snabbkorg[i].antal--;
+                if (snabbkorg[i].antal <= 0) snabbkorg.splice(i, 1);
+                visaVaror(allaVarorCache);
+                filtreraOchVisa();
+            }
+        };
+
+        window.rensaSnabbkorg = function() {
+            snabbkorg = [];
+            visaVaror(allaVarorCache);
+            filtreraOchVisa();
+        };
+
+        function uppdateraSnabbkorgBanner() {
+            const banner = document.getElementById("snabbkorgBanner");
+            if (!banner) return;
+            if (snabbkorg.length === 0) {
+                banner.style.display = "none";
+                banner.innerHTML = "";
+                return;
+            }
+            const totalPris = snabbkorg.reduce((sum, item) => sum + (item.pris * item.antal), 0);
+            const totalAntal = snabbkorg.reduce((sum, item) => sum + item.antal, 0);
+            const sammanfattning = snabbkorg.map(item => `${item.emoji || '🍬'} <strong>${item.antal}x ${escapeHtmlKassa(item.namn)}</strong>`).join(" + ");
+            banner.style.display = "flex";
+            banner.innerHTML = `
+                <div style="display:flex; flex-direction:column; gap:3px;">
+                    <div style="font-size:0.95rem; font-weight:700;">🛒 Snabbkorg (${totalAntal} st): ${sammanfattning} = <span style="background:rgba(255,255,255,0.22); padding:2px 8px; border-radius:6px; font-weight:800;">${totalPris} kr</span></div>
+                    <div style="font-size:0.8rem; opacity:0.92;">👉 Klicka på en elev nedan eller blippa elevens tagg för direktköp!</div>
+                </div>
+                <button type="button" onclick="rensaSnabbkorg()" style="background:rgba(255,255,255,0.18); color:white; border:1px solid rgba(255,255,255,0.4); padding:7px 14px; border-radius:8px; font-weight:700; font-size:0.82rem; cursor:pointer; white-space:nowrap;">✕ Rensa korg</button>
+            `;
+        }
+
+        kopFardigVara = function(namn, pris, emoji) {
+            if (pris > 0) {
+                const modalEl = document.getElementById("elevModal");
+                if (aktivElevId !== null && modalEl && modalEl.style.display === "flex") {
+                    const e = allaEleverCache.find(x => x.id === aktivElevId);
+                    if (e) {
+                        if (e.saldo - pris < 0) {
+                            visaSaldoVarning("Köpet medges ej! Eleven har för lågt saldo.");
+                            return; 
+                        }
+                        e.saldo -= pris;
+                        laggTillTransaktion("KÖP", pris, namn);
+                        return;
+                    }
+                }
+                const bef = snabbkorg.find(item => item.namn === namn && item.pris === pris);
+                if (bef) {
+                    bef.antal++;
+                } else {
+                    snabbkorg.push({ namn: namn, pris: pris, emoji: emoji || '🍬', antal: 1 });
+                }
+                visaVaror(allaVarorCache);
+                filtreraOchVisa();
+            }
+        };
+
+        window.genomforSnabbkorgKop = function(elevObj) {
+            const e = allaEleverCache.find(x => x.id === elevObj.id);
+            if (!e || snabbkorg.length === 0) return false;
+            const totalPris = snabbkorg.reduce((sum, item) => sum + (item.pris * item.antal), 0);
+            const beskrivning = snabbkorg.map(item => item.antal > 1 ? `${item.antal}x ${item.namn}` : item.namn).join(", ");
+            if (e.saldo - totalPris < 0) {
+                if (typeof spelaBlippLjud === "function") spelaBlippLjud("fel");
+                visaSaldoVarning(`Köpet medges ej! ${e.namn} har ${e.saldo} kr (korgen kostar ${totalPris} kr).`);
+                return false;
+            }
+            e.saldo -= totalPris;
+            const prevAktiv = aktivElevId;
+            aktivElevId = e.id;
+            snabbkorg = [];
+            laggTillTransaktion("KÖP", totalPris, beskrivning);
+            aktivElevId = prevAktiv;
+            visaSaldoVarning(`✅ Direktköp klart! ${e.namn}: -${totalPris} kr (${beskrivning}) • Saldo kvar: ${e.saldo} kr`);
+            return true;
+        };
+
+        const origOppnaModalObj = oppnaModalObj;
+        oppnaModalObj = function(e) {
+            if (snabbkorg.length > 0) {
+                genomforSnabbkorgKop(e);
+                return;
+            }
+            origOppnaModalObj(e);
+        };
+        visaVaror(allaVarorCache);
+
         filtreraOchVisa = function() {
             const q = (document.getElementById("sokElev").value || "").toLowerCase().trim();
             const res = allaEleverCache.filter(e => {
@@ -2819,6 +2947,10 @@
                 bytVy("kiosk");
 
                 // Öppna elevens kassa direkt!
+                if (typeof snabbkorg !== "undefined" && snabbkorg.length > 0) {
+                    genomforSnabbkorgKop(befintligElev);
+                    return;
+                }
                 oppnaModalObj(befintligElev);
 
                 // Visuell grön puls på elevens kassafönster så man ser direkt att blippen registrerades

@@ -1046,6 +1046,40 @@
     function injectStylesAndModal() {
         if (document.getElementById('skolifKlasserStyles')) return;
 
+        // Injicera PWA-manifest och app-ikon automatiskt på alla undersidor
+        if (document.head && !document.querySelector('link[rel="manifest"]')) {
+            const manifestLink = document.createElement('link');
+            manifestLink.rel = 'manifest';
+            manifestLink.href = 'manifest.json';
+            document.head.appendChild(manifestLink);
+
+            const iconLink = document.createElement('link');
+            iconLink.rel = 'icon';
+            iconLink.type = 'image/svg+xml';
+            iconLink.href = 'icon.svg';
+            document.head.appendChild(iconLink);
+
+            const appleIcon = document.createElement('link');
+            appleIcon.rel = 'apple-touch-icon';
+            appleIcon.href = 'icon.svg';
+            document.head.appendChild(appleIcon);
+
+            const themeMeta = document.createElement('meta');
+            themeMeta.name = 'theme-color';
+            themeMeta.content = '#143625';
+            document.head.appendChild(themeMeta);
+
+            const appleCapable = document.createElement('meta');
+            appleCapable.name = 'apple-mobile-web-app-capable';
+            appleCapable.content = 'yes';
+            document.head.appendChild(appleCapable);
+        }
+
+        window.addEventListener('beforeinstallprompt', function (e) {
+            e.preventDefault();
+            window._skolifDeferredInstallPrompt = e;
+        });
+
         const style = document.createElement('style');
         style.id = 'skolifKlasserStyles';
         style.textContent = `
@@ -3023,6 +3057,63 @@
         renderTestHistoryModalContent: renderTestHistoryModalContent,
         deleteTestSession: deleteTestSession,
         exportTestHistoryCSV: exportTestHistoryCSV,
+        openInstallAppModal: function () {
+            if (window._skolifDeferredInstallPrompt) {
+                window._skolifDeferredInstallPrompt.prompt();
+                window._skolifDeferredInstallPrompt.userChoice.then(function () {
+                    window._skolifDeferredInstallPrompt = null;
+                });
+                return;
+            }
+            let modal = document.getElementById('skolifInstallAppModal');
+            if (!modal) {
+                modal = document.createElement('div');
+                modal.id = 'skolifInstallAppModal';
+                modal.className = 'skolif-modal-overlay';
+                modal.onclick = function (e) { if (e.target === modal) modal.classList.remove('visas'); };
+                modal.innerHTML = `
+                    <div class="skolif-modal-box" style="max-width: 480px;">
+                        <div class="skolif-modal-header">
+                            <div>
+                                <h2>📲 Spara Skol-IF som app</h2>
+                                <p>Öppna sidan i helskärm med egen Skol-IF-ikon på hemskärmen</p>
+                            </div>
+                            <button type="button" class="skolif-modal-close" onclick="document.getElementById('skolifInstallAppModal').classList.remove('visas')">✕</button>
+                        </div>
+                        <div class="skolif-modal-body" style="display:flex; flex-direction:column; gap:12px;">
+                            <div style="display:flex; align-items:center; gap:14px; background:#F0FDF4; border:1px solid #BBF7D0; border-radius:12px; padding:12px 14px;">
+                                <img src="icon.svg" alt="Skol-IF Ikon" style="width:52px; height:52px; border-radius:12px; box-shadow:0 4px 10px rgba(0,0,0,0.12); flex-shrink:0;">
+                                <div style="font-size:0.83rem; color:#166534; line-height:1.45;">
+                                    <strong>Skol-IF &amp; Idrott Hub</strong> fungerar som en riktig webbapp (PWA) med denna ikon på iPhone, iPad, Chromebook och dator.
+                                </div>
+                            </div>
+                            <div style="background:#F8FAFC; border:1px solid #E2E8F0; border-radius:12px; padding:12px 14px;">
+                                <div style="font-weight:800; font-size:0.86rem; color:#0F172A; margin-bottom:4px;">🍏 På iPhone &amp; iPad (Safari):</div>
+                                <div style="font-size:0.82rem; color:#334155; line-height:1.5;">
+                                    1. Tryck på <strong>Dela-knappen</strong> (fyrkant med pil uppåt ⬆️) i Safari.<br>
+                                    2. Bläddra ner och välj <strong>”Lägg till på hemskärmen”</strong>.
+                                </div>
+                            </div>
+                            <div style="background:#F8FAFC; border:1px solid #E2E8F0; border-radius:12px; padding:12px 14px;">
+                                <div style="font-weight:800; font-size:0.86rem; color:#0F172A; margin-bottom:4px;">💻 På Dator &amp; Chromebook (Chrome / Edge):</div>
+                                <div style="font-size:0.82rem; color:#334155; line-height:1.5;">
+                                    1. Klicka på <strong>installations-ikonen (📲 / skärm med pil)</strong> längst till höger i adressfältet högst upp.<br>
+                                    2. Eller öppna webbläsarmenyn (<strong>⋮</strong>) &rarr; <strong>”Cast, spara och dela”</strong> &rarr; <strong>”Installera sidan som app”</strong>.
+                                </div>
+                            </div>
+                            <div style="background:#F8FAFC; border:1px solid #E2E8F0; border-radius:12px; padding:12px 14px;">
+                                <div style="font-weight:800; font-size:0.86rem; color:#0F172A; margin-bottom:4px;">🤖 På Android:</div>
+                                <div style="font-size:0.82rem; color:#334155; line-height:1.5;">
+                                    Hämta vår riktiga Android-app direkt på <a href="https://play.google.com/store/apps/details?id=com.sellin.tabatatimer" target="_blank" style="color:#15803D; font-weight:700;">Google Play</a> eller välj <strong>”Lägg till på startskärmen”</strong> i Chrome-menyn.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(modal);
+            }
+            modal.classList.add('visas');
+        },
         onSelect: function (cb) {
             onClassSelectCallback = cb;
             renderAllClassBars();

@@ -8,6 +8,9 @@
     <meta name="keywords" content="uppvärmningshjulet, aktivitetshjul idrott, lyckohjul klassrum, uppvärmningslekar idrott, Skol-IF">
     <meta name="robots" content="index, follow">
     <link rel="canonical" href="https://skolifappen.se/hjulet.html">
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/svg+xml" href="icon.svg">
+    <link rel="apple-touch-icon" href="icon.svg">
     <meta property="og:title" content="Uppvärmningshjulet – Snurra fram lekar, övningar & elever">
     <meta property="og:description" content="Interaktivt hjul för uppvärmning, fysövningar och klasslistor i idrottshallen.">
     <meta property="og:url" content="https://skolifappen.se/hjulet.html">
@@ -525,6 +528,10 @@
         <div class="winner-crown">🎉</div>
         <div class="winner-sub">HJULET HAR TALAT!</div>
         <div class="winner-text" id="winnerText">10 Burpees</div>
+        <div id="winnerDescBox" style="display: none; background: #F0FDF4; border: 1.5px solid #BBF7D0; border-radius: 14px; padding: 14px 16px; margin: 0 0 22px 0; text-align: left; color: #166534; font-size: 0.92rem; line-height: 1.5;">
+            <div style="font-weight: 800; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.5px; color: #15803D; margin-bottom: 4px;">📖 Regler & utförande</div>
+            <div id="winnerDescText" style="color: #1E293B; font-weight: 500;"></div>
+        </div>
 
         <div class="winner-actions">
             <button class="btn-winner-primary" onclick="closeWinnerModal()">🚀 Kör igång!</button>
@@ -543,6 +550,37 @@
     // ==========================================
     //  FÄRDIGA TEMAN / PRESETS
     // ==========================================
+    const EXERCISE_DESCRIPTIONS = {
+        "Kinesiska muren": "En väktare står på mittlinjen. På signal springer alla över till andra sidan. Blir man kullad blir man också väktare på muren!",
+        "Svanskull": "Alla fäster ett västband som 'svans' i byxlinningen. Försök rycka andras svansar samtidigt som du skyddar din egen!",
+        "Skeppsbrott": "Ledaren ropar kommandon: För, Akter, Styrbord, Babord, Kapten kommer (honör), Skura däck eller Livbåtar!",
+        "Spökboll": "Två lag på varsin planhalva med mjuka bollar. Blir du träffad (under axlarna) blir du 'spöke' bakom motståndarnas baslinje tills du bränner någon tillbaka.",
+        "Skräddaren": "Utse 2–3 kullare med mjukboll. Kullarna får inte springa med bollen utan måste passa varandra för att bränna övriga spelare.",
+        "Fruktsallad": "Dela in i fyra frukter i varsitt hörn. Ropas din frukt byter ni hörn – ropas 'Fruktsallad' byter alla plats samtidigt!",
+        "Tunnelkull": "Blir du kullad ställer du dig bredbent med armarna ut. En kompis befriar dig genom att krypa under dig!",
+        "Jägarboll": "En jägare startar med mjukboll. Blir du träffad blir du också jägare. Jägarna passar bollen mellan sig tills alla är tagna!",
+        "Gladiatorerna": "Löpare försöker ta sig från kortsida till kortsida förbi utplacerade 'gladiatorer' som vaktar sina zoner.",
+        "Bollkull": "Vanlig kull där kullaren håller i en mjukboll och kullar genom att nudda eller kasta bollen mot fötterna/benen.",
+        "30s Jägarvila": "Sitt i 90 grader med ryggen pressad mot väggen och låren parallella med golvet i 30 sekunder.",
+        "10 Burpees": "Hoppa ner i plankposition, gör en armhävning (eller bröstet i golvet), hoppa ihop med fötterna och gör ett upphopp med klapp ovanför huvudet – 10 gånger!",
+        "15 Armhävningar": "Håll kroppen rak i plankposition (på tår eller knän). Sänk bröstet mot golvet och pressa upp 15 gånger.",
+        "30s Planka": "Stå på underarmar och tår (eller knän) med spänd mage och rak rygg i 30 sekunder utan att svanka.",
+        "Björngång tvärs hallen": "Gå på händer och fötter med knäna strax ovanför golvet tvärs över hela idrottshallen.",
+        "15 Squat jumps": "Gör en djup knäböj med rak rygg och explodera rakt upp i ett hopp – 15 repetitioner!",
+        "20 Sit-ups": "Ligg på rygg med böjda knän och fötterna i golvet. Lyft överkroppen upp mot knäna 20 gånger.",
+        "30s Skridskohopp": "Hoppa explosivt från sida till sida på ett ben i taget precis som en skridskoåkare under 30 sekunder.",
+        "10 Grodhopp": "Sitt djupt ner på huk och hoppa framåt så långt du kan med mjuk landning – 10 hopp!",
+        "Kräftgång fram & tillbaka": "Sitt med händer och fötter i golvet och magen uppåt. Gå fram till mittlinjen och backa tillbaka!",
+        "2 varv runt hallen": "Jogga i ett jämnt och bra tempo 2 hela varv yttervarv runt idrottshallen.",
+        "30s Höga knän": "Spring på stället med snabba fötter och lyft knäna upp till höfthöjd i 30 sekunder.",
+        "30s Spurt på stället": "Så snabba fötter du bara kan på stället i 30 sekunder – ta med armarna!",
+        "Linjelopp (3 rusher)": "Spring från baslinjen till första linjen och tillbaka, sedan mittlinjen och tillbaka, och sist bortre linjen och tillbaka!",
+        "20 Stjärnhopp": "Hoppa ut med armar och ben som en stjärna (Jumping Jacks) och ihop igen – 20 stycken!",
+        "30s Hälkickar": "Spring på stället och kicka hälarna hela vägen upp mot rumpan i 30 sekunder.",
+        "10 Upphopp & rulla": "Gör ett högt upphopp, sätt dig ner och rulla bakåt på ryggen och res dig direkt utan att ta stöd med händerna – 10 gånger!",
+        "Sidohopp över linje 30s": "Stå jämfota vid en golvlinje och hoppa snabbt sida till sida över linjen i 30 sekunder."
+    };
+
     const PRESETS = {
         lekar: [
             "Kinesiska muren",
@@ -954,6 +992,18 @@
 
         // Öppna vinnarrutan
         document.getElementById('winnerText').textContent = winner;
+        const descBox = document.getElementById('winnerDescBox');
+        const descText = document.getElementById('winnerDescText');
+        if (descBox && descText) {
+            const key = String(winner || '').trim().toLowerCase();
+            const match = Object.keys(EXERCISE_DESCRIPTIONS).find(k => k.toLowerCase() === key);
+            if (match) {
+                descText.textContent = EXERCISE_DESCRIPTIONS[match];
+                descBox.style.display = 'block';
+            } else {
+                descBox.style.display = 'none';
+            }
+        }
         document.getElementById('winnerModal').classList.add('open');
     }
 
