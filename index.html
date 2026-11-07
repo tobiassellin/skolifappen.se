@@ -577,9 +577,17 @@
             <a href="kiosk.html">Skol IF Kassa</a>
             <a href="redskapsboden.html">Redskapsboden</a>
             <a href="turnering.html" id="navTurneringLink">Skapa Turnering</a>
-            <a href="https://forening.idrottsarenan.se" target="_blank" rel="noopener noreferrer" title="Logga in på Idrottsarenan (Arenan) för att registrera LOK-stöd för din Skol-IF-förening">Arenan (LOK-stöd) ↗</a>
+            <div class="nav-dropdown" id="arenanDropdown">
+                <button type="button" class="nav-dropdown-btn" onclick="toggleNavDropdown(event, 'arenanDropdown')">
+                    Arenan (LOK-stöd) <span class="nav-dropdown-arrow">▼</span>
+                </button>
+                <div class="nav-dropdown-menu">
+                    <a href="https://forening.idrottsarenan.se" target="_blank" rel="noopener noreferrer" style="border-bottom: 1px solid #EBEFEA; margin-bottom: 4px;" title="Öppna Riksidrottsförbundets Idrottsarenan i ny flik"><span>🏟️</span> Öppna Arenan (Logga in) ↗</a>
+                    <a href="#" onclick="event.preventDefault(); SkolIFKlasser.openLokModal();"><span>📋</span> LOK-aktiviteter &amp; Närvaro</a>
+                </div>
+            </div>
             <div class="nav-dropdown" id="idrottDropdown">
-                <button type="button" class="nav-dropdown-btn" onclick="toggleNavDropdown(event)">
+                <button type="button" class="nav-dropdown-btn" onclick="toggleNavDropdown(event, 'idrottDropdown')">
                     Idrottsläraren <span class="nav-dropdown-arrow">▼</span>
                 </button>
                 <div class="nav-dropdown-menu">
@@ -921,16 +929,20 @@
         window.addEventListener('focus', uppdateraTurneringStatus);
         window.addEventListener('pageshow', uppdateraTurneringStatus);
 
-        // 6. Dropdown för Idrottsläraren i menyn
-        function toggleNavDropdown(event) {
+        // 6. Dropdowns i menyn (Arenan & Idrottsläraren)
+        function toggleNavDropdown(event, dropdownId = "idrottDropdown") {
             event.stopPropagation();
-            const dropdown = document.getElementById("idrottDropdown");
-            if (dropdown) dropdown.classList.toggle("active");
+            document.querySelectorAll(".nav-dropdown").forEach(el => {
+                if (el.id === dropdownId) {
+                    el.classList.toggle("active");
+                } else {
+                    el.classList.remove("active");
+                }
+            });
         }
 
         document.addEventListener("click", () => {
-            const dropdown = document.getElementById("idrottDropdown");
-            if (dropdown) dropdown.classList.remove("active");
+            document.querySelectorAll(".nav-dropdown").forEach(el => el.classList.remove("active"));
         });
     </script>
 </body>
