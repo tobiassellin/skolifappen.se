@@ -15,6 +15,7 @@
     <meta property="og:description" content="Generera spelschema, livestatistik, tabeller och slutspelsträd direkt i webbläsaren.">
     <meta property="og:url" content="https://skolifappen.se/turnering.html">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif; }
@@ -275,13 +276,28 @@
         /* ====== PRINT / PDF STYLING ====== */
         @media print {
             body { background: white; color: black; }
-            nav, .nav-btn, .btn, .tabs, .quick-fill-chips, .sb-timer-controls, #setupView { display: none !important; }
+            nav, .nav-btn, .btn, .tabs, .quick-fill-chips, .sb-timer-controls, #setupView, .match-actions, #activeTourHeaderActions, .modal-overlay { display: none !important; }
+            #activeTourHeaderCard { display: none !important; }
             .container { max-width: 100%; margin: 0; padding: 0; }
             .card { box-shadow: none; border: 1px solid #ccc; padding: 12px; margin-bottom: 12px; page-break-inside: avoid; }
-            .match-card { box-shadow: none; border: 1px solid #ccc !important; }
-            .print-header { display: block !important; margin-bottom: 20px; text-align: center; }
+            .match-card { box-shadow: none; border: 1px solid #ccc !important; page-break-inside: avoid; }
+            .print-header {
+                display: flex !important;
+                justify-content: space-between;
+                align-items: center;
+                gap: 20px;
+                margin-bottom: 22px;
+                padding-bottom: 16px;
+                border-bottom: 2.5px solid #1E3A24;
+                text-align: left;
+            }
         }
         .print-header { display: none; }
+        body.public-live-mode .match-actions,
+        body.public-live-mode #clearBtn,
+        body.public-live-mode #editTitleBtn {
+            display: none !important;
+        }
     </style>
 </head>
 <body>
@@ -292,6 +308,7 @@
         <button class="nav-btn" onclick="SkolIFKlasser.openModal()">📋 Mina Klasser</button>
         <button class="nav-btn" data-skolif-auth-btn>👤 Logga in</button>
         <button class="nav-btn" onclick="toggleFullscreen()" title="Fullskärm för projektor / TV">📺 Storskärm</button>
+        <button class="nav-btn" id="qrLiveBtn" onclick="oppnaQrLiveModal()" style="display:none; background:rgba(34,197,94,0.28); border-color:#4ADE80;">📱 QR-kod (Live)</button>
         <button class="nav-btn gold" id="printBtn" onclick="skrivUtSpelschema()" style="display:none;">📄 Skriv ut / PDF</button>
         <button class="nav-btn" id="exportBtn" onclick="exporteraCSV()" style="display:none;">📊 Exportera CSV</button>
         <button class="nav-btn" id="clearBtn" onclick="nollstallTurnering()" style="display:none; background:rgba(198,40,40,0.4);">🗑️ Ny turnering</button>
@@ -301,10 +318,20 @@
 
 <div class="container">
 
-    <!-- Utskrifts-rubrik (visas bara vid print) -->
+    <!-- Utskrifts-rubrik med QR-kod (visas vid utskrift / PDF) -->
     <div class="print-header">
-        <h1 style="color:#2E7D32; font-size:1.8rem; font-weight:900;">Skol-IF Turnering</h1>
-        <p style="color:#666; font-size:0.9rem;">Spelschema & Tabeller</p>
+        <div style="flex:1;">
+            <div style="font-size:0.78rem; font-weight:800; color:#2E7D32; text-transform:uppercase; letter-spacing:1px; margin-bottom:2px;">🏆 Officiellt Spelschema &amp; Grupper</div>
+            <h1 id="printTourTitle" style="color:#1E3A24; font-size:2rem; font-weight:900; line-height:1.15; margin-bottom:4px;">Skol-IF Turnering</h1>
+            <p id="printTourSub" style="color:#475569; font-size:0.9rem; font-weight:600;">Spelschema, tabeller &amp; liveresultat</p>
+        </div>
+        <div style="display:flex; align-items:center; gap:12px; border:2px solid #1E3A24; border-radius:12px; padding:10px 14px; background:#F8FAFC; max-width:320px;">
+            <div id="printQrBox" style="width:88px; height:88px; flex-shrink:0; display:flex; align-items:center; justify-content:center; background:white; padding:4px; border-radius:8px; border:1px solid #CBD5E1;"></div>
+            <div style="font-size:0.76rem; line-height:1.35; color:#1E293B;">
+                <div style="font-weight:900; font-size:0.84rem; color:#15803D; margin-bottom:3px;">📱 FÖLJ TURNERINGEN LIVE!</div>
+                Skanna QR-koden med kameran för att följa <strong>aktuella resultat, tabeller &amp; slutspel</strong> live i mobilen.
+            </div>
+        </div>
     </div>
 
     <!-- ========================================== -->
@@ -315,6 +342,11 @@
             <div class="card-header">
                 <div class="card-title">⚙️ Skapa ny turnering</div>
                 <span style="font-size:0.85rem; color:#666;">Fyll i detaljerna så skapas spelschema & tabeller automatiskt!</span>
+            </div>
+
+            <div class="form-group" style="margin-bottom:18px;">
+                <label for="tournamentTitleInput">🏷️ Rubrik / Namn på turneringen:</label>
+                <input type="text" id="tournamentTitleInput" value="Skol-IF Turnering" placeholder="T.ex. Skol-IF Höstcupen, Klasskampen Åk 7–9, Julcupen i Innebandy..." style="font-weight:700; font-size:1.05rem;">
             </div>
 
             <!-- Snabb-mallar -->
@@ -417,9 +449,14 @@
 
             <div id="errorMessage" style="display:none; color:#C62828; font-weight:700; margin-bottom:14px; background:#FFEBEE; padding:12px; border-radius:8px;"></div>
 
-            <button class="btn btn-gold" style="width:100%; justify-content:center; padding:14px; font-size:1.05rem;" onclick="genereraTurnering()">
-                🏆 Generera Turnering & Spelschema
-            </button>
+            <div style="display:flex; gap:12px; flex-wrap:wrap;">
+                <button type="button" class="btn btn-green" style="flex:1.2; min-width:250px; justify-content:center; padding:15px 18px; font-size:1.03rem; background:linear-gradient(135deg, #15803D 0%, #166534 100%); box-shadow:0 6px 18px rgba(21,128,61,0.28);" onclick="oppnaLiveLottning()">
+                    🎡 Öppen Grupplottning med Hjul (Live på skärmen)
+                </button>
+                <button type="button" class="btn btn-gold" style="flex:1; min-width:220px; justify-content:center; padding:15px 18px; font-size:1.03rem;" onclick="genereraTurnering()">
+                    ⚡ Slumpa &amp; skapa spelschema direkt
+                </button>
+            </div>
         </div>
     </div>
 
@@ -427,6 +464,28 @@
     <!-- VY 2: PÅGÅENDE TURNERING (SPELSCHEMA & TABELLER) -->
     <!-- ========================================== -->
     <div id="activeView" style="display:none;">
+
+        <!-- Turneringsrubrik & Live/QR-kort -->
+        <div id="activeTourHeaderCard" class="card" style="padding:18px 22px; margin-bottom:18px; display:flex; justify-content:space-between; align-items:center; gap:14px; flex-wrap:wrap; background:linear-gradient(135deg, #143625 0%, #1E5631 100%); color:white; border:none;">
+            <div>
+                <div id="publicLiveBadge" style="display:none; background:rgba(34,197,94,0.25); color:#86EFAC; border:1px solid #4ADE80; padding:3px 10px; border-radius:999px; font-size:0.75rem; font-weight:800; margin-bottom:6px; width:fit-content;">
+                    🟢 LIVE – PUBLIKVY (Uppdateras automatiskt i realtid)
+                </div>
+                <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+                    <h2 id="activeTourTitleHeading" style="font-size:1.55rem; font-weight:900; margin:0; color:#FFFFFF;">🏆 Skol-IF Turnering</h2>
+                    <button type="button" id="editTitleBtn" onclick="redigeraTurneringsRubrik()" style="background:rgba(255,255,255,0.14); color:white; border:1px solid rgba(255,255,255,0.28); padding:4px 10px; border-radius:8px; font-size:0.76rem; font-weight:700; cursor:pointer;" title="Ändra turneringens rubrik">✏️ Byt rubrik</button>
+                </div>
+                <div id="activeTourSubInfo" style="font-size:0.83rem; color:rgba(255,255,255,0.82); margin-top:2px;">Spelschema, tabeller &amp; liveresultat</div>
+            </div>
+            <div id="activeTourHeaderActions" style="display:flex; gap:8px; flex-wrap:wrap;">
+                <button type="button" class="btn btn-gold btn-sm" onclick="oppnaQrLiveModal()" style="padding:9px 14px; font-size:0.84rem;">
+                    📱 Visa QR-kod (Publik-live)
+                </button>
+                <button type="button" class="btn btn-sm" onclick="skrivUtSpelschema()" style="background:rgba(255,255,255,0.16); color:white; border:1px solid rgba(255,255,255,0.35); padding:9px 14px; font-size:0.84rem;">
+                    📄 Skriv ut med QR-kod
+                </button>
+            </div>
+        </div>
 
         <!-- Vinnar-banner om finalen är avgjord -->
         <div id="winnerBanner" class="winner-banner" style="display:none;">
@@ -541,6 +600,101 @@
     </div>
 </div>
 
+<!-- ====== MODAL: ÖPPEN GRUPPLOTTNING MED HJUL ====== -->
+<div class="modal-overlay" id="liveDrawModal" style="z-index:1200;">
+    <div class="modal-content" style="max-width:1020px; width:96%; padding:24px 26px; background:linear-gradient(160deg, #0B1F14 0%, #133322 100%); color:#F8FAFC; border:1.5px solid rgba(255,255,255,0.14);">
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:16px; flex-wrap:wrap; border-bottom:1px solid rgba(255,255,255,0.12); padding-bottom:14px;">
+            <div>
+                <div style="font-size:1.35rem; font-weight:900; color:#FDE047; display:flex; align-items:center; gap:8px;">
+                    🎡 Öppen Grupplottning
+                    <span style="background:rgba(34,197,94,0.2); color:#86EFAC; border:1px solid rgba(134,239,172,0.35); font-size:0.74rem; padding:3px 10px; border-radius:999px; font-weight:700;">100 % Rättvis Lottning</span>
+                </div>
+                <div style="font-size:0.84rem; color:#CBD5E1; margin-top:2px;">Snurra fram lagen ett i taget inför klassen/lagen så alla ser hur grupperna lottas!</div>
+            </div>
+            <div style="display:flex; gap:8px; align-items:center;">
+                <button type="button" id="drawSoundBtn" onclick="toggleDrawSound()" style="background:rgba(255,255,255,0.1); color:#F8FAFC; border:1px solid rgba(255,255,255,0.2); padding:7px 12px; border-radius:8px; font-weight:700; font-size:0.8rem; cursor:pointer;">🔊 Ljud PÅ</button>
+                <button type="button" onclick="stangLiveLottning()" style="background:rgba(255,255,255,0.1); color:#F8FAFC; border:1px solid rgba(255,255,255,0.2); padding:7px 12px; border-radius:8px; font-weight:800; font-size:0.9rem; cursor:pointer;">✕</button>
+            </div>
+        </div>
+
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(310px, 1fr)); gap:24px; align-items:start;">
+            <!-- VÄNSTER: LOTTNINGSHJULET -->
+            <div style="display:flex; flex-direction:column; align-items:center; background:rgba(0,0,0,0.24); border:1px solid rgba(255,255,255,0.1); border-radius:16px; padding:18px;">
+                <div id="drawNextTargetBadge" style="width:100%; text-align:center; background:rgba(253,224,71,0.14); border:1.5px solid rgba(253,224,71,0.45); color:#FDE047; padding:9px 12px; border-radius:10px; font-weight:800; font-size:0.92rem; margin-bottom:14px;">
+                    🎯 Nästa snurr placeras i: Grupp A (Plats 1)
+                </div>
+
+                <div style="position:relative; width:310px; height:310px; display:flex; align-items:center; justify-content:center; margin-bottom:14px;">
+                    <!-- Pil högst upp -->
+                    <div style="position:absolute; top:-10px; left:50%; transform:translateX(-50%); z-index:5; width:0; height:0; border-left:15px solid transparent; border-right:15px solid transparent; border-top:26px solid #FDE047; filter:drop-shadow(0 3px 6px rgba(0,0,0,0.5));"></div>
+                    <canvas id="drawWheelCanvas" width="310" height="310" style="border-radius:50%; box-shadow:0 10px 30px rgba(0,0,0,0.45); cursor:pointer;" onclick="snurraLottningshjul()"></canvas>
+                </div>
+
+                <div id="drawLastResultBanner" style="min-height:42px; width:100%; display:flex; align-items:center; justify-content:center; text-align:center; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); border-radius:10px; padding:8px 12px; font-weight:700; font-size:0.9rem; color:#E2E8F0; margin-bottom:12px;">
+                    Klicka på hjulet eller knappen nedan för att dra första laget!
+                </div>
+
+                <div style="display:flex; gap:10px; width:100%; flex-wrap:wrap;">
+                    <button type="button" id="drawSpinBtn" onclick="snurraLottningshjul()" class="btn btn-gold" style="flex:1.4; justify-content:center; padding:12px 14px; font-size:0.95rem;">
+                        🎡 Snurra fram nästa lag!
+                    </button>
+                    <button type="button" id="drawAutoBtn" onclick="toggleAutoLottning()" style="flex:1; background:rgba(255,255,255,0.12); color:#F8FAFC; border:1px solid rgba(255,255,255,0.25); border-radius:10px; padding:12px 12px; font-weight:700; font-size:0.84rem; cursor:pointer;">
+                        ⏩ Lotta resten auto
+                    </button>
+                </div>
+            </div>
+
+            <!-- HÖGER: GRUPPERNA SOM FYLLS PÅ LIVE -->
+            <div style="display:flex; flex-direction:column; gap:14px;">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <span style="font-weight:800; font-size:1rem; color:#F8FAFC;">📋 Lottade grupper</span>
+                    <span id="drawProgressText" style="font-size:0.82rem; font-weight:700; color:#86EFAC; background:rgba(34,197,94,0.16); padding:3px 10px; border-radius:999px;">0 av 0 lag lottade</span>
+                </div>
+
+                <div id="drawGroupsBoard" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:12px; max-height:390px; overflow-y:auto; padding-right:4px;"></div>
+
+                <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; border-top:1px solid rgba(255,255,255,0.12); padding-top:14px; margin-top:4px;">
+                    <button type="button" onclick="startaOmLiveLottning()" style="background:rgba(255,255,255,0.09); color:#E2E8F0; border:1px solid rgba(255,255,255,0.2); padding:10px 14px; border-radius:10px; font-weight:700; font-size:0.84rem; cursor:pointer;">
+                        🔄 Börja om lottningen
+                    </button>
+                    <button type="button" id="drawConfirmBtn" onclick="bekraftaLottadTurnering()" class="btn btn-gold" style="padding:12px 20px; font-size:0.95rem; opacity:0.5; pointer-events:none;">
+                        🏆 Bekräfta grupper &amp; Skapa spelschema →
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ====== MODAL: QR-KOD & PUBLIK-LÄNK (FÖLJ LIVE) ====== -->
+<div class="modal-overlay" id="qrLiveModal" style="z-index:1250;">
+    <div class="modal-content" style="max-width:460px; text-align:center;">
+        <button class="modal-close" onclick="closeModal('qrLiveModal')">✕</button>
+        <div style="font-size:2.2rem; margin-bottom:4px;">📱</div>
+        <div class="modal-title" style="margin-bottom:6px;">Följ turneringen LIVE</div>
+        <p style="font-size:0.86rem; color:#555; margin-bottom:16px;">
+            Publik, elever och lärare kan skanna QR-koden med mobilkameran för att följa <strong>spelschema, tabeller och resultat i realtid</strong> (skrivskyddad publikvy).
+        </p>
+
+        <div style="display:flex; flex-direction:column; align-items:center; background:#F8FAFC; border:2px solid #E2E8F0; border-radius:16px; padding:18px; margin-bottom:16px;">
+            <div id="modalQrBox" style="background:white; padding:12px; border-radius:12px; border:1px solid #CBD5E1; display:inline-flex; align-items:center; justify-content:center; min-width:190px; min-height:190px; margin-bottom:10px;"></div>
+            <div id="modalQrTourTitle" style="font-weight:800; font-size:1rem; color:#1E3A24;">Skol-IF Turnering</div>
+            <div style="font-size:0.76rem; color:#15803D; font-weight:700; margin-top:2px;">🟢 Uppdateras automatiskt vid varje mål &amp; matchslut</div>
+        </div>
+
+        <div style="display:flex; gap:8px; margin-bottom:14px;">
+            <input type="text" id="livePublicUrlInput" readonly style="flex:1; font-size:0.8rem; padding:9px 10px; background:#F1F5F9; color:#334155; border:1px solid #CBD5E1; border-radius:8px;">
+            <button type="button" class="btn btn-outline btn-sm" onclick="kopieraPublikLank()">📋 Kopiera länk</button>
+        </div>
+
+        <div style="display:flex; gap:10px; justify-content:center; flex-wrap:wrap;">
+            <button type="button" class="btn btn-gold" style="width:100%; justify-content:center;" onclick="closeModal('qrLiveModal'); skrivUtSpelschema();">
+                📄 Skriv ut spelschema med QR-kod
+            </button>
+        </div>
+    </div>
+</div>
+
 <!-- FIREBASE & MINA KLASSER I MOLNET -->
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
@@ -553,7 +707,12 @@
 // ==========================================
 const STORAGE_KEY = 'skolif_turnering_data';
 
+let isPublicLiveView = false;
+let livePublicUnsubscribe = null;
+
 let tournamentState = {
+    title: 'Skol-IF Turnering',
+    liveId: '',
     phase: 'SETUP',          // SETUP, GROUP, ROUND_OF_16, QUARTERS, SEMIS, FINAL, DONE
     sport: 'GENERIC',
     settings: {
@@ -581,6 +740,37 @@ let liveTimerRunning = false;
 let liveHomeScore = 0;
 let liveAwayScore = 0;
 
+function ensureTournamentLiveId() {
+    if (!tournamentState.liveId) {
+        tournamentState.liveId = 'cup_' + Math.random().toString(36).slice(2, 8);
+    }
+    if (!tournamentState.title) {
+        tournamentState.title = 'Skol-IF Turnering';
+    }
+}
+
+function getLivePublicUrl() {
+    ensureTournamentLiveId();
+    const base = (window.location.origin && window.location.origin !== 'null' && !window.location.origin.startsWith('file:'))
+        ? (window.location.origin + window.location.pathname)
+        : 'https://skolifappen.se/turnering.html';
+    return `${base}?live=${encodeURIComponent(tournamentState.liveId)}`;
+}
+
+function syncTournamentToCloud() {
+    if (isPublicLiveView) return;
+    ensureTournamentLiveId();
+    if (typeof firebase !== 'undefined' && firebase.firestore) {
+        try {
+            const db = firebase.firestore();
+            db.collection('skolif_kassa').doc('turnering_' + tournamentState.liveId).set({
+                liveTournamentData: JSON.stringify(tournamentState),
+                senastUppdaterad: Date.now()
+            }, { merge: true }).catch(() => {});
+        } catch (e) {}
+    }
+}
+
 // ==========================================
 //  INITIALISERING & LOCALSTORAGE
 // ==========================================
@@ -591,6 +781,7 @@ function loadLocalTournament() {
             const parsed = JSON.parse(raw);
             if (parsed && parsed.schedule && parsed.schedule.length > 0) {
                 tournamentState = parsed;
+                ensureTournamentLiveId();
             }
         }
     } catch(e) {
@@ -599,11 +790,15 @@ function loadLocalTournament() {
 }
 
 function saveLocalTournament() {
+    if (isPublicLiveView) return;
+    ensureTournamentLiveId();
     try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(tournamentState));
     } catch(e) {
         console.error('Kunde inte spara lokal turnering:', e);
     }
+    syncTournamentToCloud();
+    uppdateraQrKoder();
 }
 
 // ==========================================
@@ -811,7 +1006,477 @@ function formatMinutes(min) {
     return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
 }
 
-function genereraTurnering() {
+// ==========================================
+//  ÖPPEN GRUPPLOTTNING MED HJUL (LIVE PÅ SKÄRMEN)
+// ==========================================
+let liveDrawState = {
+    remainingTeams: [],
+    groupLists: [],
+    totalTeams: 0,
+    drawnCount: 0,
+    numGroups: 1,
+    slotSizes: [],
+    targetOrder: [], // [{ groupIndex, slotIndex }]
+    wheelAngle: 0,
+    isSpinning: false,
+    autoDrawing: false,
+    soundEnabled: true,
+    audioCtx: null
+};
+
+const DRAW_WHEEL_COLORS = [
+    '#15803D', '#1D4ED8', '#B45309', '#7E22CE',
+    '#BE123C', '#0F766E', '#4338CA', '#C2410C',
+    '#166534', '#0369A1', '#A16207', '#6D28D9'
+];
+
+function getDrawAudioCtx() {
+    if (!liveDrawState.soundEnabled) return null;
+    if (!liveDrawState.audioCtx) {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (AudioCtx) liveDrawState.audioCtx = new AudioCtx();
+    }
+    if (liveDrawState.audioCtx && liveDrawState.audioCtx.state === 'suspended') {
+        liveDrawState.audioCtx.resume();
+    }
+    return liveDrawState.audioCtx;
+}
+
+function playDrawTick() {
+    const ctx = getDrawAudioCtx();
+    if (!ctx) return;
+    try {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(620, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(220, ctx.currentTime + 0.035);
+        gain.gain.setValueAtTime(0.14, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.035);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.04);
+    } catch (e) {}
+}
+
+function playDrawWinFanfare() {
+    const ctx = getDrawAudioCtx();
+    if (!ctx) return;
+    try {
+        const notes = [523.25, 659.25, 783.99, 1046.5];
+        notes.forEach((freq, idx) => {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'sine';
+            const t = ctx.currentTime + idx * 0.07;
+            osc.frequency.setValueAtTime(freq, t);
+            gain.gain.setValueAtTime(0.16, t);
+            gain.gain.exponentialRampToValueAtTime(0.001, t + 0.22);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start(t);
+            osc.stop(t + 0.23);
+        });
+    } catch (e) {}
+}
+
+function toggleDrawSound() {
+    liveDrawState.soundEnabled = !liveDrawState.soundEnabled;
+    const btn = document.getElementById('drawSoundBtn');
+    if (btn) {
+        btn.textContent = liveDrawState.soundEnabled ? '🔊 Ljud PÅ' : '🔇 Ljud AV';
+    }
+}
+
+function valideraTurneringsInput() {
+    const errorEl = document.getElementById('errorMessage');
+    errorEl.style.display = 'none';
+    errorEl.textContent = '';
+
+    const rawTeams = document.getElementById('teamsInput').value;
+    const teams = rawTeams.split(/[,;\n]/).map(t => t.trim()).filter(t => t.length > 0);
+
+    if (teams.length < 2) {
+        visaFel('Du måste ange minst 2 lag för att starta en turnering.');
+        return null;
+    }
+
+    const uniqueSet = new Set(teams);
+    if (uniqueSet.size !== teams.length) {
+        visaFel('Varje lag måste ha ett unikt namn. Det finns lag med samma namn i listan.');
+        return null;
+    }
+
+    const numGroups = Math.max(1, parseInt(document.getElementById('groupCount').value) || 1);
+    const advance = parseInt(document.getElementById('teamsToAdvance').value) || 4;
+
+    if (teams.length < numGroups * 2) {
+        visaFel(`Med ${teams.length} lag kan du max ha ${Math.floor(teams.length / 2)} grupper. Varje grupp måste ha minst 2 lag.`);
+        return null;
+    }
+
+    if (advance > teams.length) {
+        visaFel(`Du kan inte välja ${advance} slutspelslag när turneringen bara har ${teams.length} lag.`);
+        return null;
+    }
+
+    return { teams, numGroups, advance };
+}
+
+function oppnaLiveLottning() {
+    const valid = valideraTurneringsInput();
+    if (!valid) return;
+
+    startaOmLiveLottning();
+    document.getElementById('liveDrawModal').classList.add('open');
+}
+
+function stangLiveLottning() {
+    liveDrawState.autoDrawing = false;
+    liveDrawState.isSpinning = false;
+    document.getElementById('liveDrawModal').classList.remove('open');
+}
+
+function startaOmLiveLottning() {
+    const valid = valideraTurneringsInput();
+    if (!valid) return;
+
+    liveDrawState.autoDrawing = false;
+    liveDrawState.isSpinning = false;
+    liveDrawState.remainingTeams = [...valid.teams];
+    liveDrawState.totalTeams = valid.teams.length;
+    liveDrawState.drawnCount = 0;
+    liveDrawState.numGroups = valid.numGroups;
+    liveDrawState.groupLists = Array.from({ length: valid.numGroups }, () => []);
+    liveDrawState.targetOrder = [];
+
+    // Beräkna exakt hur många platser varje grupp ska ha och i vilken ordning de lottas (Pot 1: Grupp A, B, C... Pot 2: Grupp A, B, C...)
+    for (let i = 0; i < valid.teams.length; i++) {
+        const gIdx = i % valid.numGroups;
+        const sIdx = Math.floor(i / valid.numGroups);
+        liveDrawState.targetOrder.push({ groupIndex: gIdx, slotIndex: sIdx });
+    }
+
+    const banner = document.getElementById('drawLastResultBanner');
+    if (banner) {
+        banner.style.background = 'rgba(255,255,255,0.06)';
+        banner.style.borderColor = 'rgba(255,255,255,0.12)';
+        banner.style.color = '#E2E8F0';
+        banner.innerHTML = 'Klicka på <strong>Snurra fram nästa lag!</strong> för att börja den öppna lottningen.';
+    }
+
+    const autoBtn = document.getElementById('drawAutoBtn');
+    if (autoBtn) autoBtn.textContent = '⏩ Lotta resten auto';
+
+    uppdateraLiveDrawUI();
+    ritaLottningshjul();
+}
+
+function getGroupDisplayName(gIdx) {
+    return liveDrawState.numGroups === 1 ? 'Spelordning (Gruppspel)' : `Grupp ${String.fromCharCode(65 + gIdx)}`;
+}
+
+function uppdateraLiveDrawUI() {
+    const nextBadge = document.getElementById('drawNextTargetBadge');
+    const progEl = document.getElementById('drawProgressText');
+    const spinBtn = document.getElementById('drawSpinBtn');
+    const autoBtn = document.getElementById('drawAutoBtn');
+    const confirmBtn = document.getElementById('drawConfirmBtn');
+    const board = document.getElementById('drawGroupsBoard');
+
+    if (progEl) {
+        progEl.textContent = `${liveDrawState.drawnCount} av ${liveDrawState.totalTeams} lag lottade`;
+    }
+
+    const nextTarget = liveDrawState.targetOrder[liveDrawState.drawnCount] || null;
+
+    if (nextTarget) {
+        const grpName = getGroupDisplayName(nextTarget.groupIndex);
+        if (nextBadge) {
+            nextBadge.style.background = 'rgba(253,224,71,0.14)';
+            nextBadge.style.borderColor = 'rgba(253,224,71,0.45)';
+            nextBadge.style.color = '#FDE047';
+            nextBadge.innerHTML = `🎯 Nästa snurr placeras i: <strong>${grpName}</strong> (Plats ${nextTarget.slotIndex + 1})`;
+        }
+        if (spinBtn) {
+            spinBtn.disabled = liveDrawState.isSpinning;
+            spinBtn.style.opacity = liveDrawState.isSpinning ? '0.6' : '1';
+            if (liveDrawState.remainingTeams.length === 1) {
+                spinBtn.innerHTML = `🎯 Placera sista laget (${liveDrawState.remainingTeams[0]}) →`;
+            } else {
+                spinBtn.innerHTML = `🎡 Snurra fram nästa lag! (${liveDrawState.remainingTeams.length} kvar)`;
+            }
+        }
+        if (autoBtn) {
+            autoBtn.style.display = liveDrawState.remainingTeams.length > 1 ? 'inline-block' : 'none';
+            autoBtn.textContent = liveDrawState.autoDrawing ? '⏸️ Pausa auto' : '⏩ Lotta resten auto';
+        }
+        if (confirmBtn) {
+            confirmBtn.style.opacity = '0.45';
+            confirmBtn.style.pointerEvents = 'none';
+        }
+    } else {
+        if (nextBadge) {
+            nextBadge.style.background = 'rgba(34,197,94,0.2)';
+            nextBadge.style.borderColor = '#4ADE80';
+            nextBadge.style.color = '#86EFAC';
+            nextBadge.innerHTML = `✅ Alla ${liveDrawState.totalTeams} lag är lottade i sina grupper!`;
+        }
+        if (spinBtn) {
+            spinBtn.disabled = true;
+            spinBtn.style.opacity = '0.45';
+            spinBtn.innerHTML = `✅ Lottningen är klar!`;
+        }
+        if (autoBtn) {
+            autoBtn.style.display = 'none';
+        }
+        if (confirmBtn) {
+            confirmBtn.style.opacity = '1';
+            confirmBtn.style.pointerEvents = 'auto';
+        }
+    }
+
+    // Rendera gruppkorten med alla platser
+    if (board) {
+        let html = '';
+        for (let g = 0; g < liveDrawState.numGroups; g++) {
+            const grpName = getGroupDisplayName(g);
+            const slotsForGroup = liveDrawState.targetOrder.filter(t => t.groupIndex === g).length;
+            const currentTeams = liveDrawState.groupLists[g] || [];
+
+            html += `
+                <div style="background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.14); border-radius:12px; padding:12px;">
+                    <div style="font-weight:800; font-size:0.92rem; color:#FDE047; margin-bottom:8px; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:6px; display:flex; justify-content:space-between;">
+                        <span>${grpName}</span>
+                        <span style="font-size:0.75rem; color:#94A3B8;">${currentTeams.length}/${slotsForGroup}</span>
+                    </div>
+                    <div style="display:flex; flex-direction:column; gap:6px;">
+            `;
+
+            for (let s = 0; s < slotsForGroup; s++) {
+                const teamName = currentTeams[s];
+                const isNextSlot = nextTarget && nextTarget.groupIndex === g && nextTarget.slotIndex === s;
+
+                if (teamName) {
+                    html += `
+                        <div style="background:rgba(34,197,94,0.18); border:1px solid rgba(74,222,128,0.45); color:#F8FAFC; padding:7px 10px; border-radius:8px; font-size:0.84rem; font-weight:700; display:flex; align-items:center; gap:8px;">
+                            <span style="background:#22C55E; color:#052E16; width:20px; height:20px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:0.72rem; font-weight:900; flex-shrink:0;">${s + 1}</span>
+                            <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${teamName}</span>
+                        </div>
+                    `;
+                } else if (isNextSlot) {
+                    html += `
+                        <div style="background:rgba(253,224,71,0.14); border:1.5px dashed #FDE047; color:#FDE047; padding:7px 10px; border-radius:8px; font-size:0.8rem; font-weight:700; display:flex; align-items:center; gap:8px;">
+                            <span style="background:rgba(253,224,71,0.25); color:#FDE047; width:20px; height:20px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:0.72rem; font-weight:900; flex-shrink:0;">${s + 1}</span>
+                            <span>🎯 Lottas nu...</span>
+                        </div>
+                    `;
+                } else {
+                    html += `
+                        <div style="background:rgba(255,255,255,0.03); border:1px dashed rgba(255,255,255,0.15); color:#64748B; padding:7px 10px; border-radius:8px; font-size:0.8rem; display:flex; align-items:center; gap:8px;">
+                            <span style="background:rgba(255,255,255,0.08); color:#64748B; width:20px; height:20px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:0.72rem; font-weight:700; flex-shrink:0;">${s + 1}</span>
+                            <span>Tom plats</span>
+                        </div>
+                    `;
+                }
+            }
+
+            html += `
+                    </div>
+                </div>
+            `;
+        }
+        board.innerHTML = html;
+    }
+}
+
+function ritaLottningshjul() {
+    const canvas = document.getElementById('drawWheelCanvas');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const w = canvas.width;
+    const h = canvas.height;
+    const cx = w / 2;
+    const cy = h / 2;
+    const r = Math.min(cx, cy) - 8;
+
+    ctx.clearRect(0, 0, w, h);
+
+    const items = liveDrawState.remainingTeams;
+    if (items.length === 0) {
+        // Alla lottade – rita vinnarcirkel
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, 0, Math.PI * 2);
+        ctx.fillStyle = '#15803D';
+        ctx.fill();
+        ctx.lineWidth = 5;
+        ctx.strokeStyle = '#FDE047';
+        ctx.stroke();
+
+        ctx.fillStyle = '#FFFFFF';
+        ctx.font = '900 22px Poppins, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('🏆 KLART!', cx, cy - 12);
+        ctx.font = '600 13px Poppins, sans-serif';
+        ctx.fillStyle = '#BBF7D0';
+        ctx.fillText('Alla lag är lottade', cx, cy + 16);
+        return;
+    }
+
+    const sliceAngle = (Math.PI * 2) / items.length;
+
+    items.forEach((team, i) => {
+        const startA = liveDrawState.wheelAngle + i * sliceAngle;
+        const endA = startA + sliceAngle;
+
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.arc(cx, cy, r, startA, endA);
+        ctx.closePath();
+        ctx.fillStyle = DRAW_WHEEL_COLORS[i % DRAW_WHEEL_COLORS.length];
+        ctx.fill();
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = 'rgba(255,255,255,0.28)';
+        ctx.stroke();
+
+        // Text i tårtbiten
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.rotate(startA + sliceAngle / 2);
+        ctx.textAlign = 'right';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle = '#FFFFFF';
+        const fontSize = items.length > 12 ? 11 : (items.length > 8 ? 12 : 14);
+        ctx.font = `700 ${fontSize}px Poppins, sans-serif`;
+        const label = team.length > 16 ? team.slice(0, 15) + '…' : team;
+        ctx.fillText(label, r - 14, 0);
+        ctx.restore();
+    });
+
+    // Yttre guldring
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.lineWidth = 5;
+    ctx.strokeStyle = '#FDE047';
+    ctx.stroke();
+
+    // Mittknapp
+    ctx.beginPath();
+    ctx.arc(cx, cy, 34, 0, Math.PI * 2);
+    ctx.fillStyle = '#0F172A';
+    ctx.fill();
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = '#FDE047';
+    ctx.stroke();
+
+    ctx.fillStyle = '#FDE047';
+    ctx.font = '800 11px Poppins, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('LOTT', cx, cy);
+}
+
+function snurraLottningshjul() {
+    if (liveDrawState.isSpinning || liveDrawState.remainingTeams.length === 0) return;
+
+    // Om det bara är 1 lag kvar behöver vi inte snurra i 3 sekunder
+    if (liveDrawState.remainingTeams.length === 1) {
+        slutförDragetLag(0);
+        return;
+    }
+
+    liveDrawState.isSpinning = true;
+    uppdateraLiveDrawUI();
+
+    const items = liveDrawState.remainingTeams;
+    const sliceAngle = (Math.PI * 2) / items.length;
+    const duration = liveDrawState.autoDrawing ? 1100 : 2800;
+    const startAngle = liveDrawState.wheelAngle;
+    const extraSpins = (liveDrawState.autoDrawing ? 2.5 : 5) + Math.random() * 2.5;
+    const totalRotation = extraSpins * Math.PI * 2;
+    const startTime = performance.now();
+    let lastTickSlice = -1;
+
+    function animateSpin(now) {
+        if (!liveDrawState.isSpinning) return;
+        const elapsed = now - startTime;
+        const progress = Math.min(1, elapsed / duration);
+        // Cubic ease-out
+        const eased = 1 - Math.pow(1 - progress, 3);
+        liveDrawState.wheelAngle = startAngle + totalRotation * eased;
+
+        // Kolla vilken tårtbit som pekar uppåt (-Math.PI / 2)
+        const pointerAngle = (1.5 * Math.PI - (liveDrawState.wheelAngle % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
+        const currentSlice = Math.floor(pointerAngle / sliceAngle) % items.length;
+        if (currentSlice !== lastTickSlice) {
+            lastTickSlice = currentSlice;
+            playDrawTick();
+        }
+
+        ritaLottningshjul();
+
+        if (progress < 1) {
+            requestAnimationFrame(animateSpin);
+        } else {
+            liveDrawState.isSpinning = false;
+            const finalPointer = (1.5 * Math.PI - (liveDrawState.wheelAngle % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
+            const winningIndex = Math.floor(finalPointer / sliceAngle) % items.length;
+            slutförDragetLag(winningIndex);
+        }
+    }
+
+    requestAnimationFrame(animateSpin);
+}
+
+function slutförDragetLag(winningIndex) {
+    const drawnTeam = liveDrawState.remainingTeams.splice(winningIndex, 1)[0];
+    const target = liveDrawState.targetOrder[liveDrawState.drawnCount];
+    if (!target || !drawnTeam) return;
+
+    liveDrawState.groupLists[target.groupIndex].push(drawnTeam);
+    liveDrawState.drawnCount++;
+
+    playDrawWinFanfare();
+    ritaLottningshjul();
+    uppdateraLiveDrawUI();
+
+    const grpName = getGroupDisplayName(target.groupIndex);
+    const banner = document.getElementById('drawLastResultBanner');
+    if (banner) {
+        banner.style.background = 'rgba(34,197,94,0.2)';
+        banner.style.borderColor = '#4ADE80';
+        banner.style.color = '#F8FAFC';
+        banner.innerHTML = `🎉 <strong>${drawnTeam}</strong> lottades till <strong style="color:#FDE047;">${grpName}</strong> (Plats ${target.slotIndex + 1})!`;
+    }
+
+    if (liveDrawState.autoDrawing && liveDrawState.remainingTeams.length > 0) {
+        setTimeout(() => {
+            if (liveDrawState.autoDrawing) snurraLottningshjul();
+        }, 480);
+    } else if (liveDrawState.remainingTeams.length === 0) {
+        liveDrawState.autoDrawing = false;
+    }
+}
+
+function toggleAutoLottning() {
+    if (liveDrawState.remainingTeams.length === 0) return;
+    liveDrawState.autoDrawing = !liveDrawState.autoDrawing;
+    uppdateraLiveDrawUI();
+    if (liveDrawState.autoDrawing && !liveDrawState.isSpinning) {
+        snurraLottningshjul();
+    }
+}
+
+function bekraftaLottadTurnering() {
+    if (liveDrawState.remainingTeams.length > 0) return;
+    const lottadeGrupper = liveDrawState.groupLists.map(g => [...g]);
+    stangLiveLottning();
+    genereraTurnering(lottadeGrupper);
+}
+
+function genereraTurnering(customGroupLists) {
     const errorEl = document.getElementById('errorMessage');
     errorEl.style.display = 'none';
     errorEl.textContent = '';
@@ -856,15 +1521,18 @@ function genereraTurnering() {
         return;
     }
 
-    // Slumpa lagordning inför grupplottning
-    teams = teams.sort(() => Math.random() - 0.5);
-
-    // 1. Skapa grupper
+    // 1. Skapa grupper (antingen från Öppen Grupplottning eller direkt slumpning)
     const tempGroups = [];
-    const groupLists = Array.from({ length: numGroups }, () => []);
-    teams.forEach((team, index) => {
-        groupLists[index % numGroups].push(team);
-    });
+    let groupLists;
+    if (Array.isArray(customGroupLists) && customGroupLists.length > 0) {
+        groupLists = customGroupLists;
+    } else {
+        teams = teams.sort(() => Math.random() - 0.5);
+        groupLists = Array.from({ length: numGroups }, () => []);
+        teams.forEach((team, index) => {
+            groupLists[index % numGroups].push(team);
+        });
+    }
 
     groupLists.forEach((groupTeams, index) => {
         if (groupTeams.length > 0) {
@@ -1055,8 +1723,13 @@ function genereraTurnering() {
         customLabel: 'Final 🏆'
     });
 
+    const titleInputEl = document.getElementById('tournamentTitleInput');
+    const tourTitle = (titleInputEl && titleInputEl.value.trim()) ? titleInputEl.value.trim() : 'Skol-IF Turnering';
+
     // Spara i state
     tournamentState = {
+        title: tourTitle,
+        liveId: 'cup_' + Math.random().toString(36).slice(2, 8),
         phase: 'GROUP',
         sport: sport,
         settings: {
@@ -1282,6 +1955,8 @@ function hamtaForlorareFranFas(phase) {
 function visaStartVy() {
     document.getElementById('setupView').style.display = 'block';
     document.getElementById('activeView').style.display = 'none';
+    const qrBtn = document.getElementById('qrLiveBtn');
+    if (qrBtn) qrBtn.style.display = 'none';
     document.getElementById('printBtn').style.display = 'none';
     document.getElementById('exportBtn').style.display = 'none';
     document.getElementById('clearBtn').style.display = 'none';
@@ -1292,18 +1967,66 @@ function visaStartVy() {
 }
 
 function visaAktivVy() {
+    ensureTournamentLiveId();
     document.getElementById('setupView').style.display = 'none';
     document.getElementById('activeView').style.display = 'block';
+    const qrBtn = document.getElementById('qrLiveBtn');
+    if (qrBtn) qrBtn.style.display = isPublicLiveView ? 'none' : 'inline-flex';
     document.getElementById('printBtn').style.display = 'inline-flex';
-    document.getElementById('exportBtn').style.display = 'inline-flex';
-    document.getElementById('clearBtn').style.display = 'inline-flex';
-    const logoEl = document.getElementById('navTourTitle');
-    if (logoEl) logoEl.innerText = '🏆 Pågående Turnering';
-    document.title = 'Pågående Turnering - Skol-IF';
+    document.getElementById('exportBtn').style.display = isPublicLiveView ? 'none' : 'inline-flex';
+    document.getElementById('clearBtn').style.display = isPublicLiveView ? 'none' : 'inline-flex';
     renderaAktivVy();
+    uppdateraQrKoder();
+    if (!isPublicLiveView) {
+        syncTournamentToCloud();
+    }
+}
+
+function uppdateraTurneringsRubrikUI() {
+    const title = tournamentState.title || 'Skol-IF Turnering';
+    const logoEl = document.getElementById('navTourTitle');
+    if (logoEl) logoEl.innerText = '🏆 ' + title;
+    document.title = title + ' – Skol-IF';
+
+    const activeHeading = document.getElementById('activeTourTitleHeading');
+    if (activeHeading) activeHeading.textContent = '🏆 ' + title;
+
+    const printTitle = document.getElementById('printTourTitle');
+    if (printTitle) printTitle.textContent = title;
+
+    const modalQrTitle = document.getElementById('modalQrTourTitle');
+    if (modalQrTitle) modalQrTitle.textContent = title;
+
+    const sportLabels = {
+        'GENERIC': '⚽ Fotboll / Innebandy / Standard',
+        'BASKET': '🏀 Basket',
+        'BRANNBOLL': '🏏 Brännboll',
+        'PADEL': '🎾 Padel / Volleyboll'
+    };
+    const sportText = sportLabels[tournamentState.sport] || '⚽ Turnering';
+    const totalTeams = (tournamentState.groups || []).reduce((sum, g) => sum + (g.teams ? g.teams.length : 0), 0);
+    const subText = `${sportText} • ${totalTeams} lag • ${(tournamentState.groups || []).length} ${(tournamentState.groups || []).length === 1 ? 'grupp' : 'grupper'}`;
+
+    const activeSub = document.getElementById('activeTourSubInfo');
+    if (activeSub) activeSub.textContent = subText;
+
+    const printSub = document.getElementById('printTourSub');
+    if (printSub) printSub.textContent = subText;
+}
+
+function redigeraTurneringsRubrik() {
+    if (isPublicLiveView) return;
+    const nuvarande = tournamentState.title || 'Skol-IF Turnering';
+    const ny = prompt('Ange ny rubrik/namn på turneringen:', nuvarande);
+    if (ny !== null && ny.trim() !== '') {
+        tournamentState.title = ny.trim();
+        saveLocalTournament();
+        uppdateraTurneringsRubrikUI();
+    }
 }
 
 function renderaAktivVy() {
+    uppdateraTurneringsRubrikUI();
     renderaGrupptabeller();
     renderaSpelschema();
     renderaBracket();
@@ -1393,7 +2116,7 @@ function renderaSpelschema() {
 
         // Skapa knapp för nästa slutspelssteg om fasen är klar
         let nextBtnHtml = '';
-        if (isFinished) {
+        if (isFinished && !isPublicLiveView) {
             if (phase === 'GROUP' && tournamentState.phase === 'GROUP') {
                 const adv = tournamentState.settings.teamsToAdvance;
                 const nextPhase = adv >= 16 ? 'ROUND_OF_16' : (adv >= 8 ? 'QUARTERS' : (adv >= 4 ? 'SEMIS' : 'FINAL'));
@@ -1593,6 +2316,7 @@ function sparaResultatFranModal() {
 //  LIVE SCOREBOARD & MATCHKLOCKA
 // ==========================================
 function oppnaScoreboard(matchId) {
+    if (isPublicLiveView) return;
     const match = tournamentState.schedule.find(m => m.id === matchId);
     if (!match || match.homeTeam === '?' || match.awayTeam === '?') return;
 
@@ -1766,10 +2490,72 @@ function spelaVissla() {
 }
 
 // ==========================================
-//  UTSKRIFT / EXPORT
+//  QR-KOD, PUBLIK-LÄNK & UTSKRIFT / EXPORT
 // ==========================================
+function renderQrIntoBox(boxEl, urlStr, sizePx) {
+    if (!boxEl) return;
+    boxEl.innerHTML = '';
+    if (typeof QRCode !== 'undefined') {
+        try {
+            new QRCode(boxEl, {
+                text: urlStr,
+                width: sizePx,
+                height: sizePx,
+                colorDark: '#0F172A',
+                colorLight: '#FFFFFF',
+                correctLevel: QRCode.CorrectLevel.M
+            });
+            return;
+        } catch (e) {}
+    }
+    const img = document.createElement('img');
+    img.src = `https://api.qrserver.com/v1/create-qr-code/?size=${sizePx}x${sizePx}&data=${encodeURIComponent(urlStr)}`;
+    img.alt = 'QR-kod för live-turnering';
+    img.style.width = sizePx + 'px';
+    img.style.height = sizePx + 'px';
+    boxEl.appendChild(img);
+}
+
+function uppdateraQrKoder() {
+    if (!tournamentState.schedule || tournamentState.schedule.length === 0) return;
+    const urlStr = getLivePublicUrl();
+    const urlInput = document.getElementById('livePublicUrlInput');
+    if (urlInput) urlInput.value = urlStr;
+
+    renderQrIntoBox(document.getElementById('printQrBox'), urlStr, 80);
+    renderQrIntoBox(document.getElementById('modalQrBox'), urlStr, 175);
+}
+
+function oppnaQrLiveModal() {
+    syncTournamentToCloud();
+    uppdateraTurneringsRubrikUI();
+    uppdateraQrKoder();
+    openModal('qrLiveModal');
+}
+
+function kopieraPublikLank() {
+    const urlStr = getLivePublicUrl();
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(urlStr).then(() => {
+            alert('✅ Publiklänken är kopierad till urklipp!');
+        }).catch(() => {});
+    } else {
+        const input = document.getElementById('livePublicUrlInput');
+        if (input) {
+            input.select();
+            document.execCommand('copy');
+            alert('✅ Publiklänken är kopierad!');
+        }
+    }
+}
+
 function skrivUtSpelschema() {
-    window.print();
+    syncTournamentToCloud();
+    uppdateraTurneringsRubrikUI();
+    uppdateraQrKoder();
+    setTimeout(() => {
+        window.print();
+    }, 120);
 }
 
 function exporteraCSV() {
@@ -1782,11 +2568,12 @@ function exporteraCSV() {
         csv += `"${m.id}","${m.matchPhase}","${m.startTime}","${m.pitch}","${m.homeTeam}","${m.awayTeam}","${res}","${status}"\n`;
     });
 
+    const safeTitle = (tournamentState.title || 'SkolIF_Turnering').replace(/[^a-zA-Z0-9åäöÅÄÖ_-]+/g, '_');
     const blob = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `SkolIF_Turnering_Spelschema.csv`;
+    a.download = `${safeTitle}_Spelschema.csv`;
     a.click();
     URL.revokeObjectURL(url);
 }
@@ -1819,13 +2606,80 @@ function escapeHtml(str) {
 }
 
 // ==========================================
-//  INIT
+//  INIT & LIVE PUBLIK-LÄGE (?live=...)
 // ==========================================
-loadLocalTournament();
-if (tournamentState.schedule && tournamentState.schedule.length > 0) {
-    visaAktivVy();
+function startLivePublicMode(liveId) {
+    isPublicLiveView = true;
+    document.body.classList.add('public-live-mode');
+
+    const badge = document.getElementById('publicLiveBadge');
+    if (badge) badge.style.display = 'inline-block';
+
+    const headerActions = document.getElementById('activeTourHeaderActions');
+    if (headerActions) headerActions.style.display = 'none';
+
+    document.getElementById('setupView').style.display = 'none';
+    document.getElementById('activeView').style.display = 'block';
+
+    const activeHeading = document.getElementById('activeTourTitleHeading');
+    if (activeHeading) activeHeading.textContent = '⏳ Ansluter till live-turnering...';
+
+    function connectSnapshot() {
+        if (typeof firebase === 'undefined' || !firebase.firestore) return;
+        const db = firebase.firestore();
+        if (livePublicUnsubscribe) livePublicUnsubscribe();
+        livePublicUnsubscribe = db.collection('skolif_kassa').doc('turnering_' + liveId).onSnapshot(doc => {
+            if (doc && doc.exists) {
+                const data = doc.data() || {};
+                if (data.liveTournamentData) {
+                    try {
+                        tournamentState = JSON.parse(data.liveTournamentData);
+                        visaAktivVy();
+                    } catch (e) {}
+                }
+            } else {
+                if (activeHeading) activeHeading.textContent = '⚠️ Turneringen hittades inte (kontrolera att arrangören är inloggad)';
+            }
+        }, err => {
+            if (firebase.auth && !firebase.auth().currentUser) {
+                firebase.auth().signInAnonymously().then(() => {
+                    connectSnapshot();
+                }).catch(() => {
+                    if (activeHeading) activeHeading.textContent = '🏆 Live-turnering';
+                    const mc = document.getElementById('matchesContainer');
+                    if (mc) {
+                        mc.innerHTML = `<div class="card" style="text-align:center; padding:28px 20px;">
+                            <div style="font-size:2.4rem; margin-bottom:8px;">📱</div>
+                            <h3 style="margin-bottom:6px; color:#1E3A24;">Anslut för att se liveresultat</h3>
+                            <p style="font-size:0.88rem; color:#555; margin-bottom:16px;">Logga in med ett klick för att följa spelschema, grupptabeller och resultat i realtid.</p>
+                            <button type="button" class="btn btn-green" onclick="SkolIFKlasser.login()">👤 Anslut med Google &amp; visa live →</button>
+                        </div>`;
+                    }
+                });
+            }
+        });
+    }
+
+    connectSnapshot();
+    if (typeof firebase !== 'undefined' && firebase.auth) {
+        firebase.auth().onAuthStateChanged(user => {
+            if (user && isPublicLiveView) connectSnapshot();
+        });
+    }
+}
+
+const urlParams = new URLSearchParams(window.location.search);
+const liveParamId = urlParams.get('live');
+
+if (liveParamId) {
+    startLivePublicMode(liveParamId.trim());
 } else {
-    visaStartVy();
+    loadLocalTournament();
+    if (tournamentState.schedule && tournamentState.schedule.length > 0) {
+        visaAktivVy();
+    } else {
+        visaStartVy();
+    }
 }
 </script>
 </body>
