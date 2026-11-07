@@ -300,6 +300,22 @@
     .elev-saldo { font-size: 1rem; }
     .filter-chip.active { background: linear-gradient(135deg, #4CAF50, #2E7D32); border-color: #2E7D32; box-shadow: 0 3px 10px rgba(46, 125, 50, 0.25); }
     .btn-insattning { background: linear-gradient(135deg, #4CAF50, #2E7D32); }
+    /* ELEVLÄGE / KIOSKLÅS: Dölj admin- och insättningsfunktioner när kiosken sköts av elever */
+    body.skolif-elevlage-locked [onclick="hanteraVaror()"],
+    body.skolif-elevlage-locked [onclick="oppnaAdminModal()"],
+    body.skolif-elevlage-locked [onclick="SkolIFKlasser.openModal()"],
+    body.skolif-elevlage-locked [onclick="oppnaRedigeraElevModal()"],
+    body.skolif-elevlage-locked #modalKopplaBlippBtn,
+    body.skolif-elevlage-locked #kassaDelaBtn,
+    body.skolif-elevlage-locked #kassaLogoutBtn,
+    body.skolif-elevlage-locked #kassaLoginBtn,
+    body.skolif-elevlage-locked .snabb-insattning-rad,
+    body.skolif-elevlage-locked .btn-insattning,
+    body.skolif-elevlage-locked .radera-tx-btn,
+    body.skolif-elevlage-locked .historik-angra-btn,
+    body.skolif-elevlage-locked #snabbInsattningRubrik {
+        display: none !important;
+    }
 </style>
 </head>
 <body>
@@ -307,6 +323,7 @@
     <nav>
         <a href="index.html" class="logo">☕ Skol IF Kassa</a>
         <div style="display: flex; gap: 10px; align-items: center;">
+            <button type="button" class="skolif-elevlage-pill" data-skolif-elevlage-btn onclick="SkolIFKlasser.toggleElevlage()">🔓 Elevläge</button>
             <button type="button" class="skolif-nav-auth-btn" onclick="SkolIFKlasser.openModal()">📋 Mina Klasser</button>
             <a href="index.html" class="back-btn">← Till startsidan</a>
         </div>
@@ -524,7 +541,7 @@
                     <div class="modal-section-title">Kioskvaror (Klicka för direktköp)</div>
                     <div id="modalVarorGrid" class="modal-varor-grid"></div>
 
-                    <div class="modal-section-title" style="margin-top: 8px; margin-bottom: 3px;">Snabbinsättning</div>
+                    <div id="snabbInsattningRubrik" class="modal-section-title" style="margin-top: 8px; margin-bottom: 3px;">Snabbinsättning</div>
                     <div class="snabb-insattning-rad">
                         <button type="button" class="snabb-insattning-btn" onclick="gorSnabbInsattning(10)">+10 kr</button>
                         <button type="button" class="snabb-insattning-btn" onclick="gorSnabbInsattning(20)">+20 kr</button>
@@ -1513,6 +1530,10 @@
         }
 
         function angraTransaktion(transaktionsId) {
+            if (window.SkolIFKlasser && window.SkolIFKlasser.isElevlage()) {
+                window.SkolIFKlasser.requireTeacherUnlock(() => angraTransaktion(transaktionsId));
+                return;
+            }
             const index = allaTransaktionerCache.findIndex(t => t.id === transaktionsId);
             if (index === -1) return;
 
@@ -1600,6 +1621,10 @@
         }
 
         function gorInsattningCustom() {
+            if (window.SkolIFKlasser && window.SkolIFKlasser.isElevlage()) {
+                window.SkolIFKlasser.requireTeacherUnlock(() => gorInsattningCustom());
+                return;
+            }
             const b = parseInt(document.getElementById("customBeloppInput").value);
             if(b>0) { 
                 const e = allaEleverCache.find(x => x.id === aktivElevId); 
@@ -1613,6 +1638,10 @@
 
         // SNABBINSÄTTNING
         function gorSnabbInsattning(belopp) {
+            if (window.SkolIFKlasser && window.SkolIFKlasser.isElevlage()) {
+                window.SkolIFKlasser.requireTeacherUnlock(() => gorSnabbInsattning(belopp));
+                return;
+            }
             const e = allaEleverCache.find(x => x.id === aktivElevId);
             if (!e) return;
 

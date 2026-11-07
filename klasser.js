@@ -524,6 +524,27 @@
                 if (data.transaktioner !== undefined) {
                     try { molnTx = JSON.parse(data.transaktioner || '[]'); } catch (e) {}
                 }
+                if (data.elevlagePin && typeof data.elevlagePin === 'string') {
+                    try { localStorage.setItem('skolif_elevlage_pin', data.elevlagePin); } catch (e) {}
+                }
+                if (data.lokstod !== undefined) {
+                    try {
+                        const parsedLok = typeof data.lokstod === 'string' ? JSON.parse(data.lokstod) : data.lokstod;
+                        if (Array.isArray(parsedLok)) {
+                            localStorage.setItem('skolif_lokstod_v1', JSON.stringify(parsedLok));
+                            renderLokstodTab();
+                        }
+                    } catch (e) {}
+                }
+                if (data.testhistorik !== undefined) {
+                    try {
+                        const parsedHist = typeof data.testhistorik === 'string' ? JSON.parse(data.testhistorik) : data.testhistorik;
+                        if (Array.isArray(parsedHist)) {
+                            localStorage.setItem('skolif_testhistorik_v1', JSON.stringify(parsedHist));
+                            renderTestHistoryModalContent();
+                        }
+                    } catch (e) {}
+                }
 
                 syncLocalCacheFromCloud(molnElever, molnVaror, molnTx);
             } else {
@@ -1404,6 +1425,58 @@
                 border-color: #4CAF50;
                 color: #2E7D32;
             }
+            /* ELEVLÄGE / KIOSKLÅS */
+            .skolif-elevlage-pill {
+                background: rgba(255, 255, 255, 0.16);
+                border: 1.5px solid rgba(255, 255, 255, 0.45);
+                color: white;
+                padding: 6px 13px;
+                border-radius: 20px;
+                font-size: 0.84rem;
+                font-weight: 700;
+                cursor: pointer;
+                display: inline-flex;
+                align-items: center;
+                gap: 6px;
+                font-family: 'Poppins', sans-serif;
+                transition: all 0.2s;
+                white-space: nowrap;
+            }
+            .skolif-elevlage-pill:hover {
+                background: rgba(255, 255, 255, 0.28);
+            }
+            .skolif-elevlage-pill.locked {
+                background: linear-gradient(135deg, #F59E0B, #D97706) !important;
+                border-color: #FDE68A !important;
+                color: #FFFFFF !important;
+                box-shadow: 0 4px 14px rgba(245, 158, 11, 0.4);
+            }
+            body.skolif-elevlage-locked .skolif-hide-in-elevlage,
+            body.skolif-elevlage-locked [data-skolif-auth-btn],
+            body.skolif-elevlage-locked .skolif-manage-btn {
+                display: none !important;
+            }
+            .skolif-lok-chip {
+                display: inline-flex;
+                align-items: center;
+                gap: 6px;
+                padding: 5px 11px;
+                border-radius: 18px;
+                font-size: 0.8rem;
+                font-weight: 600;
+                cursor: pointer;
+                border: 1.5px solid #CBD5E1;
+                background: white;
+                color: #334155;
+                user-select: none;
+                transition: all 0.15s;
+            }
+            .skolif-lok-chip.selected {
+                background: #DCFCE7;
+                border-color: #22C55E;
+                color: #166534;
+                font-weight: 700;
+            }
         `;
         document.head.appendChild(style);
 
@@ -1416,7 +1489,7 @@
                 <div class="skolif-modal-overlay" id="skolifKlasserModal" onclick="if(event.target===this) SkolIFKlasser.closeModal()">
                     <div class="skolif-modal-box">
                         <div class="skolif-modal-header">
-                            <h3><span>📋</span> Mina Klasser & Elever (Gemensam vy)</h3>
+                            <h3><span>📋</span> Mina Klasser, LOK-stöd & Verktyg</h3>
                             <button type="button" class="skolif-modal-close" onclick="SkolIFKlasser.closeModal()">✕</button>
                         </div>
                         <div class="skolif-modal-body" style="gap: 14px; padding: 16px 20px;">
@@ -1426,6 +1499,7 @@
                             <!-- Flikar -->
                             <div class="skolif-tab-row">
                                 <button type="button" id="skolifTabBtn-klasser" class="skolif-tab-btn active" onclick="SkolIFKlasser.switchTab('klasser')">📂 Klasser & Elever</button>
+                                <button type="button" id="skolifTabBtn-lokstod" class="skolif-tab-btn" onclick="SkolIFKlasser.switchTab('lokstod')">🏟️ LOK-stöd (Arenan)</button>
                                 <button type="button" id="skolifTabBtn-massimport" class="skolif-tab-btn" onclick="SkolIFKlasser.switchTab('massimport')">⚡ Massimport</button>
                                 <button type="button" id="skolifTabBtn-verktyg" class="skolif-tab-btn" onclick="SkolIFKlasser.switchTab('verktyg')">🎓 Läsårsbyte & Verktyg</button>
                             </div>
@@ -1523,6 +1597,66 @@
                                     </div>
                                     <button type="button" class="skolif-btn-sm" onclick="SkolIFKlasser.exportCSV()" style="background: #0284C7; color: white; border-color: #0284C7;">📥 Ladda ner Excel/CSV</button>
                                 </div>
+
+                                <!-- 5. PIN-kod för Elevläge (Kiosklås) -->
+                                <div style="background: #FFFBEB; border: 1.5px solid #FDE68A; border-radius: 12px; padding: 14px 16px; display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap;">
+                                    <div>
+                                        <div style="font-weight: 800; font-size: 0.9rem; color: #B45309;">🔒 PIN-kod för Elevläge (Kassa & Redskapsbod)</div>
+                                        <div style="font-size: 0.78rem; color: #78350F;">Lås admin-knappar när elever står i kiosken eller redskapsboden.</div>
+                                    </div>
+                                    <div style="display: flex; gap: 6px; align-items: center;">
+                                        <input type="password" id="skolifSettingsPinInput" maxlength="4" inputmode="numeric" placeholder="4 siffror" style="width: 95px; padding: 6px 10px; border: 1.5px solid #F59E0B; border-radius: 8px; font-size: 0.85rem; font-weight: 800; text-align: center; letter-spacing: 3px; background: white;">
+                                        <button type="button" class="skolif-btn-sm primary" onclick="SkolIFKlasser.savePinFromSettings()" style="background: #D97706; border-color: #D97706;">Spara PIN</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- FLIK 4: LOK-STÖD (ARENAN) -->
+                            <div id="skolifTabContent-lokstod" style="display: none; flex-direction: column; gap: 12px;">
+                                <div style="background: linear-gradient(135deg, #143625, #1E4E35); color: white; border-radius: 12px; padding: 13px 16px; display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;">
+                                    <div>
+                                        <div style="font-weight: 800; font-size: 0.92rem;">🏟️ LOK-stödsunderlag för Arenan (Skol-IF)</div>
+                                        <div style="font-size: 0.76rem; color: rgba(255,255,255,0.85);">Spara närvaro från rasternas aktiviteter & turneringar så du enkelt kan föra in dem i Arenan.</div>
+                                    </div>
+                                    <a href="https://forening.idrottsarenan.se" target="_blank" rel="noopener noreferrer" class="skolif-btn-sm" style="background: #4ADE80; color: #064E3B; border: none; text-decoration: none; font-weight: 800; white-space: nowrap;">🏟️ Öppna Arenan ↗</a>
+                                </div>
+
+                                <!-- Skapa nytt LOK-tillfälle -->
+                                <div style="background: #F8FAFC; border: 1.5px solid #E2E8F0; border-radius: 12px; padding: 13px 14px;">
+                                    <div style="font-weight: 800; font-size: 0.86rem; color: #1E3A24; margin-bottom: 8px;">➕ Registrera närvaro för Skol-IF-aktivitet</div>
+                                    <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px;">
+                                        <input type="date" id="skolifLokDate" style="padding: 7px 10px; border: 1.5px solid #CBD5E1; border-radius: 8px; font-size: 0.82rem; font-family: inherit;">
+                                        <input type="text" id="skolifLokTitle" placeholder="Aktivitet (t.ex. Rastturnering, Fredagsfys, Öppen hall)" style="flex: 2; min-width: 180px; padding: 7px 10px; border: 1.5px solid #CBD5E1; border-radius: 8px; font-size: 0.82rem; font-family: inherit;">
+                                        <select id="skolifLokClassSelect" onchange="SkolIFKlasser.onLokClassChange()" style="flex: 1; min-width: 130px; padding: 7px 10px; border: 1.5px solid #CBD5E1; border-radius: 8px; font-size: 0.82rem; font-family: inherit; background: white;"></select>
+                                    </div>
+                                    <div style="display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 8px;">
+                                        <span style="font-size: 0.72rem; color: #64748B; font-weight: 600; align-self: center;">Snabbval:</span>
+                                        <button type="button" class="skolif-btn-sm" style="padding: 3px 8px; font-size: 0.72rem;" onclick="document.getElementById('skolifLokTitle').value='Rastturnering'">🏆 Rastturnering</button>
+                                        <button type="button" class="skolif-btn-sm" style="padding: 3px 8px; font-size: 0.72rem;" onclick="document.getElementById('skolifLokTitle').value='Öppen idrottshall'">🏀 Öppen hall</button>
+                                        <button type="button" class="skolif-btn-sm" style="padding: 3px 8px; font-size: 0.72rem;" onclick="document.getElementById('skolifLokTitle').value='Rastaktivitet'">⚽ Rastaktivitet</button>
+                                        <button type="button" class="skolif-btn-sm" style="padding: 3px 8px; font-size: 0.72rem;" onclick="document.getElementById('skolifLokTitle').value='Skol-IF Träning'">🏃 Skol-IF Träning</button>
+                                    </div>
+                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                                        <span style="font-size: 0.76rem; font-weight: 700; color: #334155;">Klicka på de elever som deltog (<span id="skolifLokSelectedCount">0</span> valda):</span>
+                                        <div style="display: flex; gap: 6px;">
+                                            <button type="button" class="skolif-btn-sm" style="padding: 3px 8px; font-size: 0.72rem;" onclick="SkolIFKlasser.toggleAllLokStudents(true)">Välj alla</button>
+                                            <button type="button" class="skolif-btn-sm" style="padding: 3px 8px; font-size: 0.72rem;" onclick="SkolIFKlasser.toggleAllLokStudents(false)">Avmarkera</button>
+                                        </div>
+                                    </div>
+                                    <div id="skolifLokStudentChips" style="display: flex; flex-wrap: wrap; gap: 6px; max-height: 125px; overflow-y: auto; padding: 8px; background: white; border: 1px solid #E2E8F0; border-radius: 8px; margin-bottom: 8px;"></div>
+                                    <div style="display: flex; justify-content: flex-end;">
+                                        <button type="button" class="skolif-btn-sm primary" onclick="SkolIFKlasser.saveLokFromModal()" style="padding: 8px 16px;">💾 Spara LOK-aktivitet</button>
+                                    </div>
+                                </div>
+
+                                <!-- Sparade LOK-aktiviteter -->
+                                <div>
+                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                                        <span style="font-size: 0.78rem; font-weight: 800; color: #334155; text-transform: uppercase;">Sparade aktiviteter (Redo för Arenan)</span>
+                                        <button type="button" class="skolif-btn-sm" style="padding: 4px 10px; font-size: 0.74rem;" onclick="SkolIFKlasser.exportLokCSV()">📥 Exportera LOK-lista (Excel/CSV)</button>
+                                    </div>
+                                    <div id="skolifLokListContainer" style="display: flex; flex-direction: column; gap: 6px; max-height: 185px; overflow-y: auto;"></div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -1531,6 +1665,61 @@
             const wrapper = document.createElement('div');
             wrapper.innerHTML = modalHtml;
             document.body.appendChild(wrapper.firstElementChild);
+
+            // PIN-MODAL FÖR ELEVLÄGE
+            const pinModalHtml = `
+                <div class="skolif-modal-overlay" id="skolifPinModal" onclick="if(event.target===this) SkolIFKlasser.closePinModal()">
+                    <div class="skolif-modal-box" style="max-width: 390px; text-align: center;">
+                        <div class="skolif-modal-header">
+                            <h3 id="skolifPinModalTitle"><span>🔒</span> Elevläge (PIN-lås)</h3>
+                            <button type="button" class="skolif-modal-close" onclick="SkolIFKlasser.closePinModal()">✕</button>
+                        </div>
+                        <div class="skolif-modal-body" style="padding: 22px 24px; gap: 14px; align-items: center;">
+                            <div style="font-size: 2.3rem;" id="skolifPinModalIcon">🔒</div>
+                            <p id="skolifPinModalDesc" style="font-size: 0.86rem; color: #475569; line-height: 1.45;"></p>
+                            <input type="password" id="skolifPinModalInput" maxlength="4" inputmode="numeric" placeholder="••••" style="width: 160px; padding: 10px 14px; font-size: 1.5rem; font-weight: 800; letter-spacing: 8px; text-align: center; border: 2px solid #CBD5E1; border-radius: 12px; outline: none; font-family: inherit;" onkeydown="if(event.key==='Enter') SkolIFKlasser.submitPinModal()">
+                            <div style="display: flex; gap: 8px; width: 100%; justify-content: center;">
+                                <button type="button" class="skolif-btn-sm" onclick="SkolIFKlasser.closePinModal()" style="padding: 9px 16px;">Avbryt</button>
+                                <button type="button" class="skolif-btn-sm primary" id="skolifPinModalSubmitBtn" onclick="SkolIFKlasser.submitPinModal()" style="padding: 9px 20px;">Bekräfta</button>
+                            </div>
+                            <button type="button" id="skolifPinGoogleFallbackBtn" onclick="SkolIFKlasser.unlockWithGoogle()" style="background: none; border: none; color: #2E7D32; font-size: 0.76rem; font-weight: 700; text-decoration: underline; cursor: pointer; margin-top: 4px; display: none;">Glömt PIN? Lås upp med Google-inloggning</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            const pinWrap = document.createElement('div');
+            pinWrap.innerHTML = pinModalHtml;
+            document.body.appendChild(pinWrap.firstElementChild);
+
+            // HISTORIK-MODAL FÖR BEEP-TEST & LÖPRUNDAN
+            const histModalHtml = `
+                <div class="skolif-modal-overlay" id="skolifTestHistoryModal" onclick="if(event.target===this) SkolIFKlasser.closeHistoryModal()">
+                    <div class="skolif-modal-box" style="max-width: 780px;">
+                        <div class="skolif-modal-header">
+                            <h3 id="skolifHistModalTitle"><span>📈</span> Sparad Testhistorik & Utveckling</h3>
+                            <button type="button" class="skolif-modal-close" onclick="SkolIFKlasser.closeHistoryModal()">✕</button>
+                        </div>
+                        <div class="skolif-modal-body" style="padding: 18px 22px; gap: 14px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; background: #F8FAFC; padding: 10px 14px; border-radius: 12px; border: 1.5px solid #E2E8F0;">
+                                <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                                    <span style="font-size: 0.82rem; font-weight: 800; color: #1E3A24;">Filtrera klass:</span>
+                                    <select id="skolifHistClassFilter" onchange="SkolIFKlasser.renderTestHistoryModalContent()" style="padding: 6px 12px; border: 1.5px solid #CBD5E1; border-radius: 8px; font-size: 0.84rem; font-weight: 700; font-family: inherit; background: white;"></select>
+                                    <select id="skolifHistTypeFilter" onchange="SkolIFKlasser.renderTestHistoryModalContent()" style="padding: 6px 12px; border: 1.5px solid #CBD5E1; border-radius: 8px; font-size: 0.84rem; font-weight: 700; font-family: inherit; background: white;">
+                                        <option value="ALL">Alla tester (Beep-test & Löprundan)</option>
+                                        <option value="beeptest">📢 Endast Beep-test</option>
+                                        <option value="lopning">⏱️ Endast Löprundan</option>
+                                    </select>
+                                </div>
+                                <button type="button" class="skolif-btn-sm" onclick="SkolIFKlasser.exportTestHistoryCSV()" style="background: #0284C7; color: white; border-color: #0284C7;">📥 Exportera historik (CSV)</button>
+                            </div>
+                            <div id="skolifHistContentArea" style="display: flex; flex-direction: column; gap: 14px; max-height: 62vh; overflow-y: auto;"></div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            const histWrap = document.createElement('div');
+            histWrap.innerHTML = histModalHtml;
+            document.body.appendChild(histWrap.firstElementChild);
         }
     }
 
@@ -1679,7 +1868,7 @@
     let editingOriginalKlassCode = null;
 
     function switchTab(tabName) {
-        ['klasser', 'massimport', 'verktyg'].forEach(t => {
+        ['klasser', 'lokstod', 'massimport', 'verktyg'].forEach(t => {
             const btn = document.getElementById('skolifTabBtn-' + t);
             const content = document.getElementById('skolifTabContent-' + t);
             if (btn) {
@@ -1691,10 +1880,21 @@
             }
         });
         renderModalClassList();
+        if (tabName === 'lokstod') {
+            renderLokstodTab();
+        }
+        if (tabName === 'verktyg') {
+            const pinIn = document.getElementById('skolifSettingsPinInput');
+            if (pinIn) pinIn.value = getElevlagePin() || '';
+        }
     }
 
     function openModal(prefillName, prefillText, initialTab) {
         injectStylesAndModal();
+        if (isElevlageActive()) {
+            requireTeacherUnlock(() => openModal(prefillName, prefillText, initialTab));
+            return;
+        }
         updateAuthUI();
         renderModalClassList();
         switchTab(initialTab || 'klasser');
@@ -2072,9 +2272,698 @@
         });
     }
 
+    // ==========================================
+    //  1. ELEVLÄGE / KIOSKLÅS (PIN-KOD)
+    // ==========================================
+    const ELEVLAGE_PIN_KEY = 'skolif_elevlage_pin';
+    const ELEVLAGE_ACTIVE_KEY = 'skolif_elevlage_active';
+    let pinModalMode = 'UNLOCK'; // 'SET_AND_LOCK' eller 'UNLOCK'
+    let pendingUnlockCallback = null;
+
+    function getElevlagePin() {
+        try {
+            return (localStorage.getItem(ELEVLAGE_PIN_KEY) || '').trim();
+        } catch (e) {
+            return '';
+        }
+    }
+
+    async function setElevlagePin(newPin) {
+        const clean = String(newPin || '').replace(/\D/g, '').slice(0, 4);
+        if (clean.length !== 4) return false;
+        try {
+            localStorage.setItem(ELEVLAGE_PIN_KEY, clean);
+        } catch (e) {}
+
+        if (currentUser && db) {
+            try {
+                if (!activeKassaDocId) activeKassaDocId = await resolveAndMergeKassa(currentUser);
+                await db.collection('skolif_kassa').doc(activeKassaDocId).set({
+                    elevlagePin: clean,
+                    senastUppdaterad: Date.now()
+                }, { merge: true });
+            } catch (e) {}
+        }
+        return true;
+    }
+
+    function isElevlageActive() {
+        try {
+            return localStorage.getItem(ELEVLAGE_ACTIVE_KEY) === '1';
+        } catch (e) {
+            return false;
+        }
+    }
+
+    function setElevlageActive(active) {
+        try {
+            localStorage.setItem(ELEVLAGE_ACTIVE_KEY, active ? '1' : '0');
+        } catch (e) {}
+        updateElevlageUI();
+        window.dispatchEvent(new CustomEvent('skolif-elevlage-changed', { detail: { locked: Boolean(active) } }));
+    }
+
+    function updateElevlageUI() {
+        if (!document.body) return;
+        const locked = isElevlageActive();
+        if (locked) {
+            document.body.classList.add('skolif-elevlage-locked');
+        } else {
+            document.body.classList.remove('skolif-elevlage-locked');
+        }
+
+        const btns = document.querySelectorAll('[data-skolif-elevlage-btn]');
+        btns.forEach(btn => {
+            btn.classList.add('skolif-elevlage-pill');
+            if (locked) {
+                btn.classList.add('locked');
+                btn.innerHTML = '🔒 Elevläge PÅ <span style="font-weight:500;font-size:0.74rem;opacity:0.95;">(Lås upp)</span>';
+                btn.title = 'Elevläge är aktivt – adminfunktioner är låsta. Klicka för att låsa upp med PIN-kod.';
+            } else {
+                btn.classList.remove('locked');
+                btn.innerHTML = '🔓 Elevläge';
+                btn.title = 'Aktivera låst Elevläge när elever står i kiosken eller redskapsboden';
+            }
+        });
+    }
+
+    function openPinModal(mode, onUnlockedCallback) {
+        injectStylesAndModal();
+        pinModalMode = mode || 'UNLOCK';
+        pendingUnlockCallback = typeof onUnlockedCallback === 'function' ? onUnlockedCallback : null;
+
+        const modal = document.getElementById('skolifPinModal');
+        const title = document.getElementById('skolifPinModalTitle');
+        const icon = document.getElementById('skolifPinModalIcon');
+        const desc = document.getElementById('skolifPinModalDesc');
+        const input = document.getElementById('skolifPinModalInput');
+        const submitBtn = document.getElementById('skolifPinModalSubmitBtn');
+        const googleFallback = document.getElementById('skolifPinGoogleFallbackBtn');
+
+        if (!modal || !input) return;
+        input.value = '';
+
+        if (pinModalMode === 'SET_AND_LOCK') {
+            if (title) title.innerHTML = '<span>🔒</span> Välj PIN-kod för Elevläge';
+            if (icon) icon.textContent = '🛡️';
+            if (desc) desc.innerHTML = 'Välj en <strong>4-siffrig PIN-kod</strong>. I Elevläge kan eleverna sälja varor och låna ut redskap, men inte ändra saldon, varor eller radera elever.';
+            if (submitBtn) submitBtn.textContent = 'Spara & Lås';
+            if (googleFallback) googleFallback.style.display = 'none';
+        } else {
+            if (title) title.innerHTML = '<span>🔓</span> Lås upp Elevläge';
+            if (icon) icon.textContent = '🔒';
+            if (desc) desc.innerHTML = 'Ange din <strong>4-siffriga PIN-kod</strong> för att återgå till lärarläge och låsa upp alla inställningar.';
+            if (submitBtn) submitBtn.textContent = 'Lås upp';
+            if (googleFallback) googleFallback.style.display = 'inline-block';
+        }
+
+        modal.classList.add('open');
+        setTimeout(() => input.focus(), 60);
+    }
+
+    function closePinModal() {
+        const modal = document.getElementById('skolifPinModal');
+        if (modal) modal.classList.remove('open');
+        pendingUnlockCallback = null;
+    }
+
+    async function submitPinModal() {
+        const input = document.getElementById('skolifPinModalInput');
+        if (!input) return;
+        const val = String(input.value || '').replace(/\D/g, '').trim();
+
+        if (pinModalMode === 'SET_AND_LOCK') {
+            if (val.length !== 4) {
+                showToast('Ange exakt 4 siffror som PIN-kod (t.ex. 1234)!', 'warning');
+                input.focus();
+                return;
+            }
+            await setElevlagePin(val);
+            setElevlageActive(true);
+            closePinModal();
+            showToast('🔒 Elevläge är nu aktiverat! Admin-knappar är dolda.', 'success');
+        } else {
+            const savedPin = getElevlagePin();
+            if (!savedPin || val === savedPin) {
+                const cb = pendingUnlockCallback;
+                setElevlageActive(false);
+                closePinModal();
+                showToast('🔓 Upplåst! Lärarläge är nu aktivt.', 'info');
+                if (typeof cb === 'function') cb();
+            } else {
+                showToast('Fel PIN-kod! Försök igen.', 'error');
+                input.value = '';
+                input.focus();
+            }
+        }
+    }
+
+    function toggleElevlage() {
+        if (isElevlageActive()) {
+            openPinModal('UNLOCK');
+        } else {
+            const savedPin = getElevlagePin();
+            if (!savedPin) {
+                openPinModal('SET_AND_LOCK');
+            } else {
+                setElevlageActive(true);
+                showToast('🔒 Elevläge aktiverat! Klicka på knappen igen för att låsa upp med PIN.', 'info');
+            }
+        }
+    }
+
+    function requireTeacherUnlock(callback) {
+        if (!isElevlageActive()) {
+            if (typeof callback === 'function') callback();
+            return true;
+        }
+        openPinModal('UNLOCK', callback);
+        return false;
+    }
+
+    async function savePinFromSettings() {
+        const pinIn = document.getElementById('skolifSettingsPinInput');
+        if (!pinIn) return;
+        const val = String(pinIn.value || '').replace(/\D/g, '').trim();
+        if (val.length !== 4) {
+            showToast('PIN-koden måste bestå av 4 siffror!', 'warning');
+            pinIn.focus();
+            return;
+        }
+        await setElevlagePin(val);
+        showToast('🔒 Ny 4-siffrig PIN-kod för Elevläge har sparats!', 'success');
+    }
+
+    async function unlockWithGoogle() {
+        if (!auth || typeof firebase === 'undefined') return;
+        try {
+            const provider = new firebase.auth.GoogleAuthProvider();
+            await auth.signInWithPopup(provider);
+            const cb = pendingUnlockCallback;
+            setElevlageActive(false);
+            closePinModal();
+            showToast('🔓 Upplåst via Google-inloggning!', 'success');
+            if (typeof cb === 'function') cb();
+        } catch (err) {
+            showToast('Verifieringen avbröts.', 'warning');
+        }
+    }
+
+    // ==========================================
+    //  2. LOK-STÖDSUNDERLAG (KOPPLAT TILL ARENAN)
+    // ==========================================
+    const LOK_STORAGE_KEY = 'skolif_lokstod_v1';
+    let lokSelectedStudentsSet = new Set();
+
+    function getLokList() {
+        try {
+            const raw = localStorage.getItem(LOK_STORAGE_KEY);
+            if (!raw) return [];
+            const parsed = JSON.parse(raw);
+            return Array.isArray(parsed) ? parsed : [];
+        } catch (e) {
+            return [];
+        }
+    }
+
+    async function persistLokList(list) {
+        const cleanList = Array.isArray(list) ? list.slice(0, 250) : [];
+        try {
+            localStorage.setItem(LOK_STORAGE_KEY, JSON.stringify(cleanList));
+        } catch (e) {}
+
+        if (currentUser && db) {
+            try {
+                if (!activeKassaDocId) activeKassaDocId = await resolveAndMergeKassa(currentUser);
+                await db.collection('skolif_kassa').doc(activeKassaDocId).set({
+                    lokstod: JSON.stringify(cleanList),
+                    senastUppdaterad: Date.now()
+                }, { merge: true });
+            } catch (err) {
+                console.warn('Kunde inte synka LOK-stöd till molnet:', err);
+            }
+        }
+        renderLokstodTab();
+    }
+
+    async function saveLokActivity(opts) {
+        const options = opts || {};
+        const datum = options.datum || getTodayDateString();
+        const titel = String(options.titel || 'Skol-IF Aktivitet').trim();
+        const klass = String(options.klass || 'Blandat').trim();
+        const rawNames = Array.isArray(options.deltagare) ? options.deltagare : [];
+        const deltagare = [...new Set(rawNames.map(n => String(n || '').trim()).filter(Boolean))];
+
+        if (deltagare.length === 0) {
+            showToast('Välj minst en deltagande elev för LOK-stödet!', 'warning');
+            return false;
+        }
+
+        const list = getLokList();
+        const newEntry = {
+            id: 'lok_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+            datum,
+            titel,
+            klass,
+            deltagare,
+            antal: deltagare.length,
+            skapad: Date.now()
+        };
+        list.unshift(newEntry);
+        await persistLokList(list);
+        showToast(`🏟️ Sparat i LOK-stöd: "${titel}" (${deltagare.length} deltagare)!`, 'success');
+        return true;
+    }
+
+    function onLokClassChange() {
+        const classSel = document.getElementById('skolifLokClassSelect');
+        const chipBox = document.getElementById('skolifLokStudentChips');
+        if (!classSel || !chipBox) return;
+
+        const klasser = getClassesLocal();
+        const selectedClass = classSel.value;
+        let students = [];
+
+        if (selectedClass === '__ALL__') {
+            Object.keys(klasser).sort((a, b) => a.localeCompare(b, 'sv')).forEach(code => {
+                parseStudentNames(klasser[code]).forEach(n => students.push(`${n} (${code})`));
+            });
+        } else if (selectedClass && klasser[selectedClass]) {
+            students = parseStudentNames(klasser[selectedClass]);
+        }
+
+        lokSelectedStudentsSet = new Set(students);
+        renderLokStudentChips(students);
+    }
+
+    function renderLokStudentChips(allStudentsInSelection) {
+        const chipBox = document.getElementById('skolifLokStudentChips');
+        const countEl = document.getElementById('skolifLokSelectedCount');
+        if (!chipBox) return;
+
+        const currentStudents = allStudentsInSelection || Array.from(chipBox.querySelectorAll('[data-lok-student]')).map(el => el.dataset.lokStudent);
+        if (countEl) countEl.textContent = String(lokSelectedStudentsSet.size);
+
+        if (!currentStudents || currentStudents.length === 0) {
+            chipBox.innerHTML = `<span style="font-size: 0.78rem; color: #94A3B8; font-style: italic;">Välj en klass i rullgardinsmenyn ovan för att bocka i deltagare.</span>`;
+            return;
+        }
+
+        chipBox.innerHTML = currentStudents.map(name => {
+            const isSel = lokSelectedStudentsSet.has(name);
+            return `<span class="skolif-lok-chip ${isSel ? 'selected' : ''}" data-lok-student="${escapeHtml(name)}" onclick="SkolIFKlasser.toggleSingleLokStudent(this)">${isSel ? '✓' : '+'} ${escapeHtml(name)}</span>`;
+        }).join('');
+    }
+
+    function toggleSingleLokStudent(el) {
+        if (!el || !el.dataset.lokStudent) return;
+        const name = el.dataset.lokStudent;
+        if (lokSelectedStudentsSet.has(name)) {
+            lokSelectedStudentsSet.delete(name);
+        } else {
+            lokSelectedStudentsSet.add(name);
+        }
+        renderLokStudentChips();
+    }
+
+    function toggleAllLokStudents(selectAll) {
+        const chipBox = document.getElementById('skolifLokStudentChips');
+        if (!chipBox) return;
+        const all = Array.from(chipBox.querySelectorAll('[data-lok-student]')).map(el => el.dataset.lokStudent);
+        if (selectAll) {
+            lokSelectedStudentsSet = new Set(all);
+        } else {
+            lokSelectedStudentsSet.clear();
+        }
+        renderLokStudentChips(all);
+    }
+
+    async function saveLokFromModal() {
+        const dateEl = document.getElementById('skolifLokDate');
+        const titleEl = document.getElementById('skolifLokTitle');
+        const classSel = document.getElementById('skolifLokClassSelect');
+
+        const datum = (dateEl && dateEl.value) ? dateEl.value : getTodayDateString();
+        const titel = (titleEl && titleEl.value.trim()) ? titleEl.value.trim() : 'Rastaktivitet';
+        const klassVal = (classSel && classSel.value) ? (classSel.value === '__ALL__' ? 'Alla klasser' : `Klass ${classSel.value}`) : '';
+
+        const ok = await saveLokActivity({
+            datum,
+            titel,
+            klass: klassVal,
+            deltagare: Array.from(lokSelectedStudentsSet)
+        });
+        if (ok && titleEl) {
+            titleEl.value = '';
+        }
+    }
+
+    function renderLokstodTab() {
+        const dateEl = document.getElementById('skolifLokDate');
+        if (dateEl && !dateEl.value) {
+            dateEl.value = getTodayDateString();
+        }
+
+        const classSel = document.getElementById('skolifLokClassSelect');
+        if (classSel) {
+            const prev = classSel.value;
+            const klasser = getClassesLocal();
+            const codes = Object.keys(klasser).sort((a, b) => a.localeCompare(b, 'sv'));
+            if (codes.length === 0) {
+                classSel.innerHTML = '<option value="">Inga klasser inlagda</option>';
+            } else {
+                classSel.innerHTML = codes.map(c => `<option value="${escapeHtml(c)}">Klass ${escapeHtml(c)} (${countStudents(klasser[c])} elever)</option>`).join('') +
+                    `<option value="__ALL__">Alla klasser samtidigt</option>`;
+                if (prev && (klasser[prev] || prev === '__ALL__')) {
+                    classSel.value = prev;
+                } else {
+                    classSel.value = codes[0];
+                }
+            }
+            onLokClassChange();
+        }
+
+        const listEl = document.getElementById('skolifLokListContainer');
+        if (!listEl) return;
+
+        const list = getLokList();
+        if (list.length === 0) {
+            listEl.innerHTML = `
+                <div style="text-align: center; padding: 14px; color: #64748B; font-size: 0.8rem; background: #F8FAFC; border-radius: 10px; border: 1px dashed #CBD5E1;">
+                    Inga sparade LOK-stödsaktiviteter än. Registrera ovan eller klicka "🏟️ Spara som LOK-stöd" direkt efter ett lopp, beep-test eller turnering!
+                </div>
+            `;
+            return;
+        }
+
+        listEl.innerHTML = list.map(item => `
+            <div style="background: white; border: 1.5px solid #E2E8F0; border-radius: 10px; padding: 9px 12px; display: flex; flex-direction: column; gap: 6px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap;">
+                    <div>
+                        <span style="font-weight: 800; font-size: 0.88rem; color: #1E3A24;">🏟️ ${escapeHtml(item.titel)}</span>
+                        <span style="font-size: 0.76rem; color: #64748B; margin-left: 6px;">📅 ${escapeHtml(item.datum)} • ${escapeHtml(item.klass || '')}</span>
+                        <span class="skolif-class-item-badge" style="margin-left: 6px;">${Number(item.antal) || (item.deltagare || []).length} deltagare</span>
+                    </div>
+                    <div style="display: flex; gap: 5px;">
+                        <button type="button" class="skolif-btn-sm" style="padding: 4px 9px; font-size: 0.74rem;" onclick="SkolIFKlasser.copyLokNames('${escapeHtml(item.id)}')">📋 Kopiera namn</button>
+                        <button type="button" class="skolif-btn-sm danger" style="padding: 4px 8px; font-size: 0.74rem;" onclick="SkolIFKlasser.deleteLokItem('${escapeHtml(item.id)}')">🗑️</button>
+                    </div>
+                </div>
+                <div style="font-size: 0.75rem; color: #475569; line-height: 1.4;">
+                    ${(item.deltagare || []).map(n => escapeHtml(n)).join(', ')}
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function copyLokNames(id) {
+        const item = getLokList().find(x => x.id === id);
+        if (!item) return;
+        const txt = `LOK-stöd: ${item.titel} (${item.datum}) - ${item.klass || ''}\nAntal deltagare: ${(item.deltagare || []).length}\n\n` + (item.deltagare || []).join('\n');
+        if (navigator.clipboard) {
+            navigator.clipboard.writeText(txt).then(() => {
+                showToast('📋 Deltagarlistan har kopierats till urklipp (redo för Arenan)!', 'info');
+            });
+        }
+    }
+
+    async function deleteLokItem(id) {
+        if (!confirm('Vill du ta bort detta LOK-stödstillfälle?')) return;
+        const next = getLokList().filter(x => x.id !== id);
+        await persistLokList(next);
+        showToast('🗑️ LOK-tillfället har tagits bort.', 'info');
+    }
+
+    function exportLokCSV() {
+        const list = getLokList();
+        if (list.length === 0) {
+            showToast('Det finns inga sparade LOK-aktiviteter att exportera än.', 'warning');
+            return;
+        }
+        let csv = '\uFEFFDatum;Aktivitet;Klass/Grupp;Antal deltagare;Deltagare\r\n';
+        list.forEach(item => {
+            const names = (item.deltagare || []).join(', ').replace(/"/g, '""');
+            csv += `${item.datum};"${String(item.titel || '').replace(/"/g, '""')}";"${String(item.klass || '').replace(/"/g, '""')}";${(item.deltagare || []).length};"${names}"\r\n`;
+        });
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `SkolIF_LOK_stod_underlag_${getTodayDateString()}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        showToast('📥 LOK-stödsunderlaget har laddats ner!', 'success');
+    }
+
+    // ==========================================
+    //  3. SPARAD TESTHISTORIK (BEEP-TEST & LÖPRUNDAN)
+    // ==========================================
+    const TEST_HIST_KEY = 'skolif_testhistorik_v1';
+
+    function getTestHistory() {
+        try {
+            const raw = localStorage.getItem(TEST_HIST_KEY);
+            if (!raw) return [];
+            const parsed = JSON.parse(raw);
+            return Array.isArray(parsed) ? parsed : [];
+        } catch (e) {
+            return [];
+        }
+    }
+
+    async function persistTestHistory(list) {
+        const clean = Array.isArray(list) ? list.slice(0, 200) : [];
+        try {
+            localStorage.setItem(TEST_HIST_KEY, JSON.stringify(clean));
+        } catch (e) {}
+
+        if (currentUser && db) {
+            try {
+                if (!activeKassaDocId) activeKassaDocId = await resolveAndMergeKassa(currentUser);
+                await db.collection('skolif_kassa').doc(activeKassaDocId).set({
+                    testhistorik: JSON.stringify(clean),
+                    senastUppdaterad: Date.now()
+                }, { merge: true });
+            } catch (err) {
+                console.warn('Kunde inte synka testhistorik till molnet:', err);
+            }
+        }
+    }
+
+    async function saveTestSession(sessionObj) {
+        if (!sessionObj || !Array.isArray(sessionObj.resultat) || sessionObj.resultat.length === 0) {
+            showToast('Det finns inga resultat att spara!', 'warning');
+            return false;
+        }
+        const rawKlass = String(sessionObj.klass || '').replace(/^klass\s+/i, '').trim();
+        const klassCode = normalizeKlassCode(rawKlass.split(/[\s\-•]+/)[0] || rawKlass) || 'ÖVRIGA';
+
+        const list = getTestHistory();
+        const entry = {
+            id: 'test_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+            typ: sessionObj.typ || 'beeptest', // 'beeptest' | 'lopning'
+            titel: String(sessionObj.titel || klassCode).trim(),
+            klass: klassCode,
+            datum: sessionObj.datum || getTodayDateString(),
+            distansKm: Number(sessionObj.distansKm) || 0,
+            resultat: sessionObj.resultat, // [{ namn, primarText, sekundarText, sortValue }]
+            skapad: Date.now()
+        };
+
+        list.unshift(entry);
+        await persistTestHistory(list);
+        showToast(`☁️ Resultatet för Klass ${klassCode} (${entry.resultat.length} elever) har sparats i historiken!`, 'success');
+        return true;
+    }
+
+    function openHistoryModal(initialType, initialKlass) {
+        injectStylesAndModal();
+        if (isElevlageActive()) {
+            requireTeacherUnlock(() => openHistoryModal(initialType, initialKlass));
+            return;
+        }
+
+        const modal = document.getElementById('skolifTestHistoryModal');
+        const typeSel = document.getElementById('skolifHistTypeFilter');
+        const classSel = document.getElementById('skolifHistClassFilter');
+        if (!modal) return;
+
+        if (typeSel && initialType) {
+            typeSel.value = initialType;
+        }
+
+        const list = getTestHistory();
+        const klasser = getClassesLocal();
+        const allKlassSet = new Set(Object.keys(klasser));
+        list.forEach(item => {
+            if (item.klass) allKlassSet.add(item.klass);
+        });
+        const sortedKlasser = Array.from(allKlassSet).sort((a, b) => a.localeCompare(b, 'sv'));
+
+        if (classSel) {
+            classSel.innerHTML = `<option value="ALL">Alla klasser</option>` +
+                sortedKlasser.map(k => `<option value="${escapeHtml(k)}">Klass ${escapeHtml(k)}</option>`).join('');
+            if (initialKlass) {
+                const norm = normalizeKlassCode(String(initialKlass).replace(/^klass\s+/i, '').split(/[\s\-•]+/)[0]);
+                if (allKlassSet.has(norm)) classSel.value = norm;
+            }
+        }
+
+        renderTestHistoryModalContent();
+        modal.classList.add('open');
+    }
+
+    function closeHistoryModal() {
+        const modal = document.getElementById('skolifTestHistoryModal');
+        if (modal) modal.classList.remove('open');
+    }
+
+    function renderTestHistoryModalContent() {
+        const area = document.getElementById('skolifHistContentArea');
+        const classSel = document.getElementById('skolifHistClassFilter');
+        const typeSel = document.getElementById('skolifHistTypeFilter');
+        if (!area) return;
+
+        const filterKlass = classSel ? classSel.value : 'ALL';
+        const filterType = typeSel ? typeSel.value : 'ALL';
+
+        const filtered = getTestHistory().filter(item => {
+            if (filterKlass !== 'ALL' && item.klass !== filterKlass) return false;
+            if (filterType !== 'ALL' && item.typ !== filterType) return false;
+            return true;
+        });
+
+        if (filtered.length === 0) {
+            area.innerHTML = `
+                <div style="text-align: center; padding: 32px 16px; color: #64748B; background: #F8FAFC; border-radius: 12px; border: 1.5px dashed #CBD5E1;">
+                    <div style="font-size: 2rem; margin-bottom: 6px;">📈</div>
+                    <div style="font-weight: 700; color: #334155;">Inga sparade testresultat hittades för detta val</div>
+                    <div style="font-size: 0.82rem; margin-top: 4px;">När du avslutar ett <strong>Beep-test</strong> eller en <strong>Löprunda</strong> klickar du på <em>"☁️ Spara resultat på klassen"</em> för att följa elevernas utveckling över tid!</div>
+                </div>
+            `;
+            return;
+        }
+
+        // Bygg individuell utvecklingsöversikt om det finns minst 2 tester av samma typ
+        let progressHtml = '';
+        const byTypeAndStudent = {};
+        // Gå igenom kronologiskt (äldst först)
+        [...filtered].reverse().forEach(session => {
+            (session.resultat || []).forEach(r => {
+                if (!r || !r.namn) return;
+                const key = `${session.typ}__${r.namn.trim().toLowerCase()}`;
+                if (!byTypeAndStudent[key]) {
+                    byTypeAndStudent[key] = {
+                        namn: r.namn,
+                        klass: session.klass,
+                        typ: session.typ,
+                        entries: []
+                    };
+                }
+                byTypeAndStudent[key].entries.push({
+                    datum: session.datum,
+                    primarText: r.primarText,
+                    sortValue: Number(r.sortValue) || 0
+                });
+            });
+        });
+
+        const studentsWithProgress = Object.values(byTypeAndStudent).filter(s => s.entries.length >= 2);
+        if (studentsWithProgress.length > 0) {
+            const rows = studentsWithProgress.map(s => {
+                const first = s.entries[0];
+                const last = s.entries[s.entries.length - 1];
+                const improved = s.typ === 'beeptest'
+                    ? last.sortValue > first.sortValue
+                    : (last.sortValue > 0 && first.sortValue > 0 && last.sortValue < first.sortValue);
+                const badgeColor = improved ? 'background:#DCFCE7;color:#166534;border:1px solid #86EFAC;' : 'background:#F1F5F9;color:#475569;border:1px solid #CBD5E1;';
+                const icon = s.typ === 'beeptest' ? '📢' : '⏱️';
+                return `
+                    <div style="display:flex;justify-content:space-between;align-items:center;padding:7px 11px;background:white;border-radius:8px;border:1px solid #E2E8F0;font-size:0.82rem;gap:8px;flex-wrap:wrap;">
+                        <div>
+                            <strong>${icon} ${escapeHtml(s.namn)}</strong>
+                            <span style="color:#64748B;font-size:0.75rem;margin-left:5px;">(Klass ${escapeHtml(s.klass)} • ${s.entries.length} tester)</span>
+                        </div>
+                        <div style="display:flex;align-items:center;gap:8px;">
+                            <span style="color:#64748B;">${escapeHtml(first.primarText)} <small>(${escapeHtml(first.datum)})</small></span>
+                            <span>➔</span>
+                            <span style="padding:2px 9px;border-radius:12px;font-weight:800;${badgeColor}">${escapeHtml(last.primarText)} <small>(${escapeHtml(last.datum)})</small> ${improved ? '🌟' : ''}</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            progressHtml = `
+                <div style="background:#F0FDF4;border:1.5px solid #BBF7D0;border-radius:12px;padding:12px 14px;">
+                    <div style="font-weight:800;font-size:0.86rem;color:#166534;margin-bottom:8px;">🌱 Individuell utveckling över tid (Första ➔ Senaste testet)</div>
+                    <div style="display:flex;flex-direction:column;gap:5px;max-height:170px;overflow-y:auto;">${rows}</div>
+                </div>
+            `;
+        }
+
+        const sessionsHtml = filtered.map(session => {
+            const icon = session.typ === 'beeptest' ? '📢 Beep-test' : `⏱️ Löprundan${session.distansKm ? ` (${session.distansKm} km)` : ''}`;
+            const rows = (session.resultat || []).map((r, i) => `
+                <span style="display:inline-flex;align-items:center;gap:4px;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;padding:3px 8px;font-size:0.76rem;">
+                    <strong>#${i + 1} ${escapeHtml(r.namn)}:</strong> <span style="color:#2E7D32;font-weight:700;">${escapeHtml(r.primarText)}</span>
+                </span>
+            `).join('');
+
+            return `
+                <div style="background:white;border:1.5px solid #E2E8F0;border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:8px;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+                        <div>
+                            <span style="font-weight:800;font-size:0.92rem;color:#1E3A24;">${icon} – Klass ${escapeHtml(session.klass)}</span>
+                            <span style="font-size:0.78rem;color:#64748B;margin-left:8px;">📅 ${escapeHtml(session.datum)} • ${(session.resultat || []).length} elever</span>
+                        </div>
+                        <button type="button" class="skolif-btn-sm danger" style="padding:4px 9px;font-size:0.74rem;" onclick="SkolIFKlasser.deleteTestSession('${escapeHtml(session.id)}')">🗑️ Radera</button>
+                    </div>
+                    <div style="display:flex;flex-wrap:wrap;gap:5px;">${rows}</div>
+                </div>
+            `;
+        }).join('');
+
+        area.innerHTML = progressHtml + sessionsHtml;
+    }
+
+    async function deleteTestSession(id) {
+        if (!confirm('Vill du radera detta sparade testtillfälle från historiken?')) return;
+        const next = getTestHistory().filter(x => x.id !== id);
+        await persistTestHistory(next);
+        renderTestHistoryModalContent();
+        showToast('🗑️ Testtillfället har raderats.', 'info');
+    }
+
+    function exportTestHistoryCSV() {
+        const list = getTestHistory();
+        if (list.length === 0) {
+            showToast('Ingen testhistorik att exportera än.', 'warning');
+            return;
+        }
+        let csv = '\uFEFFDatum;Typ;Klass;Titel;Placering;Elev;Resultat;Detalj\r\n';
+        list.forEach(s => {
+            (s.resultat || []).forEach((r, idx) => {
+                csv += `${s.datum};${s.typ};"${s.klass}";"${String(s.titel || '').replace(/"/g, '""')}";${idx + 1};"${String(r.namn || '').replace(/"/g, '""')}";"${String(r.primarText || '')}";"${String(r.sekundarText || '')}"\r\n`;
+            });
+        });
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `SkolIF_Testhistorik_${getTodayDateString()}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        showToast('📥 Testhistoriken har exporterats till Excel/CSV!', 'success');
+    }
+
     window.addEventListener('DOMContentLoaded', () => {
         injectStylesAndModal();
         updateHiddenStatsButtonVisibility();
+        updateElevlageUI();
         updateAuthUI();
         renderAllClassBars();
         recordPageVisit();
@@ -2107,6 +2996,33 @@
         login: loginWithGoogle,
         logout: logoutGoogle,
         toast: showToast,
+        // 1. Elevläge (PIN)
+        isElevlage: isElevlageActive,
+        toggleElevlage: toggleElevlage,
+        requireTeacherUnlock: requireTeacherUnlock,
+        openPinModal: openPinModal,
+        closePinModal: closePinModal,
+        submitPinModal: submitPinModal,
+        savePinFromSettings: savePinFromSettings,
+        unlockWithGoogle: unlockWithGoogle,
+        // 2. LOK-stöd (Arenan)
+        saveLokActivity: saveLokActivity,
+        onLokClassChange: onLokClassChange,
+        toggleSingleLokStudent: toggleSingleLokStudent,
+        toggleAllLokStudents: toggleAllLokStudents,
+        saveLokFromModal: saveLokFromModal,
+        copyLokNames: copyLokNames,
+        deleteLokItem: deleteLokItem,
+        exportLokCSV: exportLokCSV,
+        openLokModal: function () { openModal(null, null, 'lokstod'); },
+        // 3. Testhistorik (Beep-test & Löprundan)
+        saveTestSession: saveTestSession,
+        getTestHistory: getTestHistory,
+        openHistoryModal: openHistoryModal,
+        closeHistoryModal: closeHistoryModal,
+        renderTestHistoryModalContent: renderTestHistoryModalContent,
+        deleteTestSession: deleteTestSession,
+        exportTestHistoryCSV: exportTestHistoryCSV,
         onSelect: function (cb) {
             onClassSelectCallback = cb;
             renderAllClassBars();

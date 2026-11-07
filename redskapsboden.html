@@ -363,6 +363,17 @@
         @media (max-width: 600px) {
             .artiklar-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
         }
+        /* ELEVLÄGE / RASTVÄRDSLÅS: Dölj admin-knappar när elever sköter redskapsboden */
+        body.skolif-elevlage-locked [onclick="openNyArtikelModal()"],
+        body.skolif-elevlage-locked .art-edit-btn,
+        body.skolif-elevlage-locked [onclick="rensaHistorik()"],
+        body.skolif-elevlage-locked [onclick="SkolIFKlasser.openModal()"],
+        body.skolif-elevlage-locked #delaBtn,
+        body.skolif-elevlage-locked #logoutBtn,
+        body.skolif-elevlage-locked #delaPanel,
+        body.skolif-elevlage-locked #bodInfoText {
+            display: none !important;
+        }
     </style>
 </head>
 <body>
@@ -371,6 +382,7 @@
     <a href="index.html" class="logo">⚽ Redskapsboden</a>
     <div class="nav-right">
         <span id="userBadge">👤 <span id="userEmail"></span></span>
+        <button type="button" class="nav-btn skolif-elevlage-pill" data-skolif-elevlage-btn onclick="SkolIFKlasser.toggleElevlage()">🔓 Elevläge</button>
         <button class="nav-btn" onclick="SkolIFKlasser.openModal()">📋 Mina Klasser</button>
         <button class="nav-btn primary" id="delaBtn" onclick="handleDelaClick()">☁️ Logga in & synka</button>
         <button class="nav-btn danger" id="logoutBtn" style="display:none" onclick="logoutUser()">Logga ut</button>

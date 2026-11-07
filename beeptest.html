@@ -609,6 +609,7 @@
         </div>
     </a>
     <div class="nav-actions">
+        <button class="nav-btn" onclick="SkolIFKlasser.openHistoryModal('beeptest', document.getElementById('klassNamnInput') ? document.getElementById('klassNamnInput').value : '')">📈 Historik</button>
         <button class="nav-btn" onclick="SkolIFKlasser.openModal()">📋 Mina Klasser</button>
         <button class="nav-btn" data-skolif-auth-btn>👤 Logga in</button>
         <button class="nav-btn" onclick="toggleAudio()" id="audioBtn" title="Ljud på/av">🔊 Ljud: På</button>
@@ -780,10 +781,12 @@
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px;">
                 <h3 style="color: #1E3A24; font-weight: 800;">Klassens resultat</h3>
                 <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                    <button class="btn btn-green btn-sm" onclick="sparaBeepTestHistorik()">☁️ Spara på klassen</button>
+                    <button class="btn btn-outline btn-sm" onclick="sparaBeepSomLok()">🏟️ Spara LOK-stöd</button>
                     <button class="btn btn-orange btn-sm" onclick="oppnaDiplomModal()">📜 Skriv ut diplom</button>
                     <button class="btn btn-outline btn-sm" onclick="laddaNerCSV()">📥 Ladda ner Excel (CSV)</button>
                     <button class="btn btn-outline btn-sm" onclick="kopieraResultat()">📋 Kopiera text</button>
-                    <button class="btn btn-green btn-sm" onclick="window.print()">🖨️ Skriv ut tabell</button>
+                    <button class="btn btn-outline btn-sm" onclick="window.print()">🖨️ Skriv ut tabell</button>
                 </div>
             </div>
 
@@ -1763,6 +1766,34 @@
             playBeep(1100, 0.15);
             setTimeout(() => playBeep(1400, 0.35), 180);
         } catch(e) {}
+    }
+
+    function sparaBeepTestHistorik() {
+        if (!window.SkolIFKlasser || !window.SkolIFKlasser.saveTestSession) return;
+        const klara = [...elever].sort((a, b) => b.meter - a.meter);
+        if (klara.length === 0) return;
+
+        window.SkolIFKlasser.saveTestSession({
+            typ: 'beeptest',
+            titel: `${klassNamn} - Beep-test`,
+            klass: klassNamn,
+            resultat: klara.map(e => ({
+                namn: e.namn,
+                primarText: `Nivå ${e.niva}.${e.vanda} (${e.meter} m)`,
+                sekundarText: `VO2-max ~${e.vo2}`,
+                sortValue: Number(e.meter) || 0
+            }))
+        });
+    }
+
+    function sparaBeepSomLok() {
+        if (!window.SkolIFKlasser || !window.SkolIFKlasser.saveLokActivity) return;
+        const deltagareNamn = elever.map(e => e.namn);
+        window.SkolIFKlasser.saveLokActivity({
+            titel: `Beep-test (${klassNamn})`,
+            klass: klassNamn,
+            deltagare: deltagareNamn
+        });
     }
 </script>
 

@@ -606,6 +606,7 @@
             </div>
             <div style="display: flex; gap: 8px; flex-wrap: wrap;">
                 <button class="btn btn-green" onclick="slumpaIgen()" title="Kör ny slumpning">🔄 Slumpa igen</button>
+                <button class="btn btn-outline" onclick="sparaLagdelarenSomLok()" title="Spara närvarande elever som LOK-stödsaktivitet">🏟️ Spara LOK-stöd</button>
                 <button class="btn btn-outline" onclick="kopieraLagText()" title="Kopiera som text">📋 Kopiera</button>
                 <button class="btn btn-outline" onclick="window.print()" title="Skriv ut laguppställning">🖨️ Skriv ut</button>
                 <button class="btn btn-outline" onclick="redigeraLag()" title="Tillbaka till inställningar">⚙️ Ändra inställningar</button>
@@ -1075,6 +1076,16 @@
             .replace(/>/g, "&gt;")
             .replace(/"/g, "&quot;")
             .replace(/'/g, "&#039;");
+    }
+    function sparaLagdelarenSomLok() {
+        if (!window.SkolIFKlasser || !window.SkolIFKlasser.saveLokActivity) return;
+        const narvarande = elever.filter(e => e.narvarande).map(e => e.namn);
+        const klassNamn = (document.getElementById('sparaKlassNamn')?.value || 'Lagaktivitet').trim();
+        window.SkolIFKlasser.saveLokActivity({
+            titel: `Lagaktivitet (${klassNamn})`,
+            klass: klassNamn,
+            deltagare: narvarande
+        });
     }
 </script>
 

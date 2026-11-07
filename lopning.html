@@ -716,6 +716,7 @@
         </div>
     </a>
     <div class="nav-actions">
+        <button class="nav-btn" onclick="SkolIFKlasser.openHistoryModal('lopning', document.getElementById('loppNamn') ? document.getElementById('loppNamn').value : '')">📈 Historik</button>
         <button class="nav-btn" onclick="SkolIFKlasser.openModal()">📋 Mina Klasser</button>
         <button class="nav-btn" data-skolif-auth-btn>👤 Logga in</button>
         <button class="nav-btn" onclick="toggleLjud()" id="ljudBtn" title="Slå på/av startljud">🔊 Ljud: På</button>
@@ -880,10 +881,12 @@
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px;">
                 <h3 style="color: #1E3A24; font-weight: 800;">Komplett resultatlista</h3>
                 <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                    <button class="btn btn-green btn-sm" onclick="sparaLopningHistorik()">☁️ Spara på klassen</button>
+                    <button class="btn btn-outline btn-sm" onclick="sparaLopningSomLok()">🏟️ Spara LOK-stöd</button>
                     <button class="btn btn-orange btn-sm" onclick="oppnaDiplomModal()">📜 Skriv ut diplom</button>
                     <button class="btn btn-outline btn-sm" onclick="laddaNerCSV()">📥 Ladda ner Excel (CSV)</button>
                     <button class="btn btn-outline btn-sm" onclick="kopieraResultat()">📋 Kopiera text</button>
-                    <button class="btn btn-green btn-sm" onclick="window.print()">🖨️ Skriv ut tabell</button>
+                    <button class="btn btn-outline btn-sm" onclick="window.print()">🖨️ Skriv ut tabell</button>
                 </div>
             </div>
 
@@ -1892,6 +1895,37 @@
             osc.start();
             osc.stop(ctx.currentTime + 0.6);
         } catch(e) {}
+    }
+
+    function sparaLopningHistorik() {
+        if (!window.SkolIFKlasser || !window.SkolIFKlasser.saveTestSession) return;
+        const iMal = deltagare.filter(e => e.status === 'MAL').sort((a, b) => a.tidMs - b.tidMs);
+        if (iMal.length === 0) {
+            alert("Inga elever i mål att spara ännu.");
+            return;
+        }
+        window.SkolIFKlasser.saveTestSession({
+            typ: 'lopning',
+            titel: loppNamn,
+            klass: loppNamn,
+            distansKm: banLangdKm,
+            resultat: iMal.map(e => ({
+                namn: e.namn,
+                primarText: formatTid(e.tidMs) + (banLangdKm > 0 ? ` (${beraknaTempo(e.tidMs, banLangdKm)}/km)` : ''),
+                sekundarText: banLangdKm > 0 ? `${banLangdKm} km` : '',
+                sortValue: Number(e.tidMs) || 0
+            }))
+        });
+    }
+
+    function sparaLopningSomLok() {
+        if (!window.SkolIFKlasser || !window.SkolIFKlasser.saveLokActivity) return;
+        const deltagareNamn = deltagare.map(e => e.namn);
+        window.SkolIFKlasser.saveLokActivity({
+            titel: `Löprunda (${loppNamn})`,
+            klass: loppNamn,
+            deltagare: deltagareNamn
+        });
     }
 </script>
 
