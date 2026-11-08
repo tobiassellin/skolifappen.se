@@ -1511,6 +1511,192 @@
                 color: #166534;
                 font-weight: 700;
             }
+            .skolif-modal-overlay,
+            .skolif-modal-overlay * {
+                box-sizing: border-box;
+            }
+            .skolif-class-item-actions {
+                display: flex;
+                gap: 6px;
+                align-items: center;
+                flex-wrap: wrap;
+            }
+
+            /* ====== MOBILANPASSNING (INGEN UTZOOMNING ELLER AVKLIPPNING) ====== */
+            @media (max-width: 640px) {
+                html, body {
+                    max-width: 100vw;
+                    overflow-x: hidden;
+                }
+                nav, nav > div, .nav-actions, .nav-links {
+                    flex-wrap: wrap !important;
+                }
+                .skolif-modal-overlay {
+                    padding: 6px !important;
+                    width: 100vw !important;
+                    max-width: 100vw !important;
+                    left: 0 !important;
+                    right: 0 !important;
+                }
+                .skolif-modal-box {
+                    width: 100% !important;
+                    max-width: 100% !important;
+                    max-height: 93vh !important;
+                    max-height: 93dvh !important;
+                    border-radius: 16px !important;
+                    margin: 0 !important;
+                }
+                .skolif-modal-header {
+                    padding: 13px 15px !important;
+                }
+                .skolif-modal-header h3 {
+                    font-size: 1.05rem !important;
+                }
+                .skolif-modal-body {
+                    padding: 12px 13px !important;
+                    gap: 11px !important;
+                    overflow-x: hidden !important;
+                }
+                .skolif-auth-banner {
+                    padding: 10px 12px !important;
+                    font-size: 0.82rem !important;
+                    word-break: break-word;
+                }
+                .skolif-auth-banner > div:last-child,
+                .skolif-auth-banner > button {
+                    width: 100%;
+                    justify-content: center;
+                }
+                .skolif-tab-row {
+                    display: flex !important;
+                    gap: 6px !important;
+                    padding-bottom: 8px !important;
+                }
+                .skolif-tab-btn {
+                    flex: 1 1 0 !important;
+                    text-align: center !important;
+                    justify-content: center !important;
+                    padding: 9px 6px !important;
+                    font-size: 0.8rem !important;
+                }
+                .skolif-top-drawer-bar {
+                    flex-direction: column !important;
+                    align-items: stretch !important;
+                    gap: 8px !important;
+                }
+                .skolif-top-drawer-btns {
+                    display: flex !important;
+                    width: 100% !important;
+                    gap: 6px !important;
+                }
+                .skolif-top-drawer-btns .skolif-btn-sm {
+                    flex: 1 1 0 !important;
+                    text-align: center !important;
+                    justify-content: center !important;
+                    padding: 9px 8px !important;
+                    font-size: 0.82rem !important;
+                }
+                .skolif-mobile-stack {
+                    flex-direction: column !important;
+                    align-items: stretch !important;
+                }
+                .skolif-mobile-stack > input,
+                .skolif-mobile-stack > select,
+                .skolif-mobile-stack > button {
+                    width: 100% !important;
+                    max-width: 100% !important;
+                    min-width: 0 !important;
+                    flex: none !important;
+                }
+                /* 16px på fält i mobilen förhindrar att iPhone/Safari tvångszoomar & klipper sidan */
+                .skolif-modal-box input,
+                .skolif-modal-box textarea,
+                .skolif-modal-box select {
+                    font-size: 16px !important;
+                    max-width: 100% !important;
+                    min-width: 0 !important;
+                }
+                .skolif-drawer-header-row {
+                    flex-direction: column !important;
+                    align-items: stretch !important;
+                    gap: 8px !important;
+                }
+                #skolifImportModeSwitch:not([hidden]) {
+                    display: flex !important;
+                    width: 100% !important;
+                }
+                #skolifImportModeSwitch[hidden] {
+                    display: none !important;
+                }
+                #skolifImportModeSwitch button {
+                    flex: 1 1 0 !important;
+                    text-align: center !important;
+                    padding: 6px 6px !important;
+                    font-size: 0.78rem !important;
+                }
+                .skolif-form-footer-btns {
+                    width: 100% !important;
+                    display: flex !important;
+                    gap: 8px !important;
+                }
+                .skolif-form-footer-btns .skolif-btn-sm {
+                    flex: 1 1 0 !important;
+                    padding: 9px 10px !important;
+                    font-size: 0.85rem !important;
+                    text-align: center !important;
+                }
+                .skolif-class-item {
+                    flex-direction: column !important;
+                    align-items: stretch !important;
+                    padding: 10px 12px !important;
+                    gap: 8px !important;
+                }
+                .skolif-class-item-info {
+                    justify-content: space-between !important;
+                    width: 100% !important;
+                }
+                .skolif-class-item-actions {
+                    width: 100% !important;
+                    display: flex !important;
+                    gap: 6px !important;
+                }
+                .skolif-class-item-actions .skolif-btn-sm:not(.danger) {
+                    flex: 1 1 0 !important;
+                    padding: 8px 8px !important;
+                    font-size: 0.82rem !important;
+                    text-align: center !important;
+                }
+                .skolif-class-item-actions .skolif-btn-sm.danger {
+                    padding: 8px 11px !important;
+                }
+                .skolif-tool-card-row {
+                    flex-direction: column !important;
+                    align-items: stretch !important;
+                    gap: 10px !important;
+                    padding: 12px 13px !important;
+                }
+                .skolif-tool-card-row > div {
+                    min-width: 0 !important;
+                    width: 100% !important;
+                }
+                .skolif-tool-card-row > button {
+                    width: 100% !important;
+                    padding: 10px 12px !important;
+                    font-size: 0.86rem !important;
+                    text-align: center !important;
+                }
+                .skolif-pin-row-mobile {
+                    width: 100% !important;
+                    display: flex !important;
+                    gap: 8px !important;
+                }
+                .skolif-pin-row-mobile input {
+                    flex: 1 1 0 !important;
+                }
+                .skolif-pin-row-mobile button {
+                    flex: 1 1 0 !important;
+                }
+            }
         `;
         document.head.appendChild(style);
 
@@ -1539,11 +1725,11 @@
                             <!-- FLIK 1: KLASSER & ELEVER -->
                             <div id="skolifTabContent-klasser" style="display: flex; flex-direction: column; gap: 12px;">
                                 <!-- Topprad med knappar för att fälla ut formulär -->
-                                <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap;">
+                                <div class="skolif-top-drawer-bar" style="display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap;">
                                     <div style="font-size: 0.82rem; font-weight: 800; color: #334155; text-transform: uppercase; letter-spacing: 0.3px;">
                                         Dina sparade klasser
                                     </div>
-                                    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                                    <div class="skolif-top-drawer-btns" style="display: flex; gap: 8px; flex-wrap: wrap;">
                                         <button type="button" class="skolif-btn-sm" id="skolifBtnToggleSingle" onclick="SkolIFKlasser.toggleClassDrawer('single')" style="padding: 6px 12px;">👤 + Enskild elev</button>
                                         <button type="button" class="skolif-btn-sm primary" id="skolifBtnToggleClass" onclick="SkolIFKlasser.toggleClassDrawer('class')" style="padding: 6px 13px;">➕ Ny klass / Importera</button>
                                     </div>
@@ -1555,30 +1741,30 @@
                                         <div style="font-weight: 800; font-size: 0.85rem; color: #166534;">👤 Lägg till enskild elev i en klass</div>
                                         <button type="button" onclick="SkolIFKlasser.toggleClassDrawer(null)" style="background:none; border:none; color:#64748B; cursor:pointer; font-weight:800; font-size:0.85rem;">✕</button>
                                     </div>
-                                    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-                                        <input type="text" id="skolifSingleStudentName" placeholder="Elevens namn (t.ex. Anna Andersson)" style="flex: 2; min-width: 160px; padding: 7px 10px; border: 1.5px solid #CBD5E1; border-radius: 8px; font-size: 0.85rem; font-family: inherit; background: white;" onkeydown="if(event.key==='Enter') SkolIFKlasser.addSingleFromModal()">
-                                        <input type="text" id="skolifSingleStudentClass" placeholder="Klass (t.ex. 8B)" style="flex: 1; min-width: 85px; max-width: 120px; padding: 7px 10px; border: 1.5px solid #CBD5E1; border-radius: 8px; font-size: 0.85rem; font-family: inherit; text-transform: uppercase; font-weight: 700; background: white;" onkeydown="if(event.key==='Enter') SkolIFKlasser.addSingleFromModal()">
-                                        <button type="button" class="skolif-btn-sm primary" onclick="SkolIFKlasser.addSingleFromModal()" style="padding: 7px 14px;">Lägg till</button>
+                                    <div class="skolif-mobile-stack" style="display: flex; gap: 8px; flex-wrap: wrap;">
+                                        <input type="text" id="skolifSingleStudentName" placeholder="Elevens namn (t.ex. Anna Andersson)" style="flex: 2; min-width: 160px; padding: 8px 10px; border: 1.5px solid #CBD5E1; border-radius: 8px; font-size: 0.85rem; font-family: inherit; background: white;" onkeydown="if(event.key==='Enter') SkolIFKlasser.addSingleFromModal()">
+                                        <input type="text" id="skolifSingleStudentClass" placeholder="Klass (t.ex. 8B)" style="flex: 1; min-width: 85px; max-width: 120px; padding: 8px 10px; border: 1.5px solid #CBD5E1; border-radius: 8px; font-size: 0.85rem; font-family: inherit; text-transform: uppercase; font-weight: 700; background: white;" onkeydown="if(event.key==='Enter') SkolIFKlasser.addSingleFromModal()">
+                                        <button type="button" class="skolif-btn-sm primary" onclick="SkolIFKlasser.addSingleFromModal()" style="padding: 8px 14px;">Lägg till</button>
                                     </div>
                                 </div>
 
                                 <!-- UTFÄLLBAR 2: Skapa / Redigera klass eller Massimport -->
                                 <div id="skolifClassFormDrawer" style="display: none; background: #F8FAFC; border: 1.5px solid #CBD5E1; border-radius: 12px; padding: 14px;">
-                                    <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 10px;">
-                                        <div style="font-weight: 800; font-size: 0.92rem; color: #1E3A24;" id="skolifFormTitle">➕ Lägg till ny klass</div>
-                                        <div style="display: flex; gap: 6px; align-items: center;">
-                                            <div id="skolifImportModeSwitch" style="display: inline-flex; background: #E2E8F0; padding: 2px; border-radius: 8px;">
-                                                <button type="button" id="skolifModeBtnSingleClass" onclick="SkolIFKlasser.setClassDrawerMode('singleClass')" style="border:none; background:white; color:#0F172A; font-weight:700; font-size:0.74rem; padding:4px 9px; border-radius:6px; cursor:pointer; font-family:inherit;">📁 En klass</button>
-                                                <button type="button" id="skolifModeBtnMassImport" onclick="SkolIFKlasser.setClassDrawerMode('massImport')" style="border:none; background:transparent; color:#475569; font-weight:700; font-size:0.74rem; padding:4px 9px; border-radius:6px; cursor:pointer; font-family:inherit;">⚡ Flera klasser samtidigt</button>
-                                            </div>
-                                            <button type="button" onclick="SkolIFKlasser.clearModalForm()" style="background:none; border:none; color:#64748B; cursor:pointer; font-weight:800; font-size:0.9rem; padding: 0 4px;" title="Stäng">✕</button>
+                                    <div class="skolif-drawer-header-row" style="display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 10px;">
+                                        <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; gap: 8px;">
+                                            <div style="font-weight: 800; font-size: 0.92rem; color: #1E3A24;" id="skolifFormTitle">➕ Lägg till ny klass</div>
+                                            <button type="button" onclick="SkolIFKlasser.clearModalForm()" style="background:none; border:none; color:#64748B; cursor:pointer; font-weight:800; font-size:0.95rem; padding: 0 4px;" title="Stäng">✕</button>
+                                        </div>
+                                        <div id="skolifImportModeSwitch" style="display: inline-flex; background: #E2E8F0; padding: 3px; border-radius: 8px;">
+                                            <button type="button" id="skolifModeBtnSingleClass" onclick="SkolIFKlasser.setClassDrawerMode('singleClass')" style="border:none; background:white; color:#0F172A; font-weight:700; font-size:0.76rem; padding:5px 10px; border-radius:6px; cursor:pointer; font-family:inherit;">📁 En klass</button>
+                                            <button type="button" id="skolifModeBtnMassImport" onclick="SkolIFKlasser.setClassDrawerMode('massImport')" style="border:none; background:transparent; color:#475569; font-weight:700; font-size:0.76rem; padding:5px 10px; border-radius:6px; cursor:pointer; font-family:inherit;">⚡ Flera klasser samtidigt</button>
                                         </div>
                                     </div>
 
                                     <!-- Läge A: En klass -->
                                     <div id="skolifSingleClassFormArea">
                                         <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 8px;">
-                                            <input type="text" id="skolifModalClassName" placeholder="Klassbeteckning (t.ex. 8B)" style="flex: 1; padding: 8px 11px; border: 1.5px solid #CBD5E1; border-radius: 8px; font-size: 0.86rem; font-family: inherit; font-weight: 700; text-transform: uppercase; background: white;">
+                                            <input type="text" id="skolifModalClassName" placeholder="Klassbeteckning (t.ex. 8B)" style="flex: 1; min-width: 0; padding: 8px 11px; border: 1.5px solid #CBD5E1; border-radius: 8px; font-size: 0.86rem; font-family: inherit; font-weight: 700; text-transform: uppercase; background: white;">
                                             <span id="skolifModalCountBadge" style="font-size: 0.76rem; font-weight: 800; color: #2E7D32; background: #E8F5E9; padding: 5px 11px; border-radius: 999px; white-space: nowrap;">0 elever</span>
                                         </div>
                                         <div>
@@ -1586,7 +1772,7 @@
                                         </div>
                                         <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px; gap: 8px; flex-wrap: wrap;">
                                             <span style="font-size: 0.73rem; color: #64748B;">💡 Tips: Ändra klassbeteckningen ovan (t.ex. 8B ➔ 9B) om du vill byta namn på klassen.</span>
-                                            <div style="display: flex; gap: 8px;">
+                                            <div class="skolif-form-footer-btns" style="display: flex; gap: 8px;">
                                                 <button type="button" class="skolif-btn-sm" onclick="SkolIFKlasser.clearModalForm()">Avbryt</button>
                                                 <button type="button" class="skolif-btn-sm primary" onclick="SkolIFKlasser.saveFromModal()">💾 Spara klass</button>
                                             </div>
@@ -1599,7 +1785,7 @@
                                             Klistra in en lista där både elevens namn och klass står på varje rad (t.ex. <strong>Tobias Sellin 9B</strong> eller <strong>Anna Andersson 7A</strong>). Alla klasser skapas automatiskt!
                                         </p>
                                         <textarea id="skolifMassImportText" rows="6" placeholder="Exempel:\nTobias Sellin 9B\nAnna Andersson 7A\nErik Eriksson 8C" style="width: 100%; padding: 9px 11px; border: 1.5px solid #CBD5E1; border-radius: 8px; font-size: 0.84rem; font-family: inherit; resize: vertical; margin-bottom: 8px; background: white;"></textarea>
-                                        <div style="display: flex; justify-content: flex-end; gap: 8px;">
+                                        <div class="skolif-form-footer-btns" style="display: flex; justify-content: flex-end; gap: 8px;">
                                             <button type="button" class="skolif-btn-sm" onclick="SkolIFKlasser.clearModalForm()">Avbryt</button>
                                             <button type="button" class="skolif-btn-sm primary" onclick="SkolIFKlasser.massImportFromModal()">🚀 Kör massimport</button>
                                         </div>
@@ -1613,8 +1799,8 @@
                             <!-- FLIK 2: LÄSÅRSBYTE & INSTÄLLNINGAR -->
                             <div id="skolifTabContent-verktyg" style="display: none; flex-direction: column; gap: 12px;">
                                 <!-- 1. Läsårsbyte (+1 årskurs för alla klasser) -->
-                                <div style="background: #F0FDF4; border: 1.5px solid #BBF7D0; border-radius: 12px; padding: 14px 16px; display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;">
-                                    <div style="flex: 1; min-width: 210px;">
+                                <div class="skolif-tool-card-row" style="background: #F0FDF4; border: 1.5px solid #BBF7D0; border-radius: 12px; padding: 14px 16px; display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;">
+                                    <div style="flex: 1; min-width: 180px;">
                                         <div style="font-weight: 800; font-size: 0.92rem; color: #166534; margin-bottom: 3px;">🎓 Nytt läsår – Höj alla klasser (+1 årskurs)</div>
                                         <div style="font-size: 0.79rem; color: #334155; line-height: 1.4;">
                                             Stegar upp alla klasser ett år (t.ex. <strong>7A ➔ 8A</strong>, <strong>8B ➔ 9B</strong>). Alla elevers saldon i Kiosken följer med!
@@ -1624,8 +1810,8 @@
                                 </div>
 
                                 <!-- 2. Exportera elevlista till Excel / CSV -->
-                                <div style="background: #F8FAFC; border: 1.5px solid #E2E8F0; border-radius: 12px; padding: 14px 16px; display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;">
-                                    <div style="flex: 1; min-width: 210px;">
+                                <div class="skolif-tool-card-row" style="background: #F8FAFC; border: 1.5px solid #E2E8F0; border-radius: 12px; padding: 14px 16px; display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;">
+                                    <div style="flex: 1; min-width: 180px;">
                                         <div style="font-weight: 800; font-size: 0.92rem; color: #0F172A; margin-bottom: 3px;">📄 Exportera elevregister till Excel (CSV)</div>
                                         <div style="font-size: 0.79rem; color: #475569;">Ladda ner en reservkopia med alla klasser, elever och saldon i Kiosken.</div>
                                     </div>
@@ -1633,12 +1819,12 @@
                                 </div>
 
                                 <!-- 3. PIN-kod för Elevläge (Kiosklås) -->
-                                <div style="background: #FFFBEB; border: 1.5px solid #FDE68A; border-radius: 12px; padding: 14px 16px; display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;">
-                                    <div style="flex: 1; min-width: 210px;">
+                                <div class="skolif-tool-card-row" style="background: #FFFBEB; border: 1.5px solid #FDE68A; border-radius: 12px; padding: 14px 16px; display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;">
+                                    <div style="flex: 1; min-width: 180px;">
                                         <div style="font-weight: 800; font-size: 0.92rem; color: #B45309; margin-bottom: 3px;">🔒 PIN-kod för Elevläge (Kassa & Redskapsbod)</div>
                                         <div style="font-size: 0.79rem; color: #78350F;">Låser admin-knappar när elever står själva i kiosken eller redskapsboden.</div>
                                     </div>
-                                    <div style="display: flex; gap: 6px; align-items: center;">
+                                    <div class="skolif-pin-row-mobile" style="display: flex; gap: 6px; align-items: center;">
                                         <input type="password" id="skolifSettingsPinInput" maxlength="4" inputmode="numeric" placeholder="4 siffror" style="width: 95px; padding: 7px 10px; border: 1.5px solid #F59E0B; border-radius: 8px; font-size: 0.85rem; font-weight: 800; text-align: center; letter-spacing: 3px; background: white;">
                                         <button type="button" class="skolif-btn-sm primary" onclick="SkolIFKlasser.savePinFromSettings()" style="background: #D97706; border-color: #D97706; padding: 8px 14px;">Spara PIN</button>
                                     </div>
@@ -1658,7 +1844,7 @@
                                 <!-- Skapa nytt LOK-tillfälle -->
                                 <div style="background: #F8FAFC; border: 1.5px solid #E2E8F0; border-radius: 12px; padding: 13px 14px;">
                                     <div style="font-weight: 800; font-size: 0.86rem; color: #1E3A24; margin-bottom: 8px;">➕ Registrera närvaro för Skol-IF-aktivitet</div>
-                                    <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px;">
+                                    <div class="skolif-mobile-stack" style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px;">
                                         <input type="date" id="skolifLokDate" style="padding: 7px 10px; border: 1.5px solid #CBD5E1; border-radius: 8px; font-size: 0.82rem; font-family: inherit;">
                                         <input type="text" id="skolifLokTitle" placeholder="Aktivitet (t.ex. Rastturnering, Fredagsfys, Öppen hall)" style="flex: 2; min-width: 180px; padding: 7px 10px; border: 1.5px solid #CBD5E1; border-radius: 8px; font-size: 0.82rem; font-family: inherit;">
                                         <select id="skolifLokClassSelect" onchange="SkolIFKlasser.onLokClassChange()" style="flex: 1; min-width: 130px; padding: 7px 10px; border: 1.5px solid #CBD5E1; border-radius: 8px; font-size: 0.82rem; font-family: inherit; background: white;"></select>
@@ -1882,11 +2068,13 @@
             return `
                 <div class="skolif-class-item" style="padding: 8px 12px;">
                     <div class="skolif-class-item-info">
-                        <span style="font-size: 1rem;">📁</span>
-                        <span class="skolif-class-item-name" style="font-size: 0.9rem;">${escapeHtml(label)}</span>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span style="font-size: 1rem;">📁</span>
+                            <span class="skolif-class-item-name" style="font-size: 0.9rem;">${escapeHtml(label)}</span>
+                        </div>
                         <span class="skolif-class-item-badge">${count} elever</span>
                     </div>
-                    <div style="display: flex; gap: 6px;">
+                    <div class="skolif-class-item-actions" style="display: flex; gap: 6px;">
                         ${useBtnHtml}
                         <button type="button" class="skolif-btn-sm" onclick="SkolIFKlasser.editInModal('${escapeHtml(code)}')">✏️ Visa / Ändra</button>
                         <button type="button" class="skolif-btn-sm danger" onclick="SkolIFKlasser.removeFromModal('${escapeHtml(code)}')">🗑️</button>
@@ -1938,6 +2126,7 @@
         const modeSwitch = document.getElementById('skolifImportModeSwitch');
 
         if (modeSwitch) {
+            modeSwitch.hidden = Boolean(editingOriginalKlassCode);
             modeSwitch.style.display = editingOriginalKlassCode ? 'none' : 'inline-flex';
         }
 
