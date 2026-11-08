@@ -2994,6 +2994,37 @@
         showToast('📥 Testhistoriken har exporterats till Excel/CSV!', 'success');
     }
 
+    // ==========================================
+    //  HÅLL SKÄRMEN VAKEN (SCREEN WAKE LOCK) PÅ VERKTYGSSIDOR
+    // ==========================================
+    let skolifWakeLockSentinel = null;
+
+    async function requestSkolifWakeLock() {
+        if (!('wakeLock' in navigator) || document.visibilityState !== 'visible') return;
+        if (skolifWakeLockSentinel && !skolifWakeLockSentinel.released) return;
+        try {
+            skolifWakeLockSentinel = await navigator.wakeLock.request('screen');
+            skolifWakeLockSentinel.addEventListener('release', () => {
+                skolifWakeLockSentinel = null;
+            });
+        } catch (e) {}
+    }
+
+    function initScreenWakeLock() {
+        const pageKey = detectPageKey();
+        if (pageKey === 'index' || pageKey === 'statistik') return;
+
+        // Begär Wake Lock direkt samt vid första klick/pek på verktygssidornas timers och tester
+        requestSkolifWakeLock();
+        document.addEventListener('click', requestSkolifWakeLock, { passive: true });
+        document.addEventListener('touchstart', requestSkolifWakeLock, { passive: true });
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') {
+                requestSkolifWakeLock();
+            }
+        });
+    }
+
     window.addEventListener('DOMContentLoaded', () => {
         injectStylesAndModal();
         updateHiddenStatsButtonVisibility();
@@ -3001,6 +3032,7 @@
         updateAuthUI();
         renderAllClassBars();
         recordPageVisit();
+        initScreenWakeLock();
     });
 
     window.SkolIFKlasser = {

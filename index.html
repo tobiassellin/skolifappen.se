@@ -539,7 +539,7 @@
             flex-shrink: 0;
         }
         .tool-body { flex: 1; min-width: 0; }
-        .tool-card h4 { font-size: 0.98rem; font-weight: 800; color: #143321; margin-bottom: 3px; padding-right: 45px; }
+        .tool-card h4 { font-size: 0.98rem; font-weight: 800; color: #143321; margin-bottom: 3px; }
         .tool-card p { font-size: 0.8rem; color: #52606D; line-height: 1.4; margin-bottom: 6px; }
         .tool-link { font-size: 0.78rem; font-weight: 700; color: #2E7D32; display: inline-flex; align-items: center; gap: 4px; transition: gap 0.2s; }
         .tool-card:hover .tool-link { gap: 7px; }
@@ -606,7 +606,6 @@
                     <a href="hjulet.html"><span>🎡</span> Uppvärmningshjulet</a>
                 </div>
             </div>
-            <button type="button" class="skolif-nav-auth-btn" onclick="SkolIFKlasser.openModal()">📋 Mina Klasser</button>
             <button type="button" class="skolif-nav-auth-btn" data-skolif-auth-btn>👤 Logga in</button>
         </div>
     </nav>
@@ -614,12 +613,10 @@
     <header class="hero">
         <div class="hero-inner">
             <div class="hero-top-row">
-                <span class="hero-pill">✨ Digital plattform för Skol-IF & Idrott</span>
-                <a href="https://play.google.com/store/apps/details?id=com.sellin.tabatatimer" target="_blank" class="hero-app-pill">📱 Hämta Android-appen →</a>
-                <button type="button" onclick="SkolIFKlasser.openInstallAppModal()" class="hero-app-pill" style="background: rgba(255, 255, 255, 0.14); color: #FFFFFF; border-color: rgba(255, 255, 255, 0.35); cursor: pointer; font-family: inherit;">📲 Spara som app (iPhone/iPad/Dator)</button>
+                <span class="hero-pill">✨ Digital plattform för Skol-IF &amp; Idrott</span>
             </div>
-            <h1>Allt för Skol-IF & Idrotten <span>på ett ställe</span></h1>
-            <p>Samla kioskkassan, utlåning, spelscheman och lektionsverktyg direkt i webbläsaren – och koppla ihop dem med mobilappen och kollegor i realtid.</p>
+            <h1>Allt för Skol-IF &amp; Idrotten <span>på ett ställe</span></h1>
+            <p>Kioskkassa, redskapsbod, turneringar och lektionsverktyg direkt i webbläsaren – synkat i realtid med mobilappen.</p>
         </div>
     </header>
 
@@ -631,18 +628,14 @@
                     <div class="card-top-header">
                         <div class="card-icon">☕</div>
                     </div>
-                    <div class="card-tags">
-                        <span class="card-tag">💳 Elevsaldon & Blipp</span>
-                        <span class="card-tag">☁️ Molnsynk</span>
-                    </div>
                     <h3>Skol IF Kassa</h3>
-                    <p>Smidig kioskförsäljning för mobilfria skolor med förladdade saldon. Koppla kassan via Google för att synka med mobilappen och dela med kollegor och elever!</p>
+                    <p>Digital kioskkassa med elevsaldon, snabbkorg och blipp-stöd för mobilfria skolor.</p>
                 </div>
                 
                 <div style="margin-top: 8px;">
                     <button id="kioskBtn" onclick="klickaPaKnapp(event)" class="cta-button" style="width: 100%; max-width: 230px;">Logga in med Google</button>
                     <div id="kioskOfflineText" style="margin-top: 7px;">
-                        <a href="kiosk.html" onclick="event.stopPropagation();" style="font-size: 0.78rem; color: #2E7D32; font-weight: 600; text-decoration: underline;">Eller öppna direkt utan inloggning →</a>
+                        <a href="kiosk.html" onclick="event.stopPropagation();" style="font-size: 0.78rem; color: #2E7D32; font-weight: 600; text-decoration: underline;">Eller öppna direkt →</a>
                     </div>
                 </div>
             </div>
@@ -653,18 +646,14 @@
                     <div class="card-top-header">
                         <div class="card-icon">⚽</div>
                     </div>
-                    <div class="card-tags">
-                        <span class="card-tag">🔄 Snabblån</span>
-                        <span class="card-tag">📱 Synkar med appen</span>
-                    </div>
                     <h3>Redskapsboden</h3>
-                    <p>Håll ordning på rasternas utrustning och registrera lån på sekunder. Koppla boden via Google för att synka med mobilappen och låta kollegor och rastvärdar hjälpas åt.</p>
+                    <p>Håll ordning på rastutrustningen och registrera utlåning och returer på sekunder.</p>
                 </div>
                 
                 <div style="margin-top: 8px;">
                     <button id="bodBtn" onclick="klickaPaBodKnapp(event)" class="cta-button" style="width: 100%; max-width: 230px;">Logga in med Google</button>
                     <div id="bodOfflineText" style="margin-top: 7px;">
-                        <a href="redskapsboden.html" onclick="event.stopPropagation();" style="font-size: 0.78rem; color: #2E7D32; font-weight: 600; text-decoration: underline;">Eller öppna direkt utan inloggning →</a>
+                        <a href="redskapsboden.html" onclick="event.stopPropagation();" style="font-size: 0.78rem; color: #2E7D32; font-weight: 600; text-decoration: underline;">Eller öppna direkt →</a>
                     </div>
                 </div>
             </div>
@@ -675,12 +664,8 @@
                     <div class="card-top-header">
                         <div class="card-icon">🏆</div>
                     </div>
-                    <div class="card-tags">
-                        <span class="card-tag">⚡ Automatiskt schema</span>
-                        <span class="card-tag">🥇 Slutspelsträd</span>
-                    </div>
                     <h3 id="turneringTitel">Skapa Turnering</h3>
-                    <p id="turneringDesc">Arrangera rastturneringar utan papperskaos. Skapa spelscheman automatiskt och följ tabeller och slutspelsträd live.</p>
+                    <p id="turneringDesc">Öppen grupplottning med hjul, automatiskt spelschema, slutspelsträd och live-QR för publiken.</p>
                 </div>
                 
                 <div style="margin-top: 8px;">
@@ -694,11 +679,14 @@
             <div class="sync-banner-left">
                 <div class="sync-banner-icon">📲</div>
                 <div>
-                    <strong>Koppla ihop Kiosken & Redskapsboden med Skol-IF Appen (Android)</strong>
-                    <span>Logga in med Google för att synka saldon, varor och utlåningar i realtid mellan dator och mobil – och bjud in kollegor eller elever så att ni enkelt kan hjälpas åt.</span>
+                    <strong>Använd Skol-IF i mobilen, på iPad eller datorn</strong>
+                    <span>Synka Kiosken och Redskapsboden med Android-appen eller spara hemsidan som app på hemskärmen.</span>
                 </div>
             </div>
-            <a href="https://play.google.com/store/apps/details?id=com.sellin.tabatatimer" target="_blank" class="sync-banner-btn">📱 Hämta på Google Play →</a>
+            <div style="display:flex; gap:10px; flex-wrap:wrap; justify-content:center;">
+                <a href="https://play.google.com/store/apps/details?id=com.sellin.tabatatimer" target="_blank" class="sync-banner-btn">📱 Google Play (Android) →</a>
+                <button type="button" onclick="SkolIFKlasser.openInstallAppModal()" class="sync-banner-btn" style="background:rgba(255,255,255,0.16); color:#FFFFFF; border:1px solid rgba(255,255,255,0.35); cursor:pointer; font-family:inherit;">📲 Spara som app (iPhone/iPad)</button>
+            </div>
         </div>
 
         <!-- IDROTTSLÄRARENS VERKTYGSLÅDA -->
@@ -706,13 +694,12 @@
             <div class="tools-header">
                 <span class="tools-badge">⚡ Lektionsverktyg</span>
                 <h2>Idrottslärarens Verktygslåda</h2>
-                <p>Smidiga och blixtsnabba digitala verktyg direkt i webbläsaren för lektionen och idrottshallen.</p>
+                <p>Snabba digitala verktyg för lektionen och idrottshallen.</p>
             </div>
 
             <div class="tools-grid">
                 <!-- LÖPRUNDAN (AKTIV) -->
                 <a href="lopning.html" class="tool-card">
-                    <div class="tool-badge new">Ny!</div>
                     <div class="tool-icon">⏱️</div>
                     <div class="tool-body">
                         <h4>Löprundan</h4>
@@ -723,7 +710,6 @@
 
                 <!-- TABATATIMER (AKTIV) -->
                 <a href="tabata.html" class="tool-card">
-                    <div class="tool-badge new">Ny!</div>
                     <div class="tool-icon">🔔</div>
                     <div class="tool-body">
                         <h4>Tabatatimer</h4>
@@ -734,7 +720,6 @@
 
                 <!-- BEEP-TEST (AKTIV) -->
                 <a href="beeptest.html" class="tool-card">
-                    <div class="tool-badge new">Ny!</div>
                     <div class="tool-icon">📢</div>
                     <div class="tool-body">
                         <h4>Beep-test</h4>
@@ -745,7 +730,6 @@
 
                 <!-- LAGDELAREN (AKTIV) -->
                 <a href="lagdelaren.html" class="tool-card">
-                    <div class="tool-badge new">Ny!</div>
                     <div class="tool-icon">🎲</div>
                     <div class="tool-body">
                         <h4>Lagdelaren</h4>
@@ -756,7 +740,6 @@
 
                 <!-- UPPVÄRMNINGSHJULET (AKTIV) -->
                 <a href="hjulet.html" class="tool-card">
-                    <div class="tool-badge new">Ny!</div>
                     <div class="tool-icon">🎡</div>
                     <div class="tool-body">
                         <h4>Uppvärmningshjulet</h4>
@@ -767,7 +750,6 @@
 
                 <!-- MINA KLASSER I MOLNET (AKTIV) -->
                 <div class="tool-card" onclick="SkolIFKlasser.openModal()">
-                    <div class="tool-badge new">Molnsynk!</div>
                     <div class="tool-icon">📋</div>
                     <div class="tool-body">
                         <h4>Mina Klasser</h4>

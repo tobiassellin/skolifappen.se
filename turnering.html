@@ -749,12 +749,122 @@ function ensureTournamentLiveId() {
     }
 }
 
+const COMPACT_PHASES = ['GROUP', 'ROUND_OF_16', 'QUARTERS', 'SEMIS', 'BRONZE', 'FINAL'];
+
+function encodeCompactTournament() {
+    try {
+        const allTeams = [];
+        const addTeam = (t) => {
+            if (t && t !== '?' && t !== 'LUNCHPAUS' && t !== '🍔' && !allTeams.includes(t)) {
+                allTeams.push(t);
+            }
+        };
+        (tournamentState.groups || []).forEach(g => (g.teams || []).forEach(addTeam));
+        (tournamentState.schedule || []).forEach(m => { addTeam(m.homeTeam); addTeam(m.awayTeam); });
+
+        const groupsCompact = (tournamentState.groups || []).map(g => [
+            g.name || 'Grupp',
+            (g.teams || []).map(t => allTeams.indexOf(t))
+        ]);
+
+        const schedCompact = (tournamentState.schedule || []).map(m => {
+            if (m.isLunchBreak) return [-1, m.startTime || '12:00'];
+            const pIdx = Math.max(0, COMPACT_PHASES.indexOf(m.matchPhase));
+            const hIdx = m.homeTeam === '?' ? -1 : allTeams.indexOf(m.homeTeam);
+            const aIdx = m.awayTeam === '?' ? -1 : allTeams.indexOf(m.awayTeam);
+            const pitchNum = m.pitch ? (parseInt(String(m.pitch).replace(/\D/g, ''), 10) || 0) : 0;
+            return [
+                m.id,
+                pIdx,
+                m.startTime || '',
+                pitchNum,
+                hIdx,
+                aIdx,
+                m.isFinished ? 1 : 0,
+                m.homeScore !== null && m.homeScore !== undefined ? m.homeScore : null,
+                m.awayScore !== null && m.awayScore !== undefined ? m.awayScore : null
+            ];
+        });
+
+        const payload = [
+            tournamentState.title || 'Skol-IF Turnering',
+            tournamentState.sport || 'GENERIC',
+            tournamentState.phase || 'GROUP',
+            tournamentState.settings ? (tournamentState.settings.teamsToAdvance || 4) : 4,
+            Boolean(tournamentState.settings && tournamentState.settings.hasBronzeMatch) ? 1 : 0,
+            allTeams,
+            groupsCompact,
+            schedCompact
+        ];
+
+        return btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
+    } catch (e) {
+        return '';
+    }
+}
+
+function decodeCompactTournament(b64Str) {
+    try {
+        const json = decodeURIComponent(escape(atob(b64Str)));
+        const p = JSON.parse(json);
+        if (!Array.isArray(p) || p.length < 8) return null;
+        const [title, sport, phase, adv, bronze, allTeams, groupsCompact, schedCompact] = p;
+        const groups = (groupsCompact || []).map(g => ({
+            name: g[0],
+            teams: (g[1] || []).map(idx => allTeams[idx] || '?')
+        }));
+        const schedule = (schedCompact || []).map((row, idx) => {
+            if (row[0] === -1) {
+                return {
+                    id: idx + 1,
+                    homeTeam: 'LUNCHPAUS',
+                    awayTeam: '🍔',
+                    startTime: row[1] || '12:00',
+                    pitch: '',
+                    isLunchBreak: true,
+                    isFinished: true,
+                    matchPhase: 'GROUP'
+                };
+            }
+            const [id, pIdx, startTime, pitchNum, hIdx, aIdx, fin, hs, as] = row;
+            return {
+                id: id || (idx + 1),
+                matchPhase: COMPACT_PHASES[pIdx] || 'GROUP',
+                startTime: startTime || '',
+                pitch: pitchNum > 0 ? `Plan ${pitchNum}` : '',
+                homeTeam: hIdx === -1 ? '?' : (allTeams[hIdx] || '?'),
+                awayTeam: aIdx === -1 ? '?' : (allTeams[aIdx] || '?'),
+                isLunchBreak: false,
+                isFinished: fin === 1,
+                homeScore: hs,
+                awayScore: as
+            };
+        });
+        return {
+            title: title || 'Skol-IF Turnering',
+            liveId: liveParamId || '',
+            sport: sport || 'GENERIC',
+            phase: phase || 'GROUP',
+            settings: {
+                teamsToAdvance: adv || 4,
+                hasBronzeMatch: bronze === 1,
+                groupCount: groups.length || 1
+            },
+            groups: groups,
+            schedule: schedule
+        };
+    } catch (e) {
+        return null;
+    }
+}
+
 function getLivePublicUrl() {
     ensureTournamentLiveId();
     const base = (window.location.origin && window.location.origin !== 'null' && !window.location.origin.startsWith('file:'))
         ? (window.location.origin + window.location.pathname)
         : 'https://skolifappen.se/turnering.html';
-    return `${base}?live=${encodeURIComponent(tournamentState.liveId)}`;
+    const compactSnap = encodeCompactTournament();
+    return `${base}?live=${encodeURIComponent(tournamentState.liveId)}${compactSnap ? '#s=' + encodeURIComponent(compactSnap) : ''}`;
 }
 
 function syncTournamentToCloud() {
@@ -2503,7 +2613,7 @@ function renderQrIntoBox(boxEl, urlStr, sizePx) {
                 height: sizePx,
                 colorDark: '#0F172A',
                 colorLight: '#FFFFFF',
-                correctLevel: QRCode.CorrectLevel.M
+                correctLevel: QRCode.CorrectLevel.L
             });
             return;
         } catch (e) {}
@@ -2622,7 +2732,22 @@ function startLivePublicMode(liveId) {
     document.getElementById('activeView').style.display = 'block';
 
     const activeHeading = document.getElementById('activeTourTitleHeading');
-    if (activeHeading) activeHeading.textContent = '⏳ Ansluter till live-turnering...';
+
+    // 1. Läs in komprimerad backup direkt från QR-länken (#s=...) så att spelschemat visas på 0 ms helt utan inloggningskrav!
+    let loadedFromHash = false;
+    if (window.location.hash && window.location.hash.includes('s=')) {
+        const rawHash = window.location.hash.split('s=')[1] || '';
+        const decoded = decodeCompactTournament(decodeURIComponent(rawHash));
+        if (decoded && decoded.schedule && decoded.schedule.length > 0) {
+            tournamentState = decoded;
+            loadedFromHash = true;
+            visaAktivVy();
+        }
+    }
+
+    if (!loadedFromHash && activeHeading) {
+        activeHeading.textContent = '⏳ Ansluter till live-turnering...';
+    }
 
     function connectSnapshot() {
         if (typeof firebase === 'undefined' || !firebase.firestore) return;
@@ -2637,23 +2762,25 @@ function startLivePublicMode(liveId) {
                         visaAktivVy();
                     } catch (e) {}
                 }
-            } else {
-                if (activeHeading) activeHeading.textContent = '⚠️ Turneringen hittades inte (kontrolera att arrangören är inloggad)';
+            } else if (!loadedFromHash) {
+                if (activeHeading) activeHeading.textContent = '⚠️ Turneringen hittades inte';
             }
         }, err => {
             if (firebase.auth && !firebase.auth().currentUser) {
                 firebase.auth().signInAnonymously().then(() => {
                     connectSnapshot();
                 }).catch(() => {
-                    if (activeHeading) activeHeading.textContent = '🏆 Live-turnering';
-                    const mc = document.getElementById('matchesContainer');
-                    if (mc) {
-                        mc.innerHTML = `<div class="card" style="text-align:center; padding:28px 20px;">
-                            <div style="font-size:2.4rem; margin-bottom:8px;">📱</div>
-                            <h3 style="margin-bottom:6px; color:#1E3A24;">Anslut för att se liveresultat</h3>
-                            <p style="font-size:0.88rem; color:#555; margin-bottom:16px;">Logga in med ett klick för att följa spelschema, grupptabeller och resultat i realtid.</p>
-                            <button type="button" class="btn btn-green" onclick="SkolIFKlasser.login()">👤 Anslut med Google &amp; visa live →</button>
-                        </div>`;
+                    if (!loadedFromHash) {
+                        if (activeHeading) activeHeading.textContent = '🏆 Live-turnering';
+                        const mc = document.getElementById('matchesContainer');
+                        if (mc) {
+                            mc.innerHTML = `<div class="card" style="text-align:center; padding:28px 20px;">
+                                <div style="font-size:2.4rem; margin-bottom:8px;">📱</div>
+                                <h3 style="margin-bottom:6px; color:#1E3A24;">Anslut för att se liveresultat</h3>
+                                <p style="font-size:0.88rem; color:#555; margin-bottom:16px;">Logga in med ett klick för att följa spelschema, grupptabeller och resultat i realtid.</p>
+                                <button type="button" class="btn btn-green" onclick="SkolIFKlasser.login()">👤 Anslut med Google &amp; visa live →</button>
+                            </div>`;
+                        }
                     }
                 });
             }
