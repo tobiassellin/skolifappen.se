@@ -1523,124 +1523,124 @@
                 <div class="skolif-modal-overlay" id="skolifKlasserModal" onclick="if(event.target===this) SkolIFKlasser.closeModal()">
                     <div class="skolif-modal-box">
                         <div class="skolif-modal-header">
-                            <h3><span>📋</span> Mina Klasser, LOK-stöd & Verktyg</h3>
+                            <h3 id="skolifMainModalTitle"><span>📋</span> Mina Klasser</h3>
                             <button type="button" class="skolif-modal-close" onclick="SkolIFKlasser.closeModal()">✕</button>
                         </div>
                         <div class="skolif-modal-body" style="gap: 14px; padding: 16px 20px;">
                             <!-- Inloggningsstatus -->
                             <div id="skolifModalAuthBanner" class="skolif-auth-banner logged-out"></div>
 
-                            <!-- Flikar -->
-                            <div class="skolif-tab-row">
-                                <button type="button" id="skolifTabBtn-klasser" class="skolif-tab-btn active" onclick="SkolIFKlasser.switchTab('klasser')">📂 Klasser & Elever</button>
-                                <button type="button" id="skolifTabBtn-lokstod" class="skolif-tab-btn" onclick="SkolIFKlasser.switchTab('lokstod')">🏟️ LOK-stöd (Arenan)</button>
-                                <button type="button" id="skolifTabBtn-massimport" class="skolif-tab-btn" onclick="SkolIFKlasser.switchTab('massimport')">⚡ Massimport</button>
-                                <button type="button" id="skolifTabBtn-verktyg" class="skolif-tab-btn" onclick="SkolIFKlasser.switchTab('verktyg')">🎓 Läsårsbyte & Verktyg</button>
+                            <!-- Flikar (visas för Mina Klasser, döljs när LOK-stöd öppnas separat) -->
+                            <div class="skolif-tab-row" id="skolifMainTabRow">
+                                <button type="button" id="skolifTabBtn-klasser" class="skolif-tab-btn active" onclick="SkolIFKlasser.switchTab('klasser')">📂 Mina Klasser</button>
+                                <button type="button" id="skolifTabBtn-verktyg" class="skolif-tab-btn" onclick="SkolIFKlasser.switchTab('verktyg')">⚙️ Läsårsbyte & Inställningar</button>
                             </div>
 
                             <!-- FLIK 1: KLASSER & ELEVER -->
-                            <div id="skolifTabContent-klasser" style="display: flex; flex-direction: column; gap: 14px;">
-                                <!-- Snabblägg till enskild elev -->
-                                <div style="background: #F0FDF4; border: 1.5px solid #BBF7D0; border-radius: 12px; padding: 12px 14px;">
-                                    <div style="font-weight: 800; font-size: 0.85rem; color: #166534; margin-bottom: 6px;">➕ Snabblägg till enskild elev</div>
+                            <div id="skolifTabContent-klasser" style="display: flex; flex-direction: column; gap: 12px;">
+                                <!-- Topprad med knappar för att fälla ut formulär -->
+                                <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap;">
+                                    <div style="font-size: 0.82rem; font-weight: 800; color: #334155; text-transform: uppercase; letter-spacing: 0.3px;">
+                                        Dina sparade klasser
+                                    </div>
                                     <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-                                        <input type="text" id="skolifSingleStudentName" placeholder="Elevens namn (t.ex. Anna Andersson)" style="flex: 2; min-width: 160px; padding: 7px 10px; border: 1.5px solid #CBD5E1; border-radius: 8px; font-size: 0.85rem; font-family: inherit;" onkeydown="if(event.key==='Enter') SkolIFKlasser.addSingleFromModal()">
-                                        <input type="text" id="skolifSingleStudentClass" placeholder="Klass (t.ex. 8B)" style="flex: 1; min-width: 85px; max-width: 120px; padding: 7px 10px; border: 1.5px solid #CBD5E1; border-radius: 8px; font-size: 0.85rem; font-family: inherit; text-transform: uppercase; font-weight: 700;" onkeydown="if(event.key==='Enter') SkolIFKlasser.addSingleFromModal()">
+                                        <button type="button" class="skolif-btn-sm" id="skolifBtnToggleSingle" onclick="SkolIFKlasser.toggleClassDrawer('single')" style="padding: 6px 12px;">👤 + Enskild elev</button>
+                                        <button type="button" class="skolif-btn-sm primary" id="skolifBtnToggleClass" onclick="SkolIFKlasser.toggleClassDrawer('class')" style="padding: 6px 13px;">➕ Ny klass / Importera</button>
+                                    </div>
+                                </div>
+
+                                <!-- UTFÄLLBAR 1: Snabblägg till enskild elev -->
+                                <div id="skolifSingleStudentDrawer" style="display: none; background: #F0FDF4; border: 1.5px solid #BBF7D0; border-radius: 12px; padding: 12px 14px;">
+                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                        <div style="font-weight: 800; font-size: 0.85rem; color: #166534;">👤 Lägg till enskild elev i en klass</div>
+                                        <button type="button" onclick="SkolIFKlasser.toggleClassDrawer(null)" style="background:none; border:none; color:#64748B; cursor:pointer; font-weight:800; font-size:0.85rem;">✕</button>
+                                    </div>
+                                    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                                        <input type="text" id="skolifSingleStudentName" placeholder="Elevens namn (t.ex. Anna Andersson)" style="flex: 2; min-width: 160px; padding: 7px 10px; border: 1.5px solid #CBD5E1; border-radius: 8px; font-size: 0.85rem; font-family: inherit; background: white;" onkeydown="if(event.key==='Enter') SkolIFKlasser.addSingleFromModal()">
+                                        <input type="text" id="skolifSingleStudentClass" placeholder="Klass (t.ex. 8B)" style="flex: 1; min-width: 85px; max-width: 120px; padding: 7px 10px; border: 1.5px solid #CBD5E1; border-radius: 8px; font-size: 0.85rem; font-family: inherit; text-transform: uppercase; font-weight: 700; background: white;" onkeydown="if(event.key==='Enter') SkolIFKlasser.addSingleFromModal()">
                                         <button type="button" class="skolif-btn-sm primary" onclick="SkolIFKlasser.addSingleFromModal()" style="padding: 7px 14px;">Lägg till</button>
                                     </div>
                                 </div>
 
-                                <!-- Sparade klasser lista -->
-                                <div>
-                                    <div style="font-size: 0.8rem; font-weight: 800; color: #334155; margin-bottom: 6px; text-transform: uppercase;">
-                                        Dina klasser (Klicka på ✏️ för att ändra elever eller höja t.ex. 8B ➔ 9B)
+                                <!-- UTFÄLLBAR 2: Skapa / Redigera klass eller Massimport -->
+                                <div id="skolifClassFormDrawer" style="display: none; background: #F8FAFC; border: 1.5px solid #CBD5E1; border-radius: 12px; padding: 14px;">
+                                    <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 10px;">
+                                        <div style="font-weight: 800; font-size: 0.92rem; color: #1E3A24;" id="skolifFormTitle">➕ Lägg till ny klass</div>
+                                        <div style="display: flex; gap: 6px; align-items: center;">
+                                            <div id="skolifImportModeSwitch" style="display: inline-flex; background: #E2E8F0; padding: 2px; border-radius: 8px;">
+                                                <button type="button" id="skolifModeBtnSingleClass" onclick="SkolIFKlasser.setClassDrawerMode('singleClass')" style="border:none; background:white; color:#0F172A; font-weight:700; font-size:0.74rem; padding:4px 9px; border-radius:6px; cursor:pointer; font-family:inherit;">📁 En klass</button>
+                                                <button type="button" id="skolifModeBtnMassImport" onclick="SkolIFKlasser.setClassDrawerMode('massImport')" style="border:none; background:transparent; color:#475569; font-weight:700; font-size:0.74rem; padding:4px 9px; border-radius:6px; cursor:pointer; font-family:inherit;">⚡ Flera klasser samtidigt</button>
+                                            </div>
+                                            <button type="button" onclick="SkolIFKlasser.clearModalForm()" style="background:none; border:none; color:#64748B; cursor:pointer; font-weight:800; font-size:0.9rem; padding: 0 4px;" title="Stäng">✕</button>
+                                        </div>
                                     </div>
-                                    <div id="skolifModalClassList" style="display: flex; flex-direction: column; gap: 6px; max-height: 175px; overflow-y: auto;"></div>
-                                </div>
 
-                                <!-- Skapa / Redigera klass -->
-                                <div style="background: #F8FAFC; border: 1.5px solid #E2E8F0; border-radius: 12px; padding: 14px;">
-                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                                        <div style="font-weight: 800; font-size: 0.9rem; color: #1E3A24;" id="skolifFormTitle">➕ Skapa eller redigera hel klass</div>
-                                        <span id="skolifModalCountBadge" style="font-size: 0.75rem; font-weight: 700; color: #2E7D32; background: #E8F5E9; padding: 2px 10px; border-radius: 12px;">0 elever</span>
+                                    <!-- Läge A: En klass -->
+                                    <div id="skolifSingleClassFormArea">
+                                        <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 8px;">
+                                            <input type="text" id="skolifModalClassName" placeholder="Klassbeteckning (t.ex. 8B)" style="flex: 1; padding: 8px 11px; border: 1.5px solid #CBD5E1; border-radius: 8px; font-size: 0.86rem; font-family: inherit; font-weight: 700; text-transform: uppercase; background: white;">
+                                            <span id="skolifModalCountBadge" style="font-size: 0.76rem; font-weight: 800; color: #2E7D32; background: #E8F5E9; padding: 5px 11px; border-radius: 999px; white-space: nowrap;">0 elever</span>
+                                        </div>
+                                        <div>
+                                            <textarea id="skolifModalClassStudents" rows="5" placeholder="Skriv eller klistra in elever i klassen (ett namn per rad)..." oninput="SkolIFKlasser.updateModalCount()" style="width: 100%; padding: 8px 11px; border: 1.5px solid #CBD5E1; border-radius: 8px; font-size: 0.84rem; font-family: inherit; resize: vertical; background: white;"></textarea>
+                                        </div>
+                                        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px; gap: 8px; flex-wrap: wrap;">
+                                            <span style="font-size: 0.73rem; color: #64748B;">💡 Tips: Ändra klassbeteckningen ovan (t.ex. 8B ➔ 9B) om du vill byta namn på klassen.</span>
+                                            <div style="display: flex; gap: 8px;">
+                                                <button type="button" class="skolif-btn-sm" onclick="SkolIFKlasser.clearModalForm()">Avbryt</button>
+                                                <button type="button" class="skolif-btn-sm primary" onclick="SkolIFKlasser.saveFromModal()">💾 Spara klass</button>
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div style="margin-bottom: 8px;">
-                                        <input type="text" id="skolifModalClassName" placeholder="Klassbeteckning (t.ex. 8B – ändra till 9B om du vill höja klassen!)" style="width: 100%; padding: 8px 11px; border: 1.5px solid #CBD5E1; border-radius: 8px; font-size: 0.86rem; font-family: inherit; font-weight: 700; text-transform: uppercase;">
-                                    </div>
-                                    <div>
-                                        <textarea id="skolifModalClassStudents" rows="4" placeholder="Skriv eller klistra in elever i klassen (ett namn per rad)..." oninput="SkolIFKlasser.updateModalCount()" style="width: 100%; padding: 8px 11px; border: 1.5px solid #CBD5E1; border-radius: 8px; font-size: 0.84rem; font-family: inherit; resize: vertical;"></textarea>
-                                    </div>
-                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px; gap: 8px; flex-wrap: wrap;">
-                                        <span style="font-size: 0.72rem; color: #64748B;">☁️ Alla ändringar gäller på hela sajten & i Kiosken (saldon bevaras alltid!)</span>
-                                        <div style="display: flex; gap: 8px;">
-                                            <button type="button" class="skolif-btn-sm" onclick="SkolIFKlasser.clearModalForm()">Rensa / Avbryt</button>
-                                            <button type="button" class="skolif-btn-sm primary" onclick="SkolIFKlasser.saveFromModal()">💾 Spara klass</button>
+
+                                    <!-- Läge B: Massimport (flera klasser samtidigt) -->
+                                    <div id="skolifMassImportFormArea" style="display: none;">
+                                        <p style="font-size: 0.8rem; color: #475569; margin: 0 0 8px 0; line-height: 1.4;">
+                                            Klistra in en lista där både elevens namn och klass står på varje rad (t.ex. <strong>Tobias Sellin 9B</strong> eller <strong>Anna Andersson 7A</strong>). Alla klasser skapas automatiskt!
+                                        </p>
+                                        <textarea id="skolifMassImportText" rows="6" placeholder="Exempel:\nTobias Sellin 9B\nAnna Andersson 7A\nErik Eriksson 8C" style="width: 100%; padding: 9px 11px; border: 1.5px solid #CBD5E1; border-radius: 8px; font-size: 0.84rem; font-family: inherit; resize: vertical; margin-bottom: 8px; background: white;"></textarea>
+                                        <div style="display: flex; justify-content: flex-end; gap: 8px;">
+                                            <button type="button" class="skolif-btn-sm" onclick="SkolIFKlasser.clearModalForm()">Avbryt</button>
+                                            <button type="button" class="skolif-btn-sm primary" onclick="SkolIFKlasser.massImportFromModal()">🚀 Kör massimport</button>
                                         </div>
                                     </div>
                                 </div>
+
+                                <!-- Sparade klasser lista (Huvudvy med gott om plats) -->
+                                <div id="skolifModalClassList" style="display: flex; flex-direction: column; gap: 7px; max-height: 310px; overflow-y: auto;"></div>
                             </div>
 
-                            <!-- FLIK 2: MASSIMPORT -->
-                            <div id="skolifTabContent-massimport" style="display: none; flex-direction: column; gap: 12px;">
-                                <div style="background: #F8FAFC; border: 1.5px solid #E2E8F0; border-radius: 12px; padding: 16px;">
-                                    <div style="font-weight: 800; font-size: 0.95rem; color: #1E3A24; margin-bottom: 6px;">⚡ Massimportera elever (flera klasser samtidigt)</div>
-                                    <p style="font-size: 0.82rem; color: #475569; margin-bottom: 10px; line-height: 1.4;">
-                                        Klistra in en lista där både elevens namn och klass står på varje rad (t.ex. <strong>Tobias Sellin 9B</strong> eller <strong>Anna Andersson 7A</strong>). Programmet känner automatiskt av vilken del som är klassen och sorterar in eleverna rätt!
-                                    </p>
-                                    <textarea id="skolifMassImportText" rows="7" placeholder="Exempel:\nTobias Sellin 9B\nAnna Andersson 7A\nErik Eriksson 8C" style="width: 100%; padding: 10px 12px; border: 1.5px solid #CBD5E1; border-radius: 10px; font-size: 0.86rem; font-family: inherit; resize: vertical; margin-bottom: 10px;"></textarea>
-                                    <button type="button" class="skolif-btn-sm primary" onclick="SkolIFKlasser.massImportFromModal()" style="width: 100%; padding: 10px; font-size: 0.9rem;">🚀 Kör massimport</button>
-                                </div>
-                            </div>
-
-                            <!-- FLIK 3: LÄSÅRSBYTE & VERKTYG -->
+                            <!-- FLIK 2: LÄSÅRSBYTE & INSTÄLLNINGAR -->
                             <div id="skolifTabContent-verktyg" style="display: none; flex-direction: column; gap: 12px;">
                                 <!-- 1. Läsårsbyte (+1 årskurs för alla klasser) -->
-                                <div style="background: #E8F5E9; border: 1.5px solid #C8E6C9; border-radius: 12px; padding: 14px 16px;">
-                                    <div style="font-weight: 800; font-size: 0.92rem; color: #2E7D32; margin-bottom: 4px;">🎓 Läsårsbyte – Höj alla klasser (+1 årskurs)</div>
-                                    <p style="font-size: 0.8rem; color: #334155; margin-bottom: 10px; line-height: 1.4;">
-                                        Stegar automatiskt upp alla klassbeteckningar ett årskurs-steg (t.ex. <strong>7A ➔ 8A</strong>, <strong>8B ➔ 9B</strong>, <strong>9C ➔ 10C</strong>). Alla elevers saldon i Kiosken följer med!
-                                    </p>
-                                    <button type="button" class="skolif-btn-sm primary" onclick="SkolIFKlasser.upgradeAllYear()" style="width: 100%; padding: 9px; font-size: 0.88rem;">🚀 Flytta upp alla klasser 1 årskurs</button>
-                                </div>
-
-                                <!-- 2. Byt klassnamn på en enskild klass (t.ex. 8B -> 9B) -->
-                                <div style="background: #F8FAFC; border: 1.5px solid #E2E8F0; border-radius: 12px; padding: 14px 16px;">
-                                    <div style="font-weight: 800; font-size: 0.9rem; color: #1E3A24; margin-bottom: 4px;">🔄 Höj eller byt namn på en enskild klass (t.ex. 8B ➔ 9B)</div>
-                                    <p style="font-size: 0.78rem; color: #64748B; margin-bottom: 8px;">Välj en klass och ange det nya klassnamnet så flyttas alla elever i klassen över (med bevarade saldon).</p>
-                                    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-                                        <select id="skolifRenameFromSelect" style="flex: 1; min-width: 140px; padding: 7px 10px; border: 1.5px solid #CBD5E1; border-radius: 8px; font-size: 0.85rem; font-family: inherit; background: white;"></select>
-                                        <input type="text" id="skolifRenameToInput" placeholder="Nytt namn (t.ex. 9B)" style="flex: 1; min-width: 130px; padding: 7px 10px; border: 1.5px solid #CBD5E1; border-radius: 8px; font-size: 0.85rem; font-family: inherit; text-transform: uppercase; font-weight: 700;">
-                                        <button type="button" class="skolif-btn-sm primary" onclick="SkolIFKlasser.renameFromTool()">Byt klassnamn</button>
+                                <div style="background: #F0FDF4; border: 1.5px solid #BBF7D0; border-radius: 12px; padding: 14px 16px; display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;">
+                                    <div style="flex: 1; min-width: 210px;">
+                                        <div style="font-weight: 800; font-size: 0.92rem; color: #166534; margin-bottom: 3px;">🎓 Nytt läsår – Höj alla klasser (+1 årskurs)</div>
+                                        <div style="font-size: 0.79rem; color: #334155; line-height: 1.4;">
+                                            Stegar upp alla klasser ett år (t.ex. <strong>7A ➔ 8A</strong>, <strong>8B ➔ 9B</strong>). Alla elevers saldon i Kiosken följer med!
+                                        </div>
                                     </div>
+                                    <button type="button" class="skolif-btn-sm primary" onclick="SkolIFKlasser.upgradeAllYear()" style="padding: 9px 14px; white-space: nowrap;">🚀 Höj alla klasser (+1)</button>
                                 </div>
 
-                                <!-- 3. Radera en hel klass -->
-                                <div style="background: #FFF5F5; border: 1.5px solid #FECACA; border-radius: 12px; padding: 14px 16px;">
-                                    <div style="font-weight: 800; font-size: 0.9rem; color: #C62828; margin-bottom: 4px;">🗑️ Radera en hel klass (t.ex. avgångsklasser)</div>
-                                    <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 6px;">
-                                        <select id="skolifDeleteClassSelect" style="flex: 2; min-width: 160px; padding: 7px 10px; border: 1.5px solid #CBD5E1; border-radius: 8px; font-size: 0.85rem; font-family: inherit; background: white;"></select>
-                                        <button type="button" class="skolif-btn-sm danger" onclick="SkolIFKlasser.deleteFromTool()" style="background: #C62828; color: white; border-color: #C62828;">Radera klass</button>
+                                <!-- 2. Exportera elevlista till Excel / CSV -->
+                                <div style="background: #F8FAFC; border: 1.5px solid #E2E8F0; border-radius: 12px; padding: 14px 16px; display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;">
+                                    <div style="flex: 1; min-width: 210px;">
+                                        <div style="font-weight: 800; font-size: 0.92rem; color: #0F172A; margin-bottom: 3px;">📄 Exportera elevregister till Excel (CSV)</div>
+                                        <div style="font-size: 0.79rem; color: #475569;">Ladda ner en reservkopia med alla klasser, elever och saldon i Kiosken.</div>
                                     </div>
+                                    <button type="button" class="skolif-btn-sm" onclick="SkolIFKlasser.exportCSV()" style="background: #0284C7; color: white; border-color: #0284C7; padding: 9px 14px; white-space: nowrap;">📥 Ladda ner Excel/CSV</button>
                                 </div>
 
-                                <!-- 4. Exportera elevlista till Excel / CSV -->
-                                <div style="background: #F0F9FF; border: 1.5px solid #BAE6FD; border-radius: 12px; padding: 14px 16px; display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap;">
-                                    <div>
-                                        <div style="font-weight: 800; font-size: 0.9rem; color: #0369A1;">📄 Exportera elevregister till Excel / CSV</div>
-                                        <div style="font-size: 0.78rem; color: #475569;">Ladda ner alla elever, klasser och aktuella saldon i Kiosken.</div>
-                                    </div>
-                                    <button type="button" class="skolif-btn-sm" onclick="SkolIFKlasser.exportCSV()" style="background: #0284C7; color: white; border-color: #0284C7;">📥 Ladda ner Excel/CSV</button>
-                                </div>
-
-                                <!-- 5. PIN-kod för Elevläge (Kiosklås) -->
-                                <div style="background: #FFFBEB; border: 1.5px solid #FDE68A; border-radius: 12px; padding: 14px 16px; display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap;">
-                                    <div>
-                                        <div style="font-weight: 800; font-size: 0.9rem; color: #B45309;">🔒 PIN-kod för Elevläge (Kassa & Redskapsbod)</div>
-                                        <div style="font-size: 0.78rem; color: #78350F;">Lås admin-knappar när elever står i kiosken eller redskapsboden.</div>
+                                <!-- 3. PIN-kod för Elevläge (Kiosklås) -->
+                                <div style="background: #FFFBEB; border: 1.5px solid #FDE68A; border-radius: 12px; padding: 14px 16px; display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;">
+                                    <div style="flex: 1; min-width: 210px;">
+                                        <div style="font-weight: 800; font-size: 0.92rem; color: #B45309; margin-bottom: 3px;">🔒 PIN-kod för Elevläge (Kassa & Redskapsbod)</div>
+                                        <div style="font-size: 0.79rem; color: #78350F;">Låser admin-knappar när elever står själva i kiosken eller redskapsboden.</div>
                                     </div>
                                     <div style="display: flex; gap: 6px; align-items: center;">
-                                        <input type="password" id="skolifSettingsPinInput" maxlength="4" inputmode="numeric" placeholder="4 siffror" style="width: 95px; padding: 6px 10px; border: 1.5px solid #F59E0B; border-radius: 8px; font-size: 0.85rem; font-weight: 800; text-align: center; letter-spacing: 3px; background: white;">
-                                        <button type="button" class="skolif-btn-sm primary" onclick="SkolIFKlasser.savePinFromSettings()" style="background: #D97706; border-color: #D97706;">Spara PIN</button>
+                                        <input type="password" id="skolifSettingsPinInput" maxlength="4" inputmode="numeric" placeholder="4 siffror" style="width: 95px; padding: 7px 10px; border: 1.5px solid #F59E0B; border-radius: 8px; font-size: 0.85rem; font-weight: 800; text-align: center; letter-spacing: 3px; background: white;">
+                                        <button type="button" class="skolif-btn-sm primary" onclick="SkolIFKlasser.savePinFromSettings()" style="background: #D97706; border-color: #D97706; padding: 8px 14px;">Spara PIN</button>
                                     </div>
                                 </div>
                             </div>
@@ -1901,8 +1901,81 @@
     // ==========================================
     let editingOriginalKlassCode = null;
 
+    function toggleClassDrawer(drawerType) {
+        const singleDrawer = document.getElementById('skolifSingleStudentDrawer');
+        const classDrawer = document.getElementById('skolifClassFormDrawer');
+
+        if (drawerType === 'single') {
+            const isOpening = singleDrawer && singleDrawer.style.display === 'none';
+            if (singleDrawer) singleDrawer.style.display = isOpening ? 'block' : 'none';
+            if (classDrawer) classDrawer.style.display = 'none';
+            if (isOpening) {
+                const nameIn = document.getElementById('skolifSingleStudentName');
+                if (nameIn) nameIn.focus();
+            }
+        } else if (drawerType === 'class') {
+            const isOpening = classDrawer && classDrawer.style.display === 'none';
+            if (classDrawer) classDrawer.style.display = isOpening ? 'block' : 'none';
+            if (singleDrawer) singleDrawer.style.display = 'none';
+            if (isOpening) {
+                editingOriginalKlassCode = null;
+                setClassDrawerMode('singleClass');
+                const nameIn = document.getElementById('skolifModalClassName');
+                if (nameIn) nameIn.focus();
+            }
+        } else {
+            if (singleDrawer) singleDrawer.style.display = 'none';
+            if (classDrawer) classDrawer.style.display = 'none';
+        }
+    }
+
+    function setClassDrawerMode(mode) {
+        const singleArea = document.getElementById('skolifSingleClassFormArea');
+        const massArea = document.getElementById('skolifMassImportFormArea');
+        const btnSingle = document.getElementById('skolifModeBtnSingleClass');
+        const btnMass = document.getElementById('skolifModeBtnMassImport');
+        const titleEl = document.getElementById('skolifFormTitle');
+        const modeSwitch = document.getElementById('skolifImportModeSwitch');
+
+        if (modeSwitch) {
+            modeSwitch.style.display = editingOriginalKlassCode ? 'none' : 'inline-flex';
+        }
+
+        if (mode === 'massImport') {
+            if (singleArea) singleArea.style.display = 'none';
+            if (massArea) massArea.style.display = 'block';
+            if (btnSingle) { btnSingle.style.background = 'transparent'; btnSingle.style.color = '#475569'; }
+            if (btnMass) { btnMass.style.background = 'white'; btnMass.style.color = '#0F172A'; }
+            if (titleEl) titleEl.textContent = '⚡ Importera flera klasser samtidigt';
+        } else {
+            if (singleArea) singleArea.style.display = 'block';
+            if (massArea) massArea.style.display = 'none';
+            if (btnSingle) { btnSingle.style.background = 'white'; btnSingle.style.color = '#0F172A'; }
+            if (btnMass) { btnMass.style.background = 'transparent'; btnMass.style.color = '#475569'; }
+            if (titleEl && !editingOriginalKlassCode) titleEl.textContent = '➕ Lägg till ny klass';
+        }
+    }
+
     function switchTab(tabName) {
-        ['klasser', 'lokstod', 'massimport', 'verktyg'].forEach(t => {
+        if (tabName === 'massimport') {
+            switchTab('klasser');
+            const classDrawer = document.getElementById('skolifClassFormDrawer');
+            if (classDrawer) classDrawer.style.display = 'block';
+            setClassDrawerMode('massImport');
+            return;
+        }
+
+        const headerTitle = document.getElementById('skolifMainModalTitle');
+        const tabRow = document.getElementById('skolifMainTabRow');
+        if (tabName === 'lokstod') {
+            if (headerTitle) headerTitle.innerHTML = '<span>🏟️</span> LOK-stöd & Närvaro (Arenan)';
+            if (tabRow) tabRow.style.display = 'none';
+        } else {
+            if (headerTitle) headerTitle.innerHTML = '<span>📋</span> Mina Klasser';
+            if (tabRow) tabRow.style.display = 'flex';
+        }
+
+        ['klasser', 'lokstod', 'verktyg'].forEach(t => {
             const btn = document.getElementById('skolifTabBtn-' + t);
             const content = document.getElementById('skolifTabContent-' + t);
             if (btn) {
@@ -1931,14 +2004,26 @@
         }
         updateAuthUI();
         renderModalClassList();
-        switchTab(initialTab || 'klasser');
+        const targetTab = initialTab || 'klasser';
+        switchTab(targetTab);
 
-        if (prefillName || prefillText) {
-            const nameInput = document.getElementById('skolifModalClassName');
-            const textInput = document.getElementById('skolifModalClassStudents');
-            if (nameInput && prefillName) nameInput.value = normalizeKlassCode(prefillName);
-            if (textInput && prefillText) textInput.value = prefillText;
-            updateModalCount();
+        if (targetTab === 'klasser') {
+            const hasClasses = Object.keys(getClassesLocal()).length > 0;
+            const classDrawer = document.getElementById('skolifClassFormDrawer');
+            const singleDrawer = document.getElementById('skolifSingleStudentDrawer');
+            if (singleDrawer) singleDrawer.style.display = 'none';
+
+            if (prefillName || prefillText || !hasClasses) {
+                if (classDrawer) classDrawer.style.display = 'block';
+                setClassDrawerMode('singleClass');
+                const nameInput = document.getElementById('skolifModalClassName');
+                const textInput = document.getElementById('skolifModalClassStudents');
+                if (nameInput && prefillName) nameInput.value = normalizeKlassCode(prefillName);
+                if (textInput && prefillText) textInput.value = prefillText;
+                updateModalCount();
+            } else {
+                if (classDrawer) classDrawer.style.display = 'none';
+            }
         }
 
         const modal = document.getElementById('skolifKlasserModal');
@@ -1964,12 +2049,17 @@
         if (!(code in klasser)) return;
         switchTab('klasser');
         editingOriginalKlassCode = code;
+        const singleDrawer = document.getElementById('skolifSingleStudentDrawer');
+        const classDrawer = document.getElementById('skolifClassFormDrawer');
+        if (singleDrawer) singleDrawer.style.display = 'none';
+        if (classDrawer) classDrawer.style.display = 'block';
+        setClassDrawerMode('singleClass');
         const nameInput = document.getElementById('skolifModalClassName');
         const textInput = document.getElementById('skolifModalClassStudents');
         const titleEl = document.getElementById('skolifFormTitle');
         if (nameInput) nameInput.value = code;
         if (textInput) textInput.value = klasser[code];
-        if (titleEl) titleEl.textContent = `✏️ Redigerar ${formatDisplayKlass(code)} (du kan även ändra klassnamn nedan)`;
+        if (titleEl) titleEl.textContent = `✏️ Redigerar ${formatDisplayKlass(code)}`;
         updateModalCount();
         if (textInput) textInput.focus();
     }
@@ -1979,10 +2069,15 @@
         const nameInput = document.getElementById('skolifModalClassName');
         const textInput = document.getElementById('skolifModalClassStudents');
         const titleEl = document.getElementById('skolifFormTitle');
+        const classDrawer = document.getElementById('skolifClassFormDrawer');
         if (nameInput) nameInput.value = '';
         if (textInput) textInput.value = '';
-        if (titleEl) titleEl.textContent = '➕ Skapa eller redigera hel klass';
+        if (titleEl) titleEl.textContent = '➕ Lägg till ny klass';
+        setClassDrawerMode('singleClass');
         updateModalCount();
+        if (classDrawer && Object.keys(getClassesLocal()).length > 0) {
+            classDrawer.style.display = 'none';
+        }
     }
 
     async function saveFromModal() {
@@ -2021,6 +2116,7 @@
         const ok = await massImportStudents(textEl ? textEl.value : '');
         if (ok && textEl) {
             textEl.value = '';
+            clearModalForm();
             switchTab('klasser');
         }
     }
@@ -3048,6 +3144,8 @@
         openModal: openModal,
         closeModal: closeModal,
         switchTab: switchTab,
+        toggleClassDrawer: toggleClassDrawer,
+        setClassDrawerMode: setClassDrawerMode,
         editInModal: editInModal,
         clearModalForm: clearModalForm,
         saveFromModal: saveFromModal,
