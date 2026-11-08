@@ -319,6 +319,229 @@
     body.skolif-elevlage-locked #snabbInsattningRubrik {
         display: none !important;
     }
+    /* ====== MOBILANPASSNING FÖR KASSAN (INGEN UTZOOMNING ELLER AVKLIPPNING + STORA KNAPPAR) ====== */
+    @media (max-width: 700px) {
+        html { font-size: 16px !important; width: 100%; max-width: 100%; overflow-x: hidden; }
+        body { width: 100%; max-width: 100%; overflow-x: hidden; }
+        nav {
+            flex-wrap: wrap !important;
+            gap: 8px !important;
+            padding: 10px 12px !important;
+        }
+        nav .logo {
+            font-size: 1.15rem !important;
+        }
+        nav > div {
+            flex-wrap: wrap !important;
+            gap: 6px !important;
+            width: 100%;
+            justify-content: space-between;
+        }
+        nav .skolif-elevlage-pill,
+        nav .skolif-nav-auth-btn,
+        nav .back-btn {
+            flex: 1 1 auto;
+            justify-content: center;
+            text-align: center;
+            padding: 7px 10px !important;
+            font-size: 0.8rem !important;
+        }
+        .container {
+            width: 100% !important;
+            max-width: 100% !important;
+            margin: 10px 0 !important;
+            padding: 0 12px !important;
+            overflow-x: hidden;
+        }
+        .header-section {
+            flex-direction: column !important;
+            align-items: stretch !important;
+            gap: 10px !important;
+        }
+        .header-section > div:last-child {
+            align-items: stretch !important;
+            width: 100% !important;
+        }
+        #kassaLoginBtn {
+            width: 100% !important;
+            justify-content: center !important;
+            white-space: normal !important;
+            text-align: center;
+        }
+        #kioskView > .stats-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+            gap: 8px !important;
+            margin-bottom: 12px !important;
+        }
+        .stat-card {
+            padding: 10px 12px !important;
+        }
+        .stat-info {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            gap: 2px !important;
+        }
+        .section-title {
+            flex-wrap: wrap !important;
+            gap: 8px !important;
+            font-size: 1rem !important;
+            margin-bottom: 10px !important;
+        }
+        /* Stora, tydliga och lättklickade varuknappar (t.ex. Kex 10 kr) i 2 kolumner på mobil */
+        .varor-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+            gap: 10px !important;
+            margin-bottom: 14px !important;
+        }
+        .vara-card {
+            padding: 13px 12px !important;
+            border-radius: 12px !important;
+            min-height: 54px !important;
+            justify-content: flex-start !important;
+            gap: 8px !important;
+        }
+        .vara-emoji {
+            font-size: 1.45rem !important;
+            flex-shrink: 0;
+        }
+        .vara-namn {
+            font-size: 0.95rem !important;
+            font-weight: 700 !important;
+            flex: 1;
+            text-align: left;
+            white-space: normal !important;
+            line-height: 1.2;
+        }
+        .vara-pris {
+            font-size: 0.92rem !important;
+            font-weight: 800 !important;
+            background: #E8F5E9;
+            padding: 3px 8px;
+            border-radius: 8px;
+            flex-shrink: 0;
+        }
+        .search-box {
+            padding: 12px 14px !important;
+            font-size: 16px !important;
+            border-radius: 12px !important;
+            margin-bottom: 10px !important;
+        }
+        .kiosk-filter-toolbar {
+            flex-direction: column !important;
+            align-items: stretch !important;
+            gap: 10px !important;
+            margin-bottom: 14px !important;
+        }
+        #klassFilterContainer {
+            width: 100% !important;
+            max-width: 100% !important;
+            min-width: 0 !important;
+            overflow-x: auto !important;
+            padding-bottom: 6px !important;
+        }
+        .filter-chip {
+            padding: 8px 15px !important;
+            font-size: 0.9rem !important;
+        }
+        .kiosk-filter-actions {
+            width: 100% !important;
+            display: flex !important;
+            gap: 8px !important;
+        }
+        .kiosk-filter-actions > button {
+            flex: 1 1 0 !important;
+            justify-content: center !important;
+            padding: 10px 10px !important;
+            font-size: 0.85rem !important;
+        }
+        /* Stora, tydliga elevkort i 1 kolumn på mobil så man aldrig trycker fel elev */
+        .elev-grid {
+            grid-template-columns: 1fr !important;
+            gap: 9px !important;
+        }
+        .elev-card {
+            padding: 14px 16px !important;
+            border-radius: 12px !important;
+            min-height: 58px !important;
+        }
+        .elev-namn {
+            font-size: 1.02rem !important;
+            font-weight: 700 !important;
+        }
+        .elev-klass {
+            font-size: 0.8rem !important;
+            padding: 2px 8px !important;
+            margin-top: 3px !important;
+        }
+        .elev-saldo {
+            font-size: 1.15rem !important;
+            font-weight: 800 !important;
+        }
+        /* Elevens köp-modal på mobil */
+        .modal-overlay {
+            padding: 8px !important;
+            width: 100% !important;
+            left: 0 !important;
+            right: 0 !important;
+        }
+        .modal-content {
+            width: 100% !important;
+            max-width: 100% !important;
+            max-height: 92vh !important;
+            max-height: 92dvh !important;
+            padding: 16px 14px !important;
+            border-radius: 16px !important;
+            overflow-x: hidden !important;
+        }
+        .modal-varor-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+            gap: 8px !important;
+            max-height: none !important;
+        }
+        .modal-vara-btn {
+            padding: 11px 10px !important;
+            border-radius: 11px !important;
+            display: flex !important;
+            align-items: center !important;
+            gap: 8px !important;
+            text-align: left !important;
+        }
+        .modal-vara-emoji {
+            font-size: 1.4rem !important;
+            flex-shrink: 0;
+        }
+        .modal-vara-namn {
+            font-size: 0.9rem !important;
+            font-weight: 700 !important;
+            flex: 1;
+            margin-top: 0 !important;
+        }
+        .modal-vara-pris {
+            font-size: 0.88rem !important;
+            font-weight: 800 !important;
+            background: #E8F5E9;
+            padding: 2px 7px;
+            border-radius: 6px;
+        }
+        .snabb-insattning-btn {
+            padding: 10px 6px !important;
+            font-size: 0.9rem !important;
+            border-radius: 9px !important;
+        }
+        .custom-input {
+            padding: 10px 12px !important;
+            font-size: 16px !important;
+        }
+        .btn-kop, .btn-insattning {
+            padding: 10px 16px !important;
+            font-size: 0.92rem !important;
+        }
+        .stat-filter-row > div {
+            margin-left: 0 !important;
+            width: 100% !important;
+            flex-wrap: wrap !important;
+        }
+    }
 </style>
 </head>
 <body>
@@ -430,9 +653,9 @@
             <div id="snabbkorgBanner" style="display: none; background: linear-gradient(135deg, #1B5E20 0%, #2E7D32 100%); color: white; border-radius: 12px; padding: 12px 16px; margin-bottom: 18px; box-shadow: 0 6px 18px rgba(46, 125, 50, 0.25); align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;"></div>
 
             <input type="text" id="sokElev" class="search-box" placeholder="🔍 Sök på elevnamn (eller blippa elevens tagg direkt med USB-läsaren)..." oninput="filtreraOchVisa()">
-            <div style="display: flex; justify-content: space-between; align-items: center; gap: 15px; margin-bottom: 20px;">
-                <div id="klassFilterContainer" class="filter-container" style="margin-bottom: 0; flex: 1;"></div>
-                <div style="display: flex; gap: 8px; align-items: center; flex-shrink: 0;">
+            <div class="kiosk-filter-toolbar" style="display: flex; justify-content: space-between; align-items: center; gap: 15px; margin-bottom: 20px; min-width: 0;">
+                <div id="klassFilterContainer" class="filter-container" style="margin-bottom: 0; flex: 1; min-width: 0;"></div>
+                <div class="kiosk-filter-actions" style="display: flex; gap: 8px; align-items: center; flex-shrink: 0;">
                     <button type="button" onclick="oppnaBlippInfoModal()" style="background: #E8F5E9; color: #2E7D32; border: 1.5px solid #A5D6A7; padding: 7px 12px; border-radius: 8px; font-weight: 700; cursor: pointer; font-size: 0.8rem; white-space: nowrap; display: flex; align-items: center; gap: 6px;" title="USB RFID-läsare är aktiv! Blippa en tagg när som helst.">
                         <span style="display: inline-block; width: 8px; height: 8px; background: #22C55E; border-radius: 50%; box-shadow: 0 0 0 3px rgba(34,197,94,0.25);"></span>
                         📡 Blipp-läsare redo
@@ -764,7 +987,7 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-    <script src="klasser.js"></script>
+    <script src="klasser.js?v=3"></script>
 
     <script>
         const firebaseConfig = {

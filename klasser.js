@@ -1525,7 +1525,8 @@
             /* ====== MOBILANPASSNING (INGEN UTZOOMNING ELLER AVKLIPPNING) ====== */
             @media (max-width: 640px) {
                 html, body {
-                    max-width: 100vw;
+                    width: 100%;
+                    max-width: 100%;
                     overflow-x: hidden;
                 }
                 nav, nav > div, .nav-actions, .nav-links {
@@ -1533,8 +1534,8 @@
                 }
                 .skolif-modal-overlay {
                     padding: 6px !important;
-                    width: 100vw !important;
-                    max-width: 100vw !important;
+                    width: 100% !important;
+                    max-width: 100% !important;
                     left: 0 !important;
                     right: 0 !important;
                 }
