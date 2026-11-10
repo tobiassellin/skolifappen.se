@@ -273,10 +273,41 @@
         .sb-team-score { font-size: 3.8rem; font-weight: 900; color: #1E3A24; line-height: 1; margin-bottom: 10px; }
         .sb-btn-row { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; }
 
+        /* ====== REDIGERA TID & BACKA-BANNER ====== */
+        .edit-time-pill {
+            display: inline-flex; align-items: center; gap: 4px; margin-top: 5px;
+            padding: 3px 9px; font-size: 0.74rem; font-weight: 700; color: #1565C0;
+            background: #EFF6FF; border: 1px solid #BFDBFE; border-radius: 7px;
+            cursor: pointer; font-family: 'Poppins', sans-serif; transition: all 0.15s;
+        }
+        .edit-time-pill:hover { background: #DBEAFE; border-color: #60A5FA; }
+        .edit-tour-banner {
+            background: linear-gradient(135deg, #EFF6FF 0%, #ECFDF5 100%);
+            border: 2px solid #86EFAC; border-radius: 16px; padding: 16px 20px;
+            margin-bottom: 18px; display: flex; justify-content: space-between;
+            align-items: center; gap: 14px; flex-wrap: wrap;
+            box-shadow: 0 6px 18px rgba(21, 128, 61, 0.08);
+        }
+        .time-nudge-row {
+            display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px;
+        }
+        .time-nudge-btn {
+            padding: 6px 10px; border-radius: 8px; border: 1.5px solid #CBD5E1;
+            background: #F8FAFC; color: #1E293B; font-weight: 700; font-size: 0.78rem;
+            cursor: pointer; font-family: 'Poppins', sans-serif; transition: all 0.15s;
+        }
+        .time-nudge-btn:hover { background: #E2E8F0; border-color: #94A3B8; }
+        .bracket-time-edit {
+            background: #EFF6FF; border: 1px solid #BFDBFE; color: #1565C0;
+            border-radius: 5px; padding: 1px 6px; font-size: 0.68rem; font-weight: 700;
+            cursor: pointer; font-family: 'Poppins', sans-serif;
+        }
+        .bracket-time-edit:hover { background: #DBEAFE; }
+
         /* ====== PRINT / PDF STYLING ====== */
         @media print {
             body { background: white; color: black; }
-            nav, .nav-btn, .btn, .tabs, .quick-fill-chips, .sb-timer-controls, #setupView, .match-actions, #activeTourHeaderActions, .modal-overlay { display: none !important; }
+            nav, .nav-btn, .btn, .tabs, .quick-fill-chips, .sb-timer-controls, #setupView, .match-actions, #activeTourHeaderActions, .modal-overlay, .edit-time-pill, .bracket-time-edit, .edit-tour-banner { display: none !important; }
             #activeTourHeaderCard { display: none !important; }
             .container { max-width: 100%; margin: 0; padding: 0; }
             .card { box-shadow: none; border: 1px solid #ccc; padding: 12px; margin-bottom: 12px; page-break-inside: avoid; }
@@ -295,7 +326,11 @@
         .print-header { display: none; }
         body.public-live-mode .match-actions,
         body.public-live-mode #clearBtn,
-        body.public-live-mode #editTitleBtn {
+        body.public-live-mode #editTitleBtn,
+        body.public-live-mode #backToSetupBtn,
+        body.public-live-mode #headerBackToSetupBtn,
+        body.public-live-mode .edit-time-pill,
+        body.public-live-mode .bracket-time-edit {
             display: none !important;
         }
     </style>
@@ -311,6 +346,7 @@
         <button class="nav-btn" id="qrLiveBtn" onclick="oppnaQrLiveModal()" style="display:none; background:rgba(34,197,94,0.28); border-color:#4ADE80;">📱 QR-kod (Live)</button>
         <button class="nav-btn gold" id="printBtn" onclick="skrivUtSpelschema()" style="display:none;">📄 Skriv ut / PDF</button>
         <button class="nav-btn" id="exportBtn" onclick="exporteraCSV()" style="display:none;">📊 Exportera CSV</button>
+        <button class="nav-btn" id="backToSetupBtn" onclick="oppnaRedigeraSetup()" style="display:none; background:rgba(255,255,255,0.18); border-color:rgba(255,255,255,0.35);" title="Backa till inställningar & lag för att ändra schemat">⬅️ Backa &amp; ändra</button>
         <button class="nav-btn" id="clearBtn" onclick="nollstallTurnering()" style="display:none; background:rgba(198,40,40,0.4);">🗑️ Ny turnering</button>
         <a href="index.html" class="nav-btn">← Startsidan</a>
     </div>
@@ -338,6 +374,23 @@
     <!-- VY 1: INSTÄLLNINGAR (NÄR INGEN TURNERING KÖRS) -->
     <!-- ========================================== -->
     <div id="setupView">
+        <div id="editingExistingTourBanner" class="edit-tour-banner" style="display:none;">
+            <div style="flex:1; min-width:240px;">
+                <div style="font-weight:800; font-size:1rem; color:#1E3A24; display:flex; align-items:center; gap:6px;">
+                    ✏️ Redigerar befintligt spelschema
+                </div>
+                <div style="font-size:0.86rem; color:#334155; margin-top:2px;">
+                    Alla dina lag och inställningar är ifyllda nedan. Lägg till t.ex. ett glömt lag eller ändra inställningar och skapa om schemat – eller återgå utan ändringar.
+                </div>
+                <div id="editingTourPlayedNote" style="display:none; margin-top:6px; font-size:0.82rem; font-weight:700; color:#B45309; background:#FEF3C7; border:1px solid #FDE68A; padding:6px 10px; border-radius:8px; width:fit-content;"></div>
+            </div>
+            <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+                <button type="button" class="btn btn-outline" onclick="avbrytRedigeringOchAterga()" style="background:white;">
+                    ↩️ Återgå till befintligt schema
+                </button>
+            </div>
+        </div>
+
         <div class="card">
             <div class="card-header">
                 <div class="card-title">⚙️ Skapa ny turnering</div>
@@ -478,6 +531,9 @@
                 <div id="activeTourSubInfo" style="font-size:0.83rem; color:rgba(255,255,255,0.82); margin-top:2px;">Spelschema, tabeller &amp; liveresultat</div>
             </div>
             <div id="activeTourHeaderActions" style="display:flex; gap:8px; flex-wrap:wrap;">
+                <button type="button" id="headerBackToSetupBtn" class="btn btn-sm" onclick="oppnaRedigeraSetup()" style="background:rgba(255,255,255,0.16); color:white; border:1px solid rgba(255,255,255,0.35); padding:9px 14px; font-size:0.84rem;" title="Backa till inställningar &amp; lag utan att behöva fylla i allt igen">
+                    ⬅️ Backa &amp; ändra lag/inställningar
+                </button>
                 <button type="button" class="btn btn-gold btn-sm" onclick="oppnaQrLiveModal()" style="padding:9px 14px; font-size:0.84rem;">
                     📱 Visa QR-kod (Publik-live)
                 </button>
@@ -550,6 +606,52 @@
         <div style="display:flex; gap:10px; justify-content:flex-end;">
             <button class="btn btn-outline" onclick="closeModal('scoreModal')">Avbryt</button>
             <button class="btn btn-green" onclick="sparaResultatFranModal()">💾 Spara resultat</button>
+        </div>
+    </div>
+</div>
+
+
+<!-- ====== MODAL: REDIGERA MATCHTID / PLAN ====== -->
+<div class="modal-overlay" id="editTimeModal">
+    <div class="modal-content" style="max-width:460px;">
+        <button class="modal-close" onclick="closeModal('editTimeModal')">✕</button>
+        <div class="modal-title">🕐 Ändra starttid i schemat</div>
+        <div id="editTimeModalMatchInfo" style="background:#F8FAFC; border:1px solid #E2E8F0; border-radius:10px; padding:10px 14px; font-weight:700; color:#1E293B; margin-bottom:16px; text-align:center;"></div>
+
+        <div class="form-group">
+            <label for="editMatchTimeInput">Ny starttid (HH:MM):</label>
+            <div style="display:flex; gap:10px; align-items:center;">
+                <input type="text" id="editMatchTimeInput" placeholder="09:30" maxlength="5" inputmode="numeric" style="font-size:1.35rem; font-weight:800; text-align:center; letter-spacing:1px; max-width:160px;">
+                <span id="editTimeDiffBadge" style="font-size:0.85rem; font-weight:700; color:#64748B;"></span>
+            </div>
+            <div class="time-nudge-row">
+                <button type="button" class="time-nudge-btn" onclick="justeraEditTid(-15)">-15 min</button>
+                <button type="button" class="time-nudge-btn" onclick="justeraEditTid(-5)">-5 min</button>
+                <button type="button" class="time-nudge-btn" onclick="justeraEditTid(-1)">-1 min</button>
+                <button type="button" class="time-nudge-btn" onclick="justeraEditTid(1)">+1 min</button>
+                <button type="button" class="time-nudge-btn" onclick="justeraEditTid(5)">+5 min</button>
+                <button type="button" class="time-nudge-btn" onclick="justeraEditTid(10)">+10 min</button>
+                <button type="button" class="time-nudge-btn" onclick="justeraEditTid(15)">+15 min</button>
+            </div>
+        </div>
+
+        <div class="form-group" id="editMatchPitchGroup">
+            <label for="editMatchPitchInput">Plan / Bana (valfritt):</label>
+            <input type="text" id="editMatchPitchInput" placeholder="T.ex. Plan 1 eller Hall B">
+        </div>
+
+        <div id="shiftSubsequentWrap" style="display:none; background:#EFF6FF; border:1px solid #BFDBFE; border-radius:10px; padding:10px 12px; margin-bottom:16px;">
+            <label class="checkbox-row" style="margin-bottom:0; color:#1E40AF; font-size:0.85rem;">
+                <input type="checkbox" id="shiftSubsequentCheckbox">
+                <span id="shiftSubsequentLabel">Flytta även efterföljande matcher lika mycket</span>
+            </label>
+        </div>
+
+        <div id="editTimeError" style="display:none; color:#C62828; font-weight:700; font-size:0.85rem; margin-bottom:12px;"></div>
+
+        <div style="display:flex; gap:10px; justify-content:flex-end;">
+            <button type="button" class="btn btn-outline" onclick="closeModal('editTimeModal')">Avbryt</button>
+            <button type="button" class="btn btn-green" onclick="sparaMatchTid()">💾 Spara tid</button>
         </div>
     </div>
 </div>
@@ -1609,7 +1711,8 @@ function genereraTurnering(customGroupLists) {
     const sport = document.getElementById('sportType').value;
     const startTimeStr = document.getElementById('startTime').value.trim() || '09:00';
     const pitchCount = Math.max(1, parseInt(document.getElementById('pitchCount').value) || 1);
-    const matchDur = parseMatchDuration(document.getElementById('matchDuration').value);
+    const matchDurRaw = document.getElementById('matchDuration').value.trim() || '12';
+    const matchDur = parseMatchDuration(matchDurRaw);
     const breakDur = Math.max(0, parseInt(document.getElementById('breakDuration').value) || 0);
     const numGroups = Math.max(1, parseInt(document.getElementById('groupCount').value) || 1);
     const mPerTeam = Math.max(1, parseInt(document.getElementById('matchesPerTeam').value) || 1);
@@ -1836,15 +1939,17 @@ function genereraTurnering(customGroupLists) {
     const titleInputEl = document.getElementById('tournamentTitleInput');
     const tourTitle = (titleInputEl && titleInputEl.value.trim()) ? titleInputEl.value.trim() : 'Skol-IF Turnering';
 
-    // Spara i state
+    // Spara i state (behåll liveId om man backat och redigerat en befintlig turnering)
+    const preservedLiveId = (tournamentState && tournamentState.liveId) ? tournamentState.liveId : ('cup_' + Math.random().toString(36).slice(2, 8));
     tournamentState = {
         title: tourTitle,
-        liveId: 'cup_' + Math.random().toString(36).slice(2, 8),
+        liveId: preservedLiveId,
         phase: 'GROUP',
         sport: sport,
         settings: {
             startTime: startTimeStr,
             matchDuration: matchDur,
+            matchDurationRaw: matchDurRaw,
             breakDuration: breakDur,
             pitchCount: pitchCount,
             groupCount: numGroups,
@@ -1870,13 +1975,141 @@ function visaFel(msg) {
     errorEl.style.display = 'block';
 }
 
+function resetSetupFormToDefaults() {
+    document.getElementById('tournamentTitleInput').value = 'Skol-IF Turnering';
+    document.getElementById('teamsInput').value = '';
+    document.getElementById('sportType').value = 'GENERIC';
+    document.getElementById('startTime').value = '09:00';
+    document.getElementById('pitchCount').value = '1';
+    document.getElementById('matchDuration').value = '12';
+    document.getElementById('breakDuration').value = '3';
+    document.getElementById('matchesPerTeam').value = '1';
+    document.getElementById('avoidBackToBack').checked = false;
+    document.getElementById('hasBronzeMatch').checked = false;
+    document.getElementById('planLunch').checked = false;
+    document.getElementById('lunchTime').value = '11:45-12:30';
+    toggleLunchInput();
+    uppdateraLagAntal();
+    document.getElementById('groupCount').value = '1';
+    document.getElementById('teamsToAdvance').value = '4';
+    uppdateraLagAntal();
+}
+
 function nollstallTurnering() {
-    if (!confirm('Vill du verkligen rensa turneringen och börja om?')) return;
+    if (!confirm('Vill du verkligen rensa turneringen och börja om från början?')) return;
     localStorage.removeItem(STORAGE_KEY);
-    tournamentState.schedule = [];
-    tournamentState.groups = [];
-    tournamentState.phase = 'SETUP';
+    tournamentState = {
+        title: 'Skol-IF Turnering',
+        liveId: '',
+        phase: 'SETUP',
+        sport: 'GENERIC',
+        settings: {
+            startTime: '09:00',
+            matchDuration: 12,
+            matchDurationRaw: '12',
+            breakDuration: 3,
+            pitchCount: 1,
+            groupCount: 1,
+            teamsToAdvance: 4,
+            matchesPerTeam: 1,
+            planLunch: false,
+            lunchTime: '11:45-12:30',
+            avoidBackToBack: false,
+            hasBronzeMatch: false
+        },
+        teamsInput: '',
+        groups: [],
+        schedule: []
+    };
+    resetSetupFormToDefaults();
     visaStartVy();
+}
+
+function fyllSetupFranState() {
+    if (!tournamentState) return;
+    const s = tournamentState.settings || {};
+
+    const titleEl = document.getElementById('tournamentTitleInput');
+    if (titleEl) titleEl.value = tournamentState.title || 'Skol-IF Turnering';
+
+    const reconstructedTeams = (tournamentState.groups || [])
+        .flatMap(g => g.teams || [])
+        .filter(Boolean)
+        .join(', ');
+    const teamsVal = (tournamentState.teamsInput && tournamentState.teamsInput.trim())
+        ? tournamentState.teamsInput
+        : reconstructedTeams;
+    document.getElementById('teamsInput').value = teamsVal;
+
+    document.getElementById('sportType').value = tournamentState.sport || 'GENERIC';
+    document.getElementById('startTime').value = s.startTime || '09:00';
+    document.getElementById('pitchCount').value = s.pitchCount !== undefined ? s.pitchCount : 1;
+    document.getElementById('matchDuration').value = s.matchDurationRaw || s.matchDuration || '12';
+    document.getElementById('breakDuration').value = s.breakDuration !== undefined ? s.breakDuration : 3;
+    document.getElementById('matchesPerTeam').value = String(s.matchesPerTeam || 1);
+    document.getElementById('avoidBackToBack').checked = Boolean(s.avoidBackToBack);
+    document.getElementById('hasBronzeMatch').checked = Boolean(s.hasBronzeMatch);
+    document.getElementById('planLunch').checked = Boolean(s.planLunch);
+    document.getElementById('lunchTime').value = s.lunchTime || '11:45-12:30';
+    toggleLunchInput();
+
+    const errorEl = document.getElementById('errorMessage');
+    if (errorEl) {
+        errorEl.style.display = 'none';
+        errorEl.textContent = '';
+    }
+
+    // Bygg först upp tillåtna alternativ utifrån antal lag
+    uppdateraLagAntal();
+
+    const grpVal = String(s.groupCount || (tournamentState.groups && tournamentState.groups.length) || 1);
+    const advVal = String(s.teamsToAdvance || 4);
+    const grpSelect = document.getElementById('groupCount');
+    const advSelect = document.getElementById('teamsToAdvance');
+    if (grpSelect && grpSelect.querySelector(`option[value="${grpVal}"]:not(:disabled)`)) {
+        grpSelect.value = grpVal;
+    }
+    if (advSelect && advSelect.querySelector(`option[value="${advVal}"]:not(:disabled)`)) {
+        advSelect.value = advVal;
+    }
+    uppdateraLagAntal();
+}
+
+function uppdateraSetupEditBanner() {
+    const banner = document.getElementById('editingExistingTourBanner');
+    if (!banner) return;
+    const hasExisting = Boolean(
+        !isPublicLiveView &&
+        tournamentState &&
+        Array.isArray(tournamentState.schedule) &&
+        tournamentState.schedule.length > 0 &&
+        tournamentState.phase !== 'SETUP'
+    );
+    banner.style.display = hasExisting ? 'flex' : 'none';
+
+    const noteEl = document.getElementById('editingTourPlayedNote');
+    if (noteEl && hasExisting) {
+        const playedCount = tournamentState.schedule.filter(m => !m.isLunchBreak && m.isFinished && m.homeScore !== null).length;
+        if (playedCount > 0) {
+            noteEl.textContent = `⚠️ Obs: ${playedCount} ${playedCount === 1 ? 'match har' : 'matcher har'} redan spelats i nuvarande schema. Skapar du ett nytt schema börjar ni om med nya matcher.`;
+            noteEl.style.display = 'block';
+        } else {
+            noteEl.style.display = 'none';
+        }
+    }
+}
+
+function oppnaRedigeraSetup() {
+    if (isPublicLiveView) return;
+    fyllSetupFranState();
+    visaStartVy();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function avbrytRedigeringOchAterga() {
+    if (tournamentState && Array.isArray(tournamentState.schedule) && tournamentState.schedule.length > 0) {
+        visaAktivVy();
+    }
 }
 
 // ==========================================
@@ -2067,12 +2300,15 @@ function visaStartVy() {
     document.getElementById('activeView').style.display = 'none';
     const qrBtn = document.getElementById('qrLiveBtn');
     if (qrBtn) qrBtn.style.display = 'none';
+    const backBtn = document.getElementById('backToSetupBtn');
+    if (backBtn) backBtn.style.display = 'none';
     document.getElementById('printBtn').style.display = 'none';
     document.getElementById('exportBtn').style.display = 'none';
     document.getElementById('clearBtn').style.display = 'none';
     const logoEl = document.getElementById('navTourTitle');
     if (logoEl) logoEl.innerText = '🏆 Skapa Turnering';
     document.title = 'Skapa Turnering - Skol-IF';
+    uppdateraSetupEditBanner();
     uppdateraLagAntal();
 }
 
@@ -2082,6 +2318,8 @@ function visaAktivVy() {
     document.getElementById('activeView').style.display = 'block';
     const qrBtn = document.getElementById('qrLiveBtn');
     if (qrBtn) qrBtn.style.display = isPublicLiveView ? 'none' : 'inline-flex';
+    const backBtn = document.getElementById('backToSetupBtn');
+    if (backBtn) backBtn.style.display = isPublicLiveView ? 'none' : 'inline-flex';
     document.getElementById('printBtn').style.display = 'inline-flex';
     document.getElementById('exportBtn').style.display = isPublicLiveView ? 'none' : 'inline-flex';
     document.getElementById('clearBtn').style.display = isPublicLiveView ? 'none' : 'inline-flex';
@@ -2249,7 +2487,8 @@ function renderaSpelschema() {
         matches.forEach(m => {
             if (m.isLunchBreak) {
                 html += `<div class="match-card lunch">
-                    <span>${m.startTime} &nbsp; 🍔 LUNCHPAUS 🍔</span>
+                    <span>🕐 ${escapeHtml(m.startTime)} &nbsp; 🍔 LUNCHPAUS 🍔</span>
+                    ${!isPublicLiveView ? `<button type="button" class="edit-time-pill" style="margin-top:0;" onclick="oppnaEditTimeModal(${m.id})" title="Ändra tid för lunchpaus">✏️ Ändra tid</button>` : ''}
                 </div>`;
             } else {
                 const isPlayed = m.isFinished && m.homeScore !== null;
@@ -2257,8 +2496,9 @@ function renderaSpelschema() {
 
                 html += `<div class="match-card ${isPlayed ? 'finished' : ''}">
                     <div class="match-meta">
-                        <div>🕐 ${m.startTime}</div>
+                        <div>🕐 ${escapeHtml(m.startTime)}</div>
                         ${m.pitch ? `<div class="match-pitch">${escapeHtml(m.pitch)}</div>` : ''}
+                        ${!isPublicLiveView ? `<button type="button" class="edit-time-pill" onclick="oppnaEditTimeModal(${m.id})" title="Ändra starttid eller plan för matchen">✏️ Ändra tid</button>` : ''}
                     </div>
 
                     <div class="match-teams">
@@ -2332,8 +2572,8 @@ function renderaBracket() {
                     ${isFinished ? `<span class="bracket-score">${m.awayScore}</span>` : ''}
                 </div>
                 <div class="bracket-match-meta">
-                    <span>${m.startTime}</span>
-                    <span>${m.pitch || ''}</span>
+                    <span>🕐 ${escapeHtml(m.startTime)}${!isPublicLiveView ? ` <button type="button" class="bracket-time-edit" onclick="event.stopPropagation(); oppnaEditTimeModal(${m.id});" title="Ändra starttid">✏️ Tid</button>` : ''}</span>
+                    <span>${escapeHtml(m.pitch || '')}</span>
                 </div>
             </div>`;
         });
@@ -2363,8 +2603,8 @@ function renderaBracket() {
                         ${isFinished ? `<span class="bracket-score">${bronzeMatch.awayScore}</span>` : ''}
                     </div>
                     <div class="bracket-match-meta">
-                        <span>${bronzeMatch.startTime}</span>
-                        <span>${bronzeMatch.pitch || ''}</span>
+                        <span>🕐 ${escapeHtml(bronzeMatch.startTime)}${!isPublicLiveView ? ` <button type="button" class="bracket-time-edit" onclick="event.stopPropagation(); oppnaEditTimeModal(${bronzeMatch.id});" title="Ändra starttid">✏️ Tid</button>` : ''}</span>
+                        <span>${escapeHtml(bronzeMatch.pitch || '')}</span>
                     </div>
                 </div>
             </div>`;
@@ -2421,6 +2661,216 @@ function sparaResultatFranModal() {
     closeModal('scoreModal');
     renderaAktivVy();
 }
+
+// ==========================================
+//  REDIGERA MATCHTID I EFTERHAND
+// ==========================================
+let activeEditTimeMatch = null;
+
+function parseTimeToMinutes(str) {
+    if (typeof str !== 'string') return null;
+    const cleaned = str.trim().replace('.', ':');
+    const match = /^(\d{1,2}):(\d{1,2})$/.exec(cleaned);
+    if (!match) return null;
+    const h = parseInt(match[1], 10);
+    const m = parseInt(match[2], 10);
+    if (isNaN(h) || isNaN(m) || h < 0 || h > 23 || m < 0 || m > 59) return null;
+    return (h * 60) + m;
+}
+
+function getVisualScheduleOrder() {
+    const phaseOrder = ['GROUP', 'ROUND_OF_16', 'QUARTERS', 'SEMIS', 'BRONZE', 'FINAL'];
+    const ordered = [];
+    phaseOrder.forEach(p => {
+        (tournamentState.schedule || []).forEach(m => {
+            if (m.matchPhase === p) ordered.push(m);
+        });
+    });
+    (tournamentState.schedule || []).forEach(m => {
+        if (!phaseOrder.includes(m.matchPhase)) ordered.push(m);
+    });
+    return ordered;
+}
+
+function hamtaEfterfoljandeMatcher(targetMatch) {
+    const ordered = getVisualScheduleOrder();
+    const idx = ordered.findIndex(m => String(m.id) === String(targetMatch.id));
+    if (idx === -1) return [];
+    return ordered.slice(idx + 1).filter(m => m.isLunchBreak || !m.isFinished);
+}
+
+function uppdateraEditTidUI() {
+    if (!activeEditTimeMatch) return;
+    const input = document.getElementById('editMatchTimeInput');
+    const diffBadge = document.getElementById('editTimeDiffBadge');
+    const shiftWrap = document.getElementById('shiftSubsequentWrap');
+    const shiftLabel = document.getElementById('shiftSubsequentLabel');
+    const errEl = document.getElementById('editTimeError');
+    if (errEl) errEl.style.display = 'none';
+
+    const origMin = parseTimeToMinutes(activeEditTimeMatch.startTime || '');
+    const newMin = parseTimeToMinutes(input ? input.value : '');
+
+    if (origMin === null || newMin === null) {
+        if (diffBadge) {
+            diffBadge.textContent = newMin === null ? 'Ange t.ex. 09:30' : '';
+            diffBadge.style.color = newMin === null ? '#C62828' : '#64748B';
+        }
+        if (shiftWrap) shiftWrap.style.display = 'none';
+        return;
+    }
+
+    const diff = newMin - origMin;
+    if (diffBadge) {
+        if (diff === 0) {
+            diffBadge.textContent = 'Oförändrad tid';
+            diffBadge.style.color = '#64748B';
+        } else {
+            diffBadge.textContent = diff > 0 ? `+${diff} min senare` : `${Math.abs(diff)} min tidigare`;
+            diffBadge.style.color = diff > 0 ? '#1565C0' : '#2E7D32';
+        }
+    }
+
+    const subsequent = hamtaEfterfoljandeMatcher(activeEditTimeMatch);
+    if (shiftWrap && shiftLabel) {
+        if (diff !== 0 && subsequent.length > 0) {
+            const signStr = diff > 0 ? `+${diff} min` : `${diff} min`;
+            shiftLabel.textContent = `Flytta även efterföljande ${subsequent.length} ${subsequent.length === 1 ? 'kommande match' : 'kommande matcher'} med ${signStr}`;
+            shiftWrap.style.display = 'block';
+        } else {
+            shiftWrap.style.display = 'none';
+        }
+    }
+}
+
+function oppnaEditTimeModal(matchId) {
+    if (isPublicLiveView) return;
+    const match = (tournamentState.schedule || []).find(m => String(m.id) === String(matchId));
+    if (!match) return;
+
+    activeEditTimeMatch = match;
+    const infoEl = document.getElementById('editTimeModalMatchInfo');
+    if (infoEl) {
+        if (match.isLunchBreak) {
+            infoEl.textContent = `🍔 LUNCHPAUS (Nuvarande: ${match.startTime})`;
+        } else if (match.customLabel && (match.homeTeam === '?' || match.awayTeam === '?')) {
+            infoEl.textContent = `${match.customLabel} (Nuvarande: ${match.startTime})`;
+        } else {
+            infoEl.textContent = `${match.homeTeam} vs ${match.awayTeam} (Nuvarande: ${match.startTime})`;
+        }
+    }
+
+    const timeInput = document.getElementById('editMatchTimeInput');
+    if (timeInput) timeInput.value = match.startTime || '09:00';
+
+    const pitchGroup = document.getElementById('editMatchPitchGroup');
+    const pitchInput = document.getElementById('editMatchPitchInput');
+    if (pitchGroup && pitchInput) {
+        if (match.isLunchBreak) {
+            pitchGroup.style.display = 'none';
+            pitchInput.value = '';
+        } else {
+            pitchGroup.style.display = 'block';
+            pitchInput.value = match.pitch || '';
+        }
+    }
+
+    const shiftChk = document.getElementById('shiftSubsequentCheckbox');
+    if (shiftChk) shiftChk.checked = false;
+
+    const errEl = document.getElementById('editTimeError');
+    if (errEl) errEl.style.display = 'none';
+
+    uppdateraEditTidUI();
+    openModal('editTimeModal');
+    setTimeout(() => { if (timeInput) timeInput.focus(); }, 60);
+}
+
+function justeraEditTid(deltaMin) {
+    if (!activeEditTimeMatch) return;
+    const input = document.getElementById('editMatchTimeInput');
+    let curMin = parseTimeToMinutes(input ? input.value : '');
+    if (curMin === null) curMin = parseTimeToMinutes(activeEditTimeMatch.startTime || '09:00');
+    if (curMin === null) curMin = 540;
+
+    const nextMin = ((curMin + deltaMin) % 1440 + 1440) % 1440;
+    if (input) input.value = formatMinutes(nextMin);
+    uppdateraEditTidUI();
+}
+
+function sparaMatchTid() {
+    if (!activeEditTimeMatch) return;
+    const timeInput = document.getElementById('editMatchTimeInput');
+    const pitchInput = document.getElementById('editMatchPitchInput');
+    const errEl = document.getElementById('editTimeError');
+    const shiftChk = document.getElementById('shiftSubsequentCheckbox');
+
+    const newMin = parseTimeToMinutes(timeInput ? timeInput.value : '');
+    if (newMin === null) {
+        if (errEl) {
+            errEl.textContent = 'Ange en giltig tid i 24-timmarsformat, t.ex. 09:30 eller 13:15.';
+            errEl.style.display = 'block';
+        }
+        return;
+    }
+
+    const oldMin = parseTimeToMinutes(activeEditTimeMatch.startTime || '');
+    const diff = (oldMin !== null) ? (newMin - oldMin) : 0;
+
+    if (shiftChk && shiftChk.checked && diff !== 0) {
+        const subsequent = hamtaEfterfoljandeMatcher(activeEditTimeMatch);
+        subsequent.forEach(m => {
+            const mMin = parseTimeToMinutes(m.startTime || '');
+            if (mMin !== null) {
+                const shifted = ((mMin + diff) % 1440 + 1440) % 1440;
+                m.startTime = formatMinutes(shifted);
+            }
+        });
+    }
+
+    activeEditTimeMatch.startTime = formatMinutes(newMin);
+    if (!activeEditTimeMatch.isLunchBreak && pitchInput) {
+        activeEditTimeMatch.pitch = pitchInput.value.trim();
+    }
+
+    // Sortera gruppspelets matcher (inkl. eventuell lunchpaus i gruppspelet) i kronologisk ordning.
+    // Slutspelsmatcher behåller sin bracket-ordning så att semifinal/final-kopplingar aldrig bryts.
+    const groupItems = [];
+    const otherItems = [];
+    tournamentState.schedule.forEach((item, idx) => {
+        if (item.matchPhase === 'GROUP') {
+            groupItems.push({ item, idx });
+        } else {
+            otherItems.push(item);
+        }
+    });
+    groupItems.sort((a, b) => {
+        const ta = parseTimeToMinutes(a.item.startTime || '');
+        const tb = parseTimeToMinutes(b.item.startTime || '');
+        const va = ta !== null ? ta : 99999;
+        const vb = tb !== null ? tb : 99999;
+        if (va !== vb) return va - vb;
+        return a.idx - b.idx;
+    });
+    tournamentState.schedule = [...groupItems.map(x => x.item), ...otherItems];
+
+    activeEditTimeMatch = null;
+    saveLocalTournament();
+    closeModal('editTimeModal');
+    renderaAktivVy();
+}
+
+(function bindEditTimeInputEvents() {
+    const tIn = document.getElementById('editMatchTimeInput');
+    const pIn = document.getElementById('editMatchPitchInput');
+    if (tIn) {
+        tIn.addEventListener('input', uppdateraEditTidUI);
+        tIn.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); sparaMatchTid(); } });
+    }
+    if (pIn) {
+        pIn.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); sparaMatchTid(); } });
+    }
+})();
 
 // ==========================================
 //  LIVE SCOREBOARD & MATCHKLOCKA
