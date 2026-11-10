@@ -880,7 +880,7 @@
     <div class="modal-content" style="max-width: 600px;">
         <button class="close-btn" onclick="document.getElementById('varorModal').style.display='none'">✕</button>
         <div class="modal-header">
-            <div class="modal-title"><h3>Hantera Kioskvaror</h3></div>
+            <div class="modal-title" style="display:flex; justify-content:space-between; align-items:center; width:100%; padding-right:34px; flex-wrap:wrap; gap:8px;"><h3>Hantera Kioskvaror</h3><button type="button" onclick="laggInBasutbudVaror()" style="background:#E8F5E9; color:#2E7D32; border:1.5px solid #A5D6A7; padding:5px 11px; border-radius:8px; font-weight:700; font-size:0.78rem; cursor:pointer;" title="Lägg till standardutbud (Toast, Festis, Chokladboll m.m.)">🔄 Basutbud</button></div>
         </div>
         
         <!-- Snabbval av emojis -->
@@ -2805,6 +2805,124 @@
         };
         visaVaror(allaVarorCache);
 
+        const STANDARD_KIOSK_VAROR = [
+            { emoji: "🥪", namn: "Toast", pris: 15, slut: false },
+            { emoji: "🧃", namn: "Festis", pris: 10, slut: false },
+            { emoji: "🍫", namn: "Chokladboll", pris: 10, slut: false },
+            { emoji: "🍪", namn: "Kexchoklad", pris: 10, slut: false },
+            { emoji: "🍎", namn: "Frukt", pris: 5, slut: false },
+            { emoji: "☕", namn: "Varm choklad", pris: 10, slut: false }
+        ];
+
+        function seTillAttBasutbudFinns() {
+            if (allaVarorCache.length === 0 && localStorage.getItem("skolif_varor_explicit_empty") !== "1") {
+                allaVarorCache = STANDARD_KIOSK_VAROR.map(v => ({ ...v }));
+            }
+        }
+
+        window.laggInBasutbudVaror = function() {
+            localStorage.removeItem("skolif_varor_explicit_empty");
+            STANDARD_KIOSK_VAROR.forEach(std => {
+                const finns = allaVarorCache.some(v => String(v.namn || "").toLowerCase() === std.namn.toLowerCase());
+                if (!finns) allaVarorCache.push({ ...std });
+            });
+            sparaKassaData({ varor: JSON.stringify(allaVarorCache) }).then(() => {
+                if (typeof ritaUppVarorIHantera === "function") ritaUppVarorIHantera();
+                if (window.visaNotis) window.visaNotis("🍫 Basutbudet av kioskvaror har lagts in!", "success");
+            });
+        };
+
+        const origTaBortVara = window.taBortVara;
+        window.taBortVara = function(index) {
+            if (allaVarorCache.length <= 1) {
+                localStorage.setItem("skolif_varor_explicit_empty", "1");
+            }
+            if (typeof origTaBortVara === "function") origTaBortVara(index);
+        };
+
+        window.laggInDemoEleverIKassan = function() {
+            const demoLista = [
+                { namn: "Liam Lind", klass: "7A", saldo: 80, arDemo: true },
+                { namn: "Elsa Ek", klass: "7A", saldo: 50, arDemo: true },
+                { namn: "Noah Nilsson", klass: "7A", saldo: 35, arDemo: true },
+                { namn: "Maja Månsson", klass: "8B", saldo: 100, arDemo: true },
+                { namn: "Hugo Holm", klass: "8B", saldo: 60, arDemo: true },
+                { namn: "Astrid Alm", klass: "8B", saldo: 25, arDemo: true }
+            ];
+            let maxId = allaEleverCache.length > 0 ? Math.max(0, ...allaEleverCache.map(e => Number(e.id) || 0)) : 0;
+            demoLista.forEach(d => {
+                maxId++;
+                allaEleverCache.push({ id: maxId, namn: d.namn, klass: d.klass, saldo: d.saldo, arDemo: true });
+            });
+            seTillAttBasutbudFinns();
+            sparaKassaData({
+                elever: JSON.stringify(allaEleverCache),
+                varor: JSON.stringify(allaVarorCache)
+            }).then(() => {
+                if (window.visaNotis) window.visaNotis("✨ 6 exempelelever har lagts in! Klicka på en vara och sedan på en elev för att testa.", "success");
+            });
+        };
+
+        window.rensaDemoEleverIKassan = function() {
+            allaEleverCache = allaEleverCache.filter(e => !e.arDemo);
+            sparaKassaData({
+                elever: JSON.stringify(allaEleverCache)
+            }).then(() => {
+                if (window.visaNotis) window.visaNotis("🗑️ Exempeleleverna är borttagna.", "info");
+            });
+        };
+
+        const origVisaVaror = visaVaror;
+        visaVaror = function(varor) {
+            if ((!varor || varor.length === 0) && localStorage.getItem("skolif_varor_explicit_empty") !== "1") {
+                allaVarorCache = STANDARD_KIOSK_VAROR.map(v => ({ ...v }));
+                varor = allaVarorCache;
+            }
+            origVisaVaror(varor);
+            const div = document.getElementById("varorLista");
+            if (div && (!varor || varor.length === 0)) {
+                div.innerHTML = `<div style="grid-column: 1 / -1; background: white; border: 1.5px dashed #CBD5E1; border-radius: 12px; padding: 14px; text-align: center; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;"><span style="color: #64748B; font-size: 0.88rem;">Inga kioskvaror inlagda just nu.</span><button type="button" onclick="laggInBasutbudVaror()" style="background: #E8F5E9; color: #2E7D32; border: 1.5px solid #A5D6A7; padding: 7px 14px; border-radius: 8px; font-weight: 700; cursor: pointer; font-size: 0.84rem;">🔄 Lägg in basutbud av varor</button></div>`;
+            }
+        };
+
+        seTillAttBasutbudFinns();
+        visaVaror(allaVarorCache);
+
+        window.renderaTomElevListaGuide = function(q) {
+            if (allaEleverCache.length > 0 && q) {
+                return `<p style="grid-column:1/-1; text-align:center; color:#64748B; padding: 24px 12px;">Inga elever matchade sökningen "${escapeHtmlKassa(q)}".</p>`;
+            }
+            return `
+                <div style="grid-column: 1 / -1; background: white; border: 2px solid #C8E6C9; border-radius: 16px; padding: 22px 20px; box-shadow: 0 8px 24px rgba(15, 41, 30, 0.05);">
+                    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 14px; flex-wrap: wrap;">
+                        <div style="width: 46px; height: 46px; border-radius: 12px; background: linear-gradient(135deg, #E8F5E9, #C8E6C9); display: flex; align-items: center; justify-content: center; font-size: 1.6rem; flex-shrink: 0;">👋</div>
+                        <div>
+                            <h3 style="font-size: 1.15rem; font-weight: 800; color: #1E3A24; margin: 0;">Välkommen till Skol-IF Kassan!</h3>
+                            <p style="font-size: 0.86rem; color: #475569; margin: 2px 0 0 0;">Ett basutbud av varor ligger redan klart här ovanför. Så här enkelt fungerar kassan:</p>
+                        </div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px; margin-bottom: 18px;">
+                        <div style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 12px; padding: 12px 14px;">
+                            <div style="font-weight: 800; font-size: 0.88rem; color: #1E3A24; margin-bottom: 4px;">1️⃣ Välj vara högst upp</div>
+                            <div style="font-size: 0.8rem; color: #475569; line-height: 1.4;">Klicka på t.ex. <strong>🥪 Toast (15 kr)</strong> ovanför för att lägga i snabbkorgen – eller klicka direkt på en elev.</div>
+                        </div>
+                        <div style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 12px; padding: 12px 14px;">
+                            <div style="font-weight: 800; font-size: 0.88rem; color: #1E3A24; margin-bottom: 4px;">2️⃣ Klicka på eleven</div>
+                            <div style="font-size: 0.8rem; color: #475569; line-height: 1.4;">Köpet dras direkt från elevens saldo (du kan även blippa elevens RFID-tagg med USB-läsare!).</div>
+                        </div>
+                        <div style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 12px; padding: 12px 14px;">
+                            <div style="font-weight: 800; font-size: 0.88rem; color: #1E3A24; margin-bottom: 4px;">3️⃣ Fyll på saldo</div>
+                            <div style="font-size: 0.8rem; color: #475569; line-height: 1.4;">När en elev satt in pengar klickar du på eleven och väljer t.ex. <strong>+50 kr</strong> eller <strong>+100 kr</strong>.</div>
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                        <button type="button" onclick="oppnaAdminModal()" style="flex: 1; min-width: 210px; background: linear-gradient(135deg, #4CAF50, #2E7D32); color: white; border: none; padding: 12px 18px; border-radius: 12px; font-weight: 800; font-size: 0.92rem; cursor: pointer; box-shadow: 0 4px 12px rgba(46, 125, 50, 0.25);">➕ Lägg in dina egna klasser &amp; elever</button>
+                        <button type="button" onclick="laggInDemoEleverIKassan()" style="flex: 1; min-width: 210px; background: #F0FDF4; color: #166534; border: 2px solid #86EFAC; padding: 12px 18px; border-radius: 12px; font-weight: 800; font-size: 0.92rem; cursor: pointer;">✨ Testa direkt med 6 exempelelever</button>
+                    </div>
+                </div>
+            `;
+        };
+
         filtreraOchVisa = function() {
             const q = (document.getElementById("sokElev").value || "").toLowerCase().trim();
             const res = allaEleverCache.filter(e => {
@@ -2817,8 +2935,9 @@
             });
 
             document.getElementById("elevLista").innerHTML = res.length === 0
-                ? "<p style='grid-column:1/-1; text-align:center; color:gray;'>Inga elever hittades.</p>"
-                : res.sort((a, b) => a.namn.localeCompare(b.namn)).map(e => `
+                ? renderaTomElevListaGuide(q)
+                : (allaEleverCache.some(e => e.arDemo) ? `<div style="grid-column: 1 / -1; background: #FFFBEB; border: 1.5px solid #FDE68A; color: #92400E; padding: 10px 14px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 0.85rem;"><span>🧪 <strong>Exempelelever är inlagda!</strong> Klicka på en vara ovanför och sedan på en elev för att provköra kassan.</span><button type="button" onclick="rensaDemoEleverIKassan()" style="background: #FEF3C7; color: #B45309; border: 1px solid #F59E0B; padding: 5px 12px; border-radius: 8px; font-weight: 700; font-size: 0.8rem; cursor: pointer;">🗑️ Rensa exempelelever</button></div>` : "") + res.sort((a, b) => a.namn.localeCompare(b.namn)).map(e => `
+
                     <div class="elev-card ${e.saldo < 0 ? 'negativ' : ''}" onclick='oppnaModalObj(${JSON.stringify(e).replace(/'/g, "&#39;")})'>
                         <div>
                             <div class="elev-namn">${escapeHtmlKassa(e.namn)} ${e.tagg ? '<span title="Har kopplad blipp (#' + escapeHtmlKassa(e.tagg) + ')" style="font-size:0.82rem; margin-left:3px;">💳</span>' : ''}</div>
@@ -2828,6 +2947,7 @@
                     </div>`).join('');
         };
 
+        filtreraOchVisa();
         // Uppdatera oppnaElevModal så att knappen "📡 Koppla blipp" visar om eleven har blipp
         const origOppnaElevModal = oppnaElevModal;
         oppnaElevModal = function(e, endastUppd) {

@@ -190,8 +190,21 @@
     }
 
     // ==========================================
-    //  LOKAL KASSA (NÄR MAN INTE ÄR INLOGGAD)
+    //  LOKAL KASSA (NÄR MAN INTE ÄR INLOGGAD) & BASUTBUD AV VAROR
     // ==========================================
+    const DEFAULT_KIOSK_VAROR = [
+        { emoji: "🥪", namn: "Toast", pris: 15, slut: false },
+        { emoji: "🧃", namn: "Festis", pris: 10, slut: false },
+        { emoji: "🍫", namn: "Chokladboll", pris: 10, slut: false },
+        { emoji: "🍪", namn: "Kexchoklad", pris: 10, slut: false },
+        { emoji: "🍎", namn: "Frukt", pris: 5, slut: false },
+        { emoji: "☕", namn: "Varm choklad", pris: 10, slut: false }
+    ];
+
+    function getDefaultKioskVaror() {
+        return DEFAULT_KIOSK_VAROR.map(v => ({ ...v }));
+    }
+
     function getLocalKassa() {
         let parsed = null;
         try {
@@ -202,9 +215,15 @@
         }
 
         const isGenuinelyDirty = Boolean(parsed && parsed.harVerkligaOfflineAndringar);
+        const explicitlyEmptiedVaror = localStorage.getItem('skolif_varor_explicit_empty') === '1';
+        let varorList = (parsed && Array.isArray(parsed.varor)) ? parsed.varor : [];
+        if (varorList.length === 0 && !explicitlyEmptiedVaror) {
+            varorList = getDefaultKioskVaror();
+        }
+
         return {
             elever: (parsed && Array.isArray(parsed.elever)) ? parsed.elever : [],
-            varor: (parsed && Array.isArray(parsed.varor)) ? parsed.varor : [],
+            varor: varorList,
             transaktioner: (parsed && Array.isArray(parsed.transaktioner)) ? parsed.transaktioner : [],
             harLokalaAndringar: isGenuinelyDirty,
             harVerkligaOfflineAndringar: isGenuinelyDirty,
@@ -471,18 +490,19 @@
                     try { molnTransaktioner = JSON.parse(d.transaktioner || '[]'); } catch (e) { molnTransaktioner = []; }
                     syncLocalCacheFromCloud(molnElever, molnVaror, molnTransaktioner);
                 } else {
-                    // Ingen lokal data och ingen molnkassa fanns -> skapa ny tom molnkassa
+                    // Ingen lokal data och ingen molnkassa fanns -> skapa ny molnkassa med basutbud av varor
+                    const startVaror = getDefaultKioskVaror();
                     await targetRef.set({
                         kassaId: docId,
                         namn: `Skol-IF Kassa (${userEmail || docId})`,
                         skapare: userEmail || docId,
                         behoriga_anvandare: [userEmail || docId],
                         elever: '[]',
-                        varor: '[]',
+                        varor: JSON.stringify(startVaror),
                         transaktioner: '[]',
                         senastUppdaterad: Date.now()
                     });
-                    syncLocalCacheFromCloud([], [], []);
+                    syncLocalCacheFromCloud([], startVaror, []);
                 }
 
                 return docId;
@@ -3324,6 +3344,7 @@
     window.SkolIFKlasser = {
         getClasses: getClassesLocal,
         getActiveElever: getActiveEleverArray,
+        getDefaultVaror: getDefaultKioskVaror,
         getLocalKassa: getLocalKassa,
         saveLocalKassa: saveLocalKassa,
         syncLocalCacheFromCloud: syncLocalCacheFromCloud,
