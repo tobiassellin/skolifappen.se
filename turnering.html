@@ -327,7 +327,6 @@
         body.public-live-mode .match-actions,
         body.public-live-mode #clearBtn,
         body.public-live-mode #editTitleBtn,
-        body.public-live-mode #backToSetupBtn,
         body.public-live-mode #headerBackToSetupBtn,
         body.public-live-mode .edit-time-pill,
         body.public-live-mode .bracket-time-edit {
@@ -346,7 +345,6 @@
         <button class="nav-btn" id="qrLiveBtn" onclick="oppnaQrLiveModal()" style="display:none; background:rgba(34,197,94,0.28); border-color:#4ADE80;">📱 QR-kod (Live)</button>
         <button class="nav-btn gold" id="printBtn" onclick="skrivUtSpelschema()" style="display:none;">📄 Skriv ut / PDF</button>
         <button class="nav-btn" id="exportBtn" onclick="exporteraCSV()" style="display:none;">📊 Exportera CSV</button>
-        <button class="nav-btn" id="backToSetupBtn" onclick="oppnaRedigeraSetup()" style="display:none; background:rgba(255,255,255,0.18); border-color:rgba(255,255,255,0.35);" title="Backa till inställningar & lag för att ändra schemat">⬅️ Backa &amp; ändra</button>
         <button class="nav-btn" id="clearBtn" onclick="nollstallTurnering()" style="display:none; background:rgba(198,40,40,0.4);">🗑️ Ny turnering</button>
         <a href="index.html" class="nav-btn">← Startsidan</a>
     </div>
@@ -2300,8 +2298,6 @@ function visaStartVy() {
     document.getElementById('activeView').style.display = 'none';
     const qrBtn = document.getElementById('qrLiveBtn');
     if (qrBtn) qrBtn.style.display = 'none';
-    const backBtn = document.getElementById('backToSetupBtn');
-    if (backBtn) backBtn.style.display = 'none';
     document.getElementById('printBtn').style.display = 'none';
     document.getElementById('exportBtn').style.display = 'none';
     document.getElementById('clearBtn').style.display = 'none';
@@ -2318,8 +2314,6 @@ function visaAktivVy() {
     document.getElementById('activeView').style.display = 'block';
     const qrBtn = document.getElementById('qrLiveBtn');
     if (qrBtn) qrBtn.style.display = isPublicLiveView ? 'none' : 'inline-flex';
-    const backBtn = document.getElementById('backToSetupBtn');
-    if (backBtn) backBtn.style.display = isPublicLiveView ? 'none' : 'inline-flex';
     document.getElementById('printBtn').style.display = 'inline-flex';
     document.getElementById('exportBtn').style.display = isPublicLiveView ? 'none' : 'inline-flex';
     document.getElementById('clearBtn').style.display = isPublicLiveView ? 'none' : 'inline-flex';
