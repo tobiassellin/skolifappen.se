@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Integritetspolicy – Skol-IF Webben &amp; Appen</title>
+    <meta name="description" content="Integritetspolicy och information om hur personuppgifter, lokal lagring, molnsynkronisering och annonser i mobilappen hanteras för Skol-IF Webben och Skol-IF Appen.">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://skolifwebben.se/integritet.html">
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/svg+xml" href="icon.svg">
+    <link rel="apple-touch-icon" href="icon.svg">
+    <meta name="theme-color" content="#143625">
+    <meta property="og:title" content="Integritetspolicy – Skol-IF Webben &amp; Appen">
+    <meta property="og:url" content="https://skolifwebben.se/integritet.html">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif; }
+        html { font-size: 14px; }
+        body {
+            background-color: #F3F7F4;
+            background-image: radial-gradient(at 15% 15%, rgba(76, 175, 80, 0.07) 0px, transparent 50%),
+                              radial-gradient(at 85% 80%, rgba(46, 125, 50, 0.06) 0px, transparent 50%);
+            color: #1E293B;
+            line-height: 1.65;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        nav {
+            background: rgba(15, 41, 30, 0.94);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            padding: 0.75rem 5%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+            position: sticky;
+            top: 0;
+            z-index: 900;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .logo {
+            color: white;
+            font-size: 1.25rem;
+            font-weight: 800;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 9px;
+        }
+        .logo-badge {
+            background: linear-gradient(135deg, #4CAF50, #2E7D32);
+            width: 30px;
+            height: 30px;
+            border-radius: 8px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.95rem;
+        }
+        .nav-back {
+            color: white;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.88rem;
+            background: rgba(255,255,255,0.12);
+            border: 1px solid rgba(255,255,255,0.2);
+            padding: 7px 14px;
+            border-radius: 10px;
+            transition: background 0.2s;
+        }
+        .nav-back:hover { background: rgba(255,255,255,0.22); }
+        main {
+            max-width: 860px;
+            width: 100%;
+            margin: 28px auto 48px auto;
+            padding: 0 20px;
+            flex: 1;
+        }
+        .policy-card {
+            background: white;
+            border-radius: 18px;
+            padding: 32px 30px;
+            box-shadow: 0 10px 28px rgba(15, 41, 30, 0.06);
+            border: 1px solid rgba(46, 125, 50, 0.14);
+            border-top: 4px solid #2E7D32;
+        }
+        .policy-badge {
+            display: inline-block;
+            background: #E8F5E9;
+            color: #1B5E20;
+            border: 1px solid #A5D6A7;
+            font-size: 0.75rem;
+            font-weight: 700;
+            padding: 4px 12px;
+            border-radius: 20px;
+            margin-bottom: 10px;
+        }
+        h1 {
+            font-size: 1.85rem;
+            font-weight: 800;
+            color: #143321;
+            margin-bottom: 6px;
+            line-height: 1.25;
+        }
+        .updated-text {
+            font-size: 0.84rem;
+            color: #64748B;
+            margin-bottom: 22px;
+        }
+        h2 {
+            font-size: 1.12rem;
+            font-weight: 800;
+            color: #1E3A24;
+            margin-top: 24px;
+            margin-bottom: 8px;
+        }
+        p {
+            font-size: 0.94rem;
+            color: #334155;
+            margin-bottom: 12px;
+        }
+        ul {
+            margin: 6px 0 14px 20px;
+            color: #334155;
+            font-size: 0.94rem;
+        }
+        li { margin-bottom: 6px; }
+        .info-box {
+            background: #F8FBF8;
+            border: 1px solid #C8E6C9;
+            border-radius: 12px;
+            padding: 14px 16px;
+            margin: 16px 0;
+            font-size: 0.9rem;
+            color: #1E3A24;
+        }
+        a { color: #2E7D32; font-weight: 600; }
+        footer {
+            background: #0F291E;
+            color: rgba(255,255,255,0.75);
+            text-align: center;
+            padding: 20px 5%;
+            font-size: 0.82rem;
+        }
+        footer a { color: #81C784; }
+        @media (max-width: 600px) {
+            .policy-card { padding: 22px 18px; }
+            h1 { font-size: 1.5rem; }
+        }
+    </style>
+</head>
+<body>
+
+<nav>
+    <a href="index.html" class="logo">
+        <span class="logo-badge">🏆</span>
+        <span>Skol-IF Webben</span>
+    </a>
+    <a href="index.html" class="nav-back">← Tillbaka till startsidan</a>
+</nav>
+
+<main>
+    <article class="policy-card">
+        <span class="policy-badge">🔒 Trygg hantering för skolor &amp; föreningar</span>
+        <h1>Integritetspolicy för Skol-IF Webben &amp; Appen</h1>
+        <p class="updated-text">Senast uppdaterad: 14 november 2026</p>
+
+        <p>
+            Denna integritetspolicy förklarar hur personuppgifter och teknisk information hanteras när du använder
+            webbplatsen <strong>skolifwebben.se</strong> samt våra tillhörande mobilappar på Google Play.
+            Tjänsterna utvecklas och förvaltas av <strong>Tobias Sellin</strong> (idrotts- och matematiklärare).
+        </p>
+
+        <h2>1. Lokal lagring i webbläsaren (utan inloggning)</h2>
+        <p>
+            Alla lektionsverktyg (Löprundan, Tabatatimer, Beep-test, Lagdelaren, Uppvärmningshjulet och Turneringar)
+            samt testläge i Kiosken och Redskapsboden kan användas utan att logga in.
+            Då sparas dina uppgifter enbart lokalt i din egen webbläsare (via webbläsarens <code>localStorage</code>)
+            och delas inte med tredje part.
+        </p>
+
+        <h2>2. Google-inloggning &amp; Molnsynkronisering (Firebase)</h2>
+        <p>
+            När du väljer att logga in med Google används <strong>Google Firebase (Authentication &amp; Cloud Firestore)</strong>
+            för att säkert synkronisera dina verktyg mellan mobil, surfplatta och dator:
+        </p>
+        <ul>
+            <li><strong>Kontouppgifter:</strong> Din e-postadress från Google används för att identifiera din förenings kassa, redskapsbod och sparade klasslistor samt för att du ska kunna bjuda in behöriga kollegor via e-post.</li>
+            <li><strong>Verksamhetsdata du själv lägger in:</strong> Klassnamn, elevnamn, kiosksaldo/transaktioner, utlåningshistorik i Redskapsboden samt skapade turneringsscheman lagras i din förenings isolerade dokument i molnet så att ni kan samarbeta i realtid.</li>
+            <li><strong>Publika live-turneringar:</strong> Om du delar en QR-kod/live-länk för en turnering kan turneringsschema och tabeller läsas av åskådare med länken.</li>
+        </ul>
+
+        <h2>3. Anonym besöksstatistik</h2>
+        <p>
+            Webbplatsen registrerar anonym, aggregerad besöksstatistik (antal sidvisningar, ungefärlig enhetstyp såsom mobil,
+            surfplatta eller dator samt datum) för att förbättra verktygen. Vi lagrar inga IP-adresser, namn eller personliga
+            spårningsprofiler i besöksstatistiken.
+        </p>
+
+        <h2>4. Mobilappar &amp; Google AdMob</h2>
+        <p>
+            Själva webbplatsen <strong>skolifwebben.se</strong> visar inga annonser. Om du använder någon av våra gratis
+            Android-appar via Google Play kan <strong>Google AdMob</strong> användas för att visa annonser och finansiera
+            vidareutvecklingen av verktygen.
+        </p>
+        <p>
+            Google AdMob kan behandla enhetens annons-ID och teknisk enhetsinformation i enlighet med
+            <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer">Googles integritetspolicy</a>.
+            Du kan när som helst återställa eller begränsa anpassade annonser under telefonens inställningar
+            (<em>Inställningar &rarr; Google &rarr; Annonser</em> på Android).
+        </p>
+
+        <h2>5. Externa länkar (t.ex. LOK-stöd / Arenan)</h2>
+        <p>
+            På webbplatsen finns genvägar till Riksidrottsförbundets portal <em>Idrottsarenan</em> (Arenan) för
+            LOK-stödsrapportering. När du klickar vidare dit öppnas en extern webbplats som har egna villkor och egen
+            integritetspolicy. Skol-IF Webben överför inga elevuppgifter dit.
+        </p>
+
+        <h2>6. Dina rättigheter &amp; Radering av data</h2>
+        <p>Du har full kontroll över dina uppgifter och kan när som helst:</p>
+        <ul>
+            <li>Ta bort enskilda klasser, elever eller varor direkt inne i Kiosken, Redskapsboden och Mina Klasser.</li>
+            <li>Rensa lokal data genom att rensa webbplatsdata i din webbläsare.</li>
+            <li>Begära att ditt konto och all lagrad molndata raderas permanent genom att kontakta oss via e-post nedan.</li>
+        </ul>
+
+        <div class="info-box">
+            <strong>Kontaktperson / Personuppgiftsansvarig:</strong><br>
+            Tobias Sellin<br>
+            E-post: <a href="mailto:tobias.sellin@gmail.com">tobias.sellin@gmail.com</a><br>
+            Webbplats: <a href="https://skolifwebben.se">https://skolifwebben.se</a>
+        </div>
+    </article>
+</main>
+
+<footer>
+    <p>&copy; 2026 Skol-IF Webben &amp; Skol-IF Appen &bull; <a href="index.html">Startsidan</a></p>
+</footer>
+
+</body>
+</html>
