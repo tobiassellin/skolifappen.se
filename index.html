@@ -495,6 +495,12 @@
             grid-template-columns: repeat(3, 1fr);
             gap: 14px;
         }
+        .skolif-tools-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 14px;
+            margin-bottom: 30px;
+        }
         .tool-card {
             background: white;
             border-radius: 14px;
@@ -567,7 +573,7 @@
             .nav-dropdown-menu { left: 50%; right: auto; transform: translateX(-50%); }
             .hero { padding: 26px 16px 50px 16px; }
             .hero h1 { font-size: 1.75rem; }
-            .tools-grid { grid-template-columns: 1fr; }
+            .tools-grid, .skolif-tools-grid { grid-template-columns: 1fr; }
             .sync-banner { text-align: center; justify-content: center; padding: 18px 16px; }
             .sync-banner-left { flex-direction: column; text-align: center; }
         }
@@ -584,6 +590,7 @@
             <a href="kiosk.html">Skol IF Kassa</a>
             <a href="redskapsboden.html">Redskapsboden</a>
             <a href="turnering.html" id="navTurneringLink">Skapa Turnering</a>
+            <a href="kalender.html">Kalender</a>
             <div class="nav-dropdown" id="arenanDropdown">
                 <button type="button" class="nav-dropdown-btn" onclick="toggleNavDropdown(event, 'arenanDropdown')">
                     Arenan (LOK-stöd) <span class="nav-dropdown-arrow">▼</span>
@@ -689,6 +696,36 @@
             </div>
         </div>
 
+        <!-- SKOL-IF FÖRENINGENS PLANERING & LOK-STÖD -->
+        <section class="teacher-tools-section" style="margin-bottom: 26px;">
+            <div class="tools-header">
+                <span class="tools-badge">🏆 För Föreningen &amp; Elevstyrelsen</span>
+                <h2>Skol-IF Planering &amp; LOK-stöd</h2>
+                <p>Planera terminens rastaktiviteter, sätt upp schema med QR-kod och samla närvaro till Arenan.</p>
+            </div>
+
+            <div class="skolif-tools-grid">
+                <a href="kalender.html" class="tool-card">
+                    <span class="tool-badge new">Nyhet</span>
+                    <div class="tool-icon">📅</div>
+                    <div class="tool-body">
+                        <h4>Aktivitetskalender &amp; Anslagstavla</h4>
+                        <p>Planera rastaktiviteter, kiosk &amp; turneringar. Skriv ut A4-affisch med QR-kod eller visa på korridorskärm.</p>
+                        <span class="tool-link">Öppna kalendern →</span>
+                    </div>
+                </a>
+
+                <div class="tool-card" onclick="SkolIFKlasser.openLokModal()">
+                    <div class="tool-icon">🏟️</div>
+                    <div class="tool-body">
+                        <h4>LOK-stöd &amp; Närvaro (Arenan)</h4>
+                        <p>Registrera deltagande elever på sekunder och exportera komplett underlag till Idrottsarenan.</p>
+                        <span class="tool-link">Öppna LOK-stöd →</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
         <!-- IDROTTSLÄRARENS VERKTYGSLÅDA -->
         <section class="teacher-tools-section">
             <div class="tools-header">
@@ -773,7 +810,7 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     <!-- LÄGG TILL FIREBASE AUTH -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-    <script src="klasser.js?v=3"></script>
+    <script src="klasser.js?v=4"></script>
 
    <script>
         const firebaseConfig = {

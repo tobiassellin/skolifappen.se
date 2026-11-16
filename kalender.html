@@ -1,0 +1,2620 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Skol-IF Kalender &amp; Anslagstavla – Planera &amp; Dela Aktiviteter | Skol-IF Webben</title>
+    <meta name="description" content="Planera Skol-IF-föreningens rastaktiviteter, turneringar, öppettider i kiosken och friluftsdagar. Skriv ut A4-affisch med QR-kod eller dela live-schema med elever och kollegor.">
+    <meta name="keywords" content="Skol-IF kalender, rastaktiviteter schema, skol-IF anslagstavla, planera rastturnering, skolaktiviteter QR-kod, Skol-IF Webben">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://skolifwebben.se/kalender.html">
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/svg+xml" href="icon.svg">
+    <link rel="apple-touch-icon" href="icon.svg">
+    <meta name="theme-color" content="#143625">
+    <meta property="og:title" content="Skol-IF Kalender &amp; Anslagstavla">
+    <meta property="og:description" content="Se kommande aktiviteter, rastturneringar och öppettider i Skol-IF.">
+    <meta property="og:url" content="https://skolifwebben.se/kalender.html">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif; }
+        html { font-size: 14px; }
+        body {
+            background-color: #F3F7F4;
+            background-image: radial-gradient(at 15% 15%, rgba(76, 175, 80, 0.07) 0px, transparent 50%),
+                              radial-gradient(at 85% 80%, rgba(46, 125, 50, 0.06) 0px, transparent 50%);
+            color: #1E293B;
+            line-height: 1.55;
+            min-height: 100vh;
+        }
+
+        /* ====== TOPPNAVIGATION ====== */
+        nav {
+            background: rgba(15, 41, 30, 0.94);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            padding: 0.72rem 5%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+            position: sticky;
+            top: 0;
+            z-index: 900;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .logo {
+            color: white;
+            font-size: 1.28rem;
+            font-weight: 800;
+            text-decoration: none;
+            letter-spacing: 0.3px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .nav-right { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+        .nav-btn {
+            color: rgba(255,255,255,0.92);
+            text-decoration: none;
+            font-weight: 600;
+            background: rgba(255,255,255,0.12);
+            padding: 7px 13px;
+            border-radius: 10px;
+            transition: all 0.2s;
+            font-size: 0.84rem;
+            border: 1px solid rgba(255,255,255,0.16);
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-family: inherit;
+        }
+        .nav-btn:hover { background: rgba(255,255,255,0.22); transform: translateY(-1px); }
+        .nav-btn.gold { background: linear-gradient(135deg, #F59E0B, #D4AF37); color: #111; font-weight: 700; border: none; box-shadow: 0 3px 10px rgba(212,175,55,0.28); }
+        .nav-btn.green { background: rgba(34,197,94,0.28); border-color: #4ADE80; color: #FFFFFF; }
+
+        .container { max-width: 1120px; margin: 22px auto 48px auto; padding: 0 18px; transition: max-width 0.2s ease, padding 0.2s ease; }
+        body.board-mode-active .container {
+            max-width: 100%;
+            margin: 14px auto 24px auto;
+            padding: 0 24px;
+        }
+        body.board-mode-active .cal-hero-card,
+        body.board-mode-active .summary-strip,
+        body.board-mode-active .demo-banner {
+            display: none !important;
+        }
+        body.board-mode-active .controls-bar {
+            margin-bottom: 14px;
+            padding: 8px 14px;
+        }
+
+        /* ====== KNAPPAR ====== */
+        .btn {
+            padding: 9px 16px;
+            border: none;
+            border-radius: 10px;
+            font-weight: 700;
+            font-size: 0.88rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-family: inherit;
+            text-decoration: none;
+        }
+        .btn-green { background: linear-gradient(135deg, #4CAF50 0%, #2E7D32 100%); color: white; box-shadow: 0 4px 12px rgba(46, 125, 50, 0.25); }
+        .btn-green:hover { filter: brightness(1.06); transform: translateY(-1px); }
+        .btn-gold { background: linear-gradient(135deg, #F59E0B, #D4AF37); color: #111827; font-weight: 800; }
+        .btn-gold:hover { filter: brightness(1.05); }
+        .btn-outline { background: white; color: #1E3A24; border: 1.5px solid #CBD5E1; }
+        .btn-outline:hover { background: #F8FAFC; border-color: #4CAF50; color: #2E7D32; }
+        .btn-soft-green { background: #E8F5E9; color: #1B5E20; border: 1px solid #C8E6C9; }
+        .btn-soft-green:hover { background: #DCEDC8; }
+        .btn-danger-soft { background: #FEF2F2; color: #DC2626; border: 1px solid #FECACA; }
+        .btn-danger-soft:hover { background: #FEE2E2; }
+        .btn-sm { padding: 6px 11px; font-size: 0.78rem; border-radius: 8px; }
+
+        /* ====== HEADER-BANNER ====== */
+        .cal-hero-card {
+            background: linear-gradient(135deg, #102B1F 0%, #1B4332 60%, #265D41 100%);
+            color: white;
+            border-radius: 20px;
+            padding: 22px 24px;
+            margin-bottom: 18px;
+            box-shadow: 0 12px 30px rgba(15, 41, 30, 0.14);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+            flex-wrap: wrap;
+            position: relative;
+            overflow: hidden;
+        }
+        .cal-hero-card::after {
+            content: '';
+            position: absolute;
+            right: -60px;
+            top: -80px;
+            width: 240px;
+            height: 240px;
+            background: radial-gradient(circle, rgba(74, 222, 128, 0.18) 0%, transparent 70%);
+            pointer-events: none;
+        }
+        .cal-hero-left { flex: 1; min-width: 250px; position: relative; z-index: 1; }
+        .cal-live-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(74, 222, 128, 0.16);
+            border: 1px solid rgba(74, 222, 128, 0.4);
+            color: #BBF7D0;
+            font-size: 0.74rem;
+            font-weight: 700;
+            padding: 3px 11px;
+            border-radius: 99px;
+            margin-bottom: 8px;
+        }
+        .cal-hero-title-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+        .cal-hero-title { font-size: 1.7rem; font-weight: 800; line-height: 1.2; color: #FFFFFF; }
+        .cal-hero-sub { font-size: 0.9rem; color: rgba(255,255,255,0.82); margin-top: 4px; }
+        .cal-hero-edit-btn {
+            background: rgba(255,255,255,0.14);
+            border: 1px solid rgba(255,255,255,0.25);
+            color: white;
+            border-radius: 8px;
+            padding: 4px 9px;
+            font-size: 0.76rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .cal-hero-edit-btn:hover { background: rgba(255,255,255,0.25); }
+        .cal-hero-actions {
+            display: flex;
+            gap: 9px;
+            flex-wrap: wrap;
+            align-items: center;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* ====== DEMO-BANNER & STAT-RAD ====== */
+        .demo-banner {
+            background: #FFFBEB;
+            border: 1.5px solid #FDE68A;
+            color: #92400E;
+            border-radius: 14px;
+            padding: 11px 16px;
+            margin-bottom: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            font-size: 0.84rem;
+        }
+
+        .summary-strip {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            margin-bottom: 18px;
+        }
+        .summary-tile {
+            background: white;
+            border-radius: 14px;
+            padding: 13px 16px;
+            border: 1px solid #E2ECE5;
+            box-shadow: 0 4px 12px rgba(15, 41, 30, 0.04);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .summary-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 11px;
+            background: #E8F5E9;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            flex-shrink: 0;
+        }
+        .summary-num { font-size: 1.35rem; font-weight: 800; color: #143321; line-height: 1.1; }
+        .summary-lbl { font-size: 0.76rem; color: #64748B; font-weight: 600; }
+
+        /* ====== KONTROLLRAD (VY-FLIKAR & KATEGORIFILTER) ====== */
+        .controls-bar {
+            background: white;
+            border-radius: 16px;
+            padding: 12px 16px;
+            border: 1px solid #E2ECE5;
+            box-shadow: 0 6px 18px rgba(15, 41, 30, 0.04);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 18px;
+        }
+        .view-tabs {
+            display: inline-flex;
+            background: #F1F5F9;
+            padding: 4px;
+            border-radius: 11px;
+            gap: 4px;
+        }
+        .view-tab-btn {
+            border: none;
+            background: transparent;
+            padding: 7px 14px;
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: 0.84rem;
+            color: #475569;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: inherit;
+        }
+        .view-tab-btn.active {
+            background: white;
+            color: #143321;
+            box-shadow: 0 2px 8px rgba(15, 41, 30, 0.1);
+        }
+
+        .filter-chips {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .filter-chip {
+            border: 1.5px solid #E2E8F0;
+            background: white;
+            color: #475569;
+            padding: 5px 11px;
+            border-radius: 99px;
+            font-size: 0.78rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.18s;
+            font-family: inherit;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .filter-chip:hover { border-color: #4CAF50; color: #1E3A24; }
+        .filter-chip.active {
+            background: #1B4332;
+            border-color: #1B4332;
+            color: white;
+        }
+
+        /* ====== KOMMANDE-LISTA ====== */
+        .section-group { margin-bottom: 24px; }
+        .section-heading {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            padding: 0 4px;
+        }
+        .section-heading-left {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 1.02rem;
+            font-weight: 800;
+            color: #143321;
+        }
+        .section-count-badge {
+            background: #E8F5E9;
+            color: #1B5E20;
+            font-size: 0.72rem;
+            font-weight: 800;
+            padding: 2px 9px;
+            border-radius: 99px;
+        }
+
+        .event-list { display: flex; flex-direction: column; gap: 10px; }
+        .event-card {
+            background: white;
+            border-radius: 16px;
+            padding: 15px 18px;
+            border: 1.5px solid #E2ECE5;
+            box-shadow: 0 5px 16px rgba(15, 41, 30, 0.04);
+            display: flex;
+            align-items: flex-start;
+            gap: 16px;
+            transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+            position: relative;
+        }
+        .event-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 24px rgba(15, 41, 30, 0.09);
+            border-color: #A5D6A7;
+        }
+        .event-card.is-today {
+            border-color: #4CAF50;
+            background: linear-gradient(90deg, #F0FDF4 0%, #FFFFFF 30%);
+        }
+        .event-card.is-past { opacity: 0.74; }
+
+        .date-badge {
+            width: 64px;
+            min-width: 64px;
+            border-radius: 13px;
+            background: #F1F8E9;
+            border: 1.5px solid #DCEDC8;
+            text-align: center;
+            padding: 7px 4px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        .event-card.is-today .date-badge {
+            background: linear-gradient(135deg, #2E7D32, #1B5E20);
+            border-color: #1B5E20;
+            color: white;
+        }
+        .date-badge-wd { font-size: 0.68rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.6px; opacity: 0.85; }
+        .date-badge-day { font-size: 1.45rem; font-weight: 900; line-height: 1.1; }
+        .date-badge-mon { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; opacity: 0.85; }
+
+        .event-main { flex: 1; min-width: 0; }
+        .event-badges-row {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-wrap: wrap;
+            margin-bottom: 5px;
+        }
+        .cat-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 2px 10px;
+            border-radius: 99px;
+            font-size: 0.72rem;
+            font-weight: 800;
+            border: 1px solid transparent;
+        }
+        .recur-pill {
+            background: #F1F5F9;
+            color: #475569;
+            border: 1px solid #CBD5E1;
+            font-size: 0.71rem;
+            font-weight: 700;
+            padding: 2px 8px;
+            border-radius: 99px;
+        }
+        .today-pill {
+            background: #16A34A;
+            color: white;
+            font-size: 0.7rem;
+            font-weight: 800;
+            padding: 2px 9px;
+            border-radius: 99px;
+            letter-spacing: 0.4px;
+        }
+        .event-title {
+            font-size: 1.08rem;
+            font-weight: 800;
+            color: #0F172A;
+            margin-bottom: 5px;
+            line-height: 1.3;
+        }
+        .event-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            font-size: 0.82rem;
+            color: #475569;
+            font-weight: 500;
+        }
+        .event-meta span { display: inline-flex; align-items: center; gap: 4px; }
+        .event-notes {
+            margin-top: 7px;
+            font-size: 0.82rem;
+            color: #334155;
+            background: #F8FAFC;
+            border-left: 3px solid #A5D6A7;
+            padding: 6px 10px;
+            border-radius: 0 8px 8px 0;
+        }
+        .event-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 10px;
+        }
+
+        /* ====== MÅNADSVY ====== */
+        .month-card {
+            background: white;
+            border-radius: 18px;
+            padding: 20px;
+            border: 1px solid #E2ECE5;
+            box-shadow: 0 8px 24px rgba(15, 41, 30, 0.05);
+        }
+        .month-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 14px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .month-title { font-size: 1.3rem; font-weight: 800; color: #143321; text-transform: capitalize; }
+        .month-grid-wrap { overflow-x: auto; }
+        .month-grid {
+            display: grid;
+            grid-template-columns: 42px repeat(7, minmax(110px, 1fr));
+            border-top: 1.5px solid #E2E8F0;
+            border-left: 1.5px solid #E2E8F0;
+            border-radius: 12px;
+            overflow: hidden;
+            min-width: 780px;
+        }
+        .cal-head-cell {
+            background: #F1F8E9;
+            color: #1B5E20;
+            font-size: 0.76rem;
+            font-weight: 800;
+            text-align: center;
+            padding: 9px 4px;
+            border-right: 1px solid #E2E8F0;
+            border-bottom: 1.5px solid #CBD5E1;
+            text-transform: uppercase;
+        }
+        .cal-week-cell {
+            background: #F8FAFC;
+            color: #64748B;
+            font-size: 0.72rem;
+            font-weight: 800;
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+            padding-top: 10px;
+            border-right: 1px solid #E2E8F0;
+            border-bottom: 1px solid #E2E8F0;
+        }
+        .cal-day-cell {
+            min-height: 108px;
+            padding: 6px;
+            background: white;
+            border-right: 1px solid #E2E8F0;
+            border-bottom: 1px solid #E2E8F0;
+            cursor: pointer;
+            transition: background 0.15s;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .cal-day-cell:hover { background: #F8FAFC; }
+        .cal-day-cell.other-month { background: #FAFAFA; color: #94A3B8; }
+        .cal-day-cell.today { background: #F0FDF4; box-shadow: inset 0 0 0 2px #2E7D32; }
+        .cal-day-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2px;
+        }
+        .cal-day-num {
+            font-size: 0.82rem;
+            font-weight: 800;
+            width: 24px;
+            height: 24px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+        }
+        .cal-day-cell.today .cal-day-num { background: #2E7D32; color: white; }
+        .cal-mini-ev {
+            font-size: 0.71rem;
+            font-weight: 700;
+            padding: 3px 6px;
+            border-radius: 6px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            border-left: 3px solid transparent;
+        }
+        .cal-more-txt { font-size: 0.69rem; font-weight: 700; color: #64748B; padding-left: 3px; }
+
+        /* ====== QR RENDERING ====== */
+        .qr-box-render img,
+        .qr-box-render canvas {
+            display: block;
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+        }
+
+        /* ====== TAVELLÄGE / STORSKÄRM ====== */
+        .board-view {
+            background: linear-gradient(145deg, #091D14 0%, #113223 50%, #17442E 100%);
+            color: white;
+            border-radius: 22px;
+            padding: 26px;
+            box-shadow: 0 20px 45px rgba(9, 29, 20, 0.35);
+            border: 1px solid rgba(129, 199, 132, 0.25);
+        }
+        .board-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+            flex-wrap: wrap;
+            border-bottom: 1px solid rgba(255,255,255,0.14);
+            padding-bottom: 16px;
+            margin-bottom: 20px;
+        }
+        .board-clock {
+            text-align: right;
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.15);
+            padding: 8px 16px;
+            border-radius: 12px;
+        }
+        .board-clock-time { font-size: 1.6rem; font-weight: 900; line-height: 1.1; color: #86EFAC; }
+        .board-clock-date { font-size: 0.78rem; color: rgba(255,255,255,0.8); text-transform: capitalize; }
+        .board-grid {
+            display: grid;
+            grid-template-columns: 1.05fr 1.25fr;
+            gap: 20px;
+        }
+        .board-panel {
+            background: rgba(255,255,255,0.07);
+            border: 1px solid rgba(255,255,255,0.13);
+            border-radius: 18px;
+            padding: 18px;
+        }
+        .board-panel-title {
+            font-size: 0.92rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: #86EFAC;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 7px;
+        }
+        .board-item {
+            background: rgba(255,255,255,0.08);
+            border-left: 4px solid #4ADE80;
+            border-radius: 12px;
+            padding: 12px 14px;
+            margin-bottom: 10px;
+            transition: opacity 0.2s ease, background 0.2s ease;
+        }
+        .board-item.is-live-now {
+            background: rgba(34, 197, 94, 0.22);
+            box-shadow: 0 0 0 2px rgba(74, 222, 128, 0.55);
+        }
+        .board-item.is-done-today {
+            opacity: 0.54;
+        }
+        .live-status-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 0.7rem;
+            font-weight: 800;
+            padding: 2px 9px;
+            border-radius: 99px;
+            letter-spacing: 0.3px;
+        }
+        .live-status-pill.now { background: #22C55E; color: #052E16; }
+        .live-status-pill.soon { background: #FEF08A; color: #713F12; }
+        .live-status-pill.done { background: rgba(148,163,184,0.22); color: #CBD5E1; }
+        .event-card .live-status-pill.done { background: #F1F5F9; color: #64748B; border: 1px solid #CBD5E1; }
+
+        body.board-mode-active .board-view {
+            min-height: calc(100vh - 155px);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 26px 32px;
+        }
+        body.board-mode-active .board-grid {
+            flex: 1;
+            align-items: stretch;
+        }
+        #boardFullscreenTarget:fullscreen,
+        #boardFullscreenTarget:-webkit-full-screen,
+        body.board-pseudo-fullscreen #boardFullscreenTarget {
+            width: 100vw;
+            height: 100vh;
+            min-height: 100vh;
+            border-radius: 0;
+            padding: 28px 40px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            overflow-y: auto;
+        }
+        body.board-pseudo-fullscreen #boardFullscreenTarget {
+            position: fixed;
+            inset: 0;
+            z-index: 2000;
+        }
+        #boardFullscreenTarget:fullscreen .board-grid,
+        body.board-pseudo-fullscreen #boardFullscreenTarget .board-grid {
+            flex: 1;
+            align-items: stretch;
+        }
+        #boardFullscreenTarget:fullscreen .board-clock-time,
+        body.board-pseudo-fullscreen #boardFullscreenTarget .board-clock-time {
+            font-size: 2.25rem;
+        }
+        #boardFullscreenTarget:fullscreen .board-item-title,
+        body.board-pseudo-fullscreen #boardFullscreenTarget .board-item-title {
+            font-size: 1.3rem;
+        }
+        .board-item-title { font-size: 1.12rem; font-weight: 800; color: #FFFFFF; }
+        .board-item-meta { font-size: 0.86rem; color: rgba(255,255,255,0.85); margin-top: 3px; }
+        .board-qr-footer {
+            margin-top: 18px;
+            padding-top: 14px;
+            border-top: 1px solid rgba(255,255,255,0.14);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 14px;
+            flex-wrap: wrap;
+        }
+
+        /* ====== EMPTY STATE ====== */
+        .empty-state {
+            background: white;
+            border-radius: 20px;
+            padding: 42px 24px;
+            text-align: center;
+            border: 1.5px dashed #CBD5E1;
+            box-shadow: 0 8px 24px rgba(15, 41, 30, 0.04);
+        }
+        .empty-state-icon { font-size: 3rem; margin-bottom: 10px; }
+        .empty-state h3 { font-size: 1.25rem; font-weight: 800; color: #143321; margin-bottom: 6px; }
+        .empty-state p { font-size: 0.9rem; color: #64748B; max-width: 500px; margin: 0 auto 18px auto; }
+
+        /* ====== MODALS ====== */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.56);
+            backdrop-filter: blur(4px);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1200;
+            padding: 16px;
+        }
+        .modal-overlay.open { display: flex; }
+        .modal-content {
+            background: white;
+            width: 100%;
+            max-width: 560px;
+            border-radius: 20px;
+            padding: 24px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.28);
+            max-height: 92vh;
+            overflow-y: auto;
+            position: relative;
+        }
+        .modal-close {
+            position: absolute;
+            top: 14px;
+            right: 16px;
+            background: #F1F5F9;
+            border: none;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            font-size: 1.05rem;
+            font-weight: 800;
+            cursor: pointer;
+            color: #475569;
+        }
+        .modal-close:hover { background: #E2E8F0; color: #0F172A; }
+        .modal-title { font-size: 1.25rem; font-weight: 800; color: #143321; margin-bottom: 14px; padding-right: 34px; }
+
+        .form-row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .form-group { margin-bottom: 13px; }
+        .form-group label { display: block; font-size: 0.82rem; font-weight: 700; color: #334155; margin-bottom: 5px; }
+        .form-group input[type="text"],
+        .form-group input[type="date"],
+        .form-group input[type="time"],
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1.5px solid #CBD5E1;
+            border-radius: 10px;
+            font-size: 0.9rem;
+            font-family: inherit;
+            outline: none;
+            background: white;
+            transition: border-color 0.2s;
+        }
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus { border-color: #2E7D32; }
+
+        .quick-template-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
+        .quick-tpl-btn {
+            background: #F8FAFC;
+            border: 1px solid #CBD5E1;
+            border-radius: 99px;
+            padding: 4px 10px;
+            font-size: 0.76rem;
+            font-weight: 700;
+            cursor: pointer;
+            color: #1E293B;
+            font-family: inherit;
+        }
+        .quick-tpl-btn:hover { background: #E8F5E9; border-color: #4CAF50; color: #1B5E20; }
+
+        .recurrence-box {
+            background: #F0FDF4;
+            border: 1.5px solid #BBF7D0;
+            border-radius: 12px;
+            padding: 12px 14px;
+            margin-bottom: 14px;
+        }
+
+        /* ====== PUBLIK-LÄGE ====== */
+        body.public-view-mode .admin-only { display: none !important; }
+        body:not(.public-view-mode) .public-only { display: none !important; }
+
+        /* ====== UTSKRIFT / A4 AFFISCH ====== */
+        #printPosterContainer { display: none; }
+
+        @media print {
+            body { background: white !important; margin: 0; padding: 0; }
+            nav, .container, .modal-overlay, #skolifToastContainer { display: none !important; }
+            #printPosterContainer {
+                display: block !important;
+                padding: 10mm 12mm;
+                color: #0F172A;
+                background: white;
+            }
+            .poster-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                gap: 16px;
+                border-bottom: 3px solid #1B4332;
+                padding-bottom: 12px;
+                margin-bottom: 16px;
+            }
+            .poster-kicker {
+                font-size: 10pt;
+                font-weight: 800;
+                color: #15803D;
+                text-transform: uppercase;
+                letter-spacing: 1px;
+            }
+            .poster-title { font-size: 23pt; font-weight: 900; color: #143321; line-height: 1.15; margin: 2px 0 4px 0; }
+            .poster-sub { font-size: 10.5pt; color: #334155; font-weight: 500; }
+            .poster-qr-card {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                border: 2px solid #1B4332;
+                border-radius: 10px;
+                padding: 8px 10px;
+                background: #F8FAFC;
+                max-width: 245px;
+                flex-shrink: 0;
+            }
+            .poster-row {
+                display: flex;
+                align-items: stretch;
+                gap: 12px;
+                border: 1.5px solid #CBD5E1;
+                border-radius: 10px;
+                padding: 9px 12px;
+                margin-bottom: 8px;
+                page-break-inside: avoid;
+                break-inside: avoid;
+            }
+            .poster-date-col {
+                width: 78px;
+                flex-shrink: 0;
+                background: #E8F5E9;
+                border-radius: 8px;
+                padding: 5px;
+                text-align: center;
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                color: #143321;
+            }
+            .poster-ev-title { font-size: 12.5pt; font-weight: 800; color: #0F172A; }
+            .poster-ev-meta { font-size: 9.5pt; color: #334155; margin-top: 2px; font-weight: 600; }
+            .poster-ev-notes { font-size: 9pt; color: #475569; margin-top: 3px; }
+            .poster-footer {
+                margin-top: 14px;
+                padding-top: 8px;
+                border-top: 1px dashed #94A3B8;
+                font-size: 8.5pt;
+                color: #475569;
+                display: flex;
+                justify-content: space-between;
+            }
+        }
+
+        /* ====== RESPONSIVITET ====== */
+        @media (max-width: 820px) {
+            .summary-strip { grid-template-columns: repeat(2, 1fr); }
+            .board-grid { grid-template-columns: 1fr; }
+        }
+        @media (max-width: 600px) {
+            .event-card { flex-direction: column; gap: 10px; }
+            .date-badge { width: 100%; flex-direction: row; gap: 8px; padding: 6px 12px; justify-content: flex-start; }
+            .form-row-2 { grid-template-columns: 1fr; }
+            .cal-hero-title { font-size: 1.38rem; }
+        }
+    </style>
+</head>
+<body>
+
+<nav>
+    <a href="index.html" class="logo">📅 Skol-IF Kalender</a>
+    <div class="nav-right">
+        <button class="nav-btn admin-only" onclick="SkolIFKlasser.openModal()">📋 Mina Klasser</button>
+        <button class="nav-btn admin-only" data-skolif-auth-btn>👤 Logga in</button>
+        <button class="nav-btn" onclick="bytVy('board', true)" title="Visa stor korridor- och hallvy">📺 Storskärm</button>
+        <button class="nav-btn green admin-only" onclick="oppnaQrDelaModal()">📱 QR-kod &amp; Dela</button>
+        <button class="nav-btn gold" onclick="oppnaAffischModal()">🖨️ Skriv ut affisch</button>
+        <a href="index.html" class="nav-btn">← Startsidan</a>
+    </div>
+</nav>
+
+<div class="container">
+    <!-- HERO / FÖRENINGSRUBRIK -->
+    <section class="cal-hero-card">
+        <div class="cal-hero-left">
+            <div class="cal-live-pill public-only">🟢 LIVE ANSLAGSTAVLA • Uppdateras automatiskt</div>
+            <div class="cal-hero-title-row">
+                <h1 class="cal-hero-title" id="heroOrgTitle">Skol-IF Kalendern</h1>
+                <button type="button" class="cal-hero-edit-btn admin-only" onclick="oppnaRubrikModal()">✏️ Ändra rubrik</button>
+            </div>
+            <p class="cal-hero-sub" id="heroOrgSub">Kommande rastaktiviteter, turneringar och öppettider i kiosken.</p>
+        </div>
+        <div class="cal-hero-actions admin-only">
+            <button type="button" class="btn btn-gold" onclick="oppnaNyAktivitetModal()">➕ Lägg till aktivitet</button>
+            <button type="button" class="btn" style="background: rgba(255,255,255,0.14); color: white; border: 1px solid rgba(255,255,255,0.28);" onclick="oppnaQrDelaModal()">📱 QR-länk</button>
+        </div>
+    </section>
+
+    <!-- DEMO-BANNER (VISAS ENDAST OM EXEMPELDATA FINNS) -->
+    <div class="demo-banner admin-only" id="demoBanner" style="display:none;">
+        <div>
+            <strong>✨ Exempelschema laddat:</strong> Du testar just nu med en exempelvecka så att du ser hur kalendern, affischen och QR-länken fungerar.
+        </div>
+        <button type="button" class="btn btn-sm btn-danger-soft" onclick="rensaExempelAktiviteter()">🗑️ Rensa exempelaktiviteter</button>
+    </div>
+
+    <!-- SNABBSUMMERING -->
+    <div class="summary-strip" id="summaryStrip">
+        <div class="summary-tile">
+            <div class="summary-icon">🔥</div>
+            <div>
+                <div class="summary-num" id="statTodayCount">0</div>
+                <div class="summary-lbl">Idag</div>
+            </div>
+        </div>
+        <div class="summary-tile">
+            <div class="summary-icon">📅</div>
+            <div>
+                <div class="summary-num" id="statWeekCount">0</div>
+                <div class="summary-lbl">Denna vecka</div>
+            </div>
+        </div>
+        <div class="summary-tile">
+            <div class="summary-icon">🗓️</div>
+            <div>
+                <div class="summary-num" id="statMonthCount">0</div>
+                <div class="summary-lbl">Kommande 30 dagar</div>
+            </div>
+        </div>
+        <div class="summary-tile">
+            <div class="summary-icon">🔁</div>
+            <div>
+                <div class="summary-num" id="statRecurringCount">0</div>
+                <div class="summary-lbl">Återkommande serier</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- KONTROLLRAD: VYFLIKAR + KATEGORIFILTER -->
+    <div class="controls-bar">
+        <div class="view-tabs" role="tablist">
+            <button type="button" class="view-tab-btn active" id="tabBtn-list" onclick="bytVy('list')">📋 Kommande</button>
+            <button type="button" class="view-tab-btn" id="tabBtn-month" onclick="bytVy('month')">📆 Månadsvy</button>
+            <button type="button" class="view-tab-btn" id="tabBtn-board" onclick="bytVy('board')">📺 Tavelläge</button>
+        </div>
+
+        <div class="filter-chips" id="filterChipsContainer">
+            <button type="button" class="filter-chip active" data-cat="all" onclick="sattKategoriFilter('all')">Alla</button>
+            <button type="button" class="filter-chip" data-cat="turnering" onclick="sattKategoriFilter('turnering')">🏆 Turnering</button>
+            <button type="button" class="filter-chip" data-cat="rast" onclick="sattKategoriFilter('rast')">🏃 Rastaktivitet</button>
+            <button type="button" class="filter-chip" data-cat="kiosk" onclick="sattKategoriFilter('kiosk')">☕ Kiosk</button>
+            <button type="button" class="filter-chip" data-cat="event" onclick="sattKategoriFilter('event')">🎒 Event</button>
+            <button type="button" class="filter-chip" data-cat="mote" onclick="sattKategoriFilter('mote')">📋 Möte</button>
+        </div>
+    </div>
+
+    <!-- VY 1: KOMMANDE-LISTA -->
+    <div id="view-list">
+        <div id="listViewContent"></div>
+    </div>
+
+    <!-- VY 2: MÅNADSVY -->
+    <div id="view-month" style="display:none;">
+        <div class="month-card">
+            <div class="month-header">
+                <div class="month-title" id="monthGridTitle">November 2026</div>
+                <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                    <button type="button" class="btn btn-outline btn-sm" onclick="bytManad(-1)">◀ Föregående</button>
+                    <button type="button" class="btn btn-soft-green btn-sm" onclick="hoppaTillIdagManad()">Idag</button>
+                    <button type="button" class="btn btn-outline btn-sm" onclick="bytManad(1)">Nästa ▶</button>
+                </div>
+            </div>
+            <div class="month-grid-wrap">
+                <div class="month-grid" id="monthGridContainer"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- VY 3: TAVELLÄGE / STORSKÄRM -->
+    <div id="view-board" style="display:none;">
+        <div class="board-view" id="boardFullscreenTarget">
+            <div class="board-top">
+                <div>
+                    <div style="font-size:0.78rem; font-weight:800; color:#86EFAC; letter-spacing:1px; text-transform:uppercase;">📺 Korridors- &amp; Halltavla</div>
+                    <h2 id="boardOrgTitle" style="font-size:1.75rem; font-weight:900; color:white; line-height:1.15;">Skol-IF Kalendern</h2>
+                </div>
+                <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+                    <button type="button" id="boardFullscreenBtn" class="btn btn-sm" style="background:rgba(255,255,255,0.16); color:white; border:1px solid rgba(255,255,255,0.3);" onclick="toggleBoardFullscreen()">⛶ Helskärm</button>
+                    <div class="board-clock">
+                        <div class="board-clock-time" id="boardClockTime">--:--</div>
+                        <div class="board-clock-date" id="boardClockDate">---</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="board-grid">
+                <div class="board-panel">
+                    <div class="board-panel-title" id="boardTodayHeading">🔥 IDAG I SKOL-IF</div>
+                    <div id="boardTodayContainer"></div>
+                </div>
+                <div class="board-panel">
+                    <div class="board-panel-title">📅 KOMMANDE DAGAR</div>
+                    <div id="boardUpcomingContainer"></div>
+                </div>
+            </div>
+
+            <div class="board-qr-footer">
+                <div style="display:flex; align-items:center; gap:12px;">
+                    <div id="boardQrBox" class="qr-box-render" style="background:white; padding:6px; border-radius:10px; width:90px; height:90px; display:flex; align-items:center; justify-content:center; flex-shrink:0;"></div>
+                    <div>
+                        <div style="font-weight:800; font-size:0.95rem; color:#FFFFFF;">📱 Skanna för hela schemat i mobilen!</div>
+                        <div style="font-size:0.8rem; color:rgba(255,255,255,0.78);">Alltid uppdaterat med tider, platser och kommande turneringar.</div>
+                    </div>
+                </div>
+                <button type="button" class="btn btn-gold btn-sm" onclick="oppnaAffischModal()">🖨️ Skriv ut som A4-affisch</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ========================================== -->
+<!-- MODAL: LÄGG TILL / REDIGERA AKTIVITET -->
+<!-- ========================================== -->
+<div class="modal-overlay" id="eventModal">
+    <div class="modal-content">
+        <button type="button" class="modal-close" onclick="stangModal('eventModal')">✕</button>
+        <div class="modal-title" id="eventModalTitle">➕ Ny aktivitet i kalendern</div>
+
+        <div class="quick-template-row">
+            <span style="font-size:0.75rem; font-weight:700; color:#64748B; align-self:center;">Snabbval:</span>
+            <button type="button" class="quick-tpl-btn" onclick="fyllSnabbMall('turnering', 'Innebandyturnering', 'Sporthallen', '11:30', '12:15', 'Åk 4–6')">🏆 Turnering</button>
+            <button type="button" class="quick-tpl-btn" onclick="fyllSnabbMall('rast', 'Öppen idrottshall', 'Sporthallen', '11:30', '12:15', 'Alla elever')">🏀 Öppen hall</button>
+            <button type="button" class="quick-tpl-btn" onclick="fyllSnabbMall('kiosk', 'Skol-IF Kiosk öppen', 'Vid kiosken', '11:15', '12:15', 'Alla elever')">☕ Kiosk</button>
+            <button type="button" class="quick-tpl-btn" onclick="fyllSnabbMall('event', 'Friluftsdag / Skoljoggen', 'Skolgården', '08:30', '13:30', 'Hela skolan')">🎒 Friluftsdag</button>
+            <button type="button" class="quick-tpl-btn" onclick="fyllSnabbMall('mote', 'Elevstyrelsemöte', 'Grupprum 1', '12:15', '12:45', 'Elevstyrelsen')">📋 Möte</button>
+        </div>
+
+        <input type="hidden" id="evId">
+
+        <div class="form-group">
+            <label for="evTitle">Vad händer? (Titel)</label>
+            <input type="text" id="evTitle" placeholder="T.ex. Innebandyturnering Åk 5–6, Fredagskiosk...">
+        </div>
+
+        <div class="form-row-2">
+            <div class="form-group">
+                <label for="evCategory">Kategori</label>
+                <select id="evCategory">
+                    <option value="rast">🏃 Rastaktivitet</option>
+                    <option value="turnering">🏆 Turnering</option>
+                    <option value="kiosk">☕ Kiosk öppen</option>
+                    <option value="event">🎒 Event &amp; Friluftsdag</option>
+                    <option value="mote">📋 Styrelsemöte</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="evDate">Datum</label>
+                <input type="date" id="evDate">
+            </div>
+        </div>
+
+        <div class="form-row-2">
+            <div class="form-group">
+                <label for="evStartTime">Starttid (valfritt)</label>
+                <input type="time" id="evStartTime" value="11:30">
+            </div>
+            <div class="form-group">
+                <label for="evEndTime">Sluttid (valfritt)</label>
+                <input type="time" id="evEndTime" value="12:15">
+            </div>
+        </div>
+
+        <div class="form-row-2">
+            <div class="form-group">
+                <label for="evLocation">Plats</label>
+                <input type="text" id="evLocation" placeholder="T.ex. Sporthallen, Skolgården">
+            </div>
+            <div class="form-group">
+                <label for="evTarget">Målgrupp / Årskurs</label>
+                <input type="text" id="evTarget" placeholder="T.ex. Alla, Åk 4–6">
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="evLeaders">Ansvariga elever / ledare (valfritt)</label>
+            <input type="text" id="evLeaders" placeholder="T.ex. Elsa &amp; Noah (6B)">
+        </div>
+
+        <div class="recurrence-box">
+            <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-weight:800; color:#143321; margin-bottom:0;">
+                <input type="checkbox" id="evRecurring" onchange="togglaAterkommandeBox()" style="width:17px; height:17px; accent-color:#2E7D32;">
+                🔁 Återkommer varje vecka (samma veckodag)
+            </label>
+            <div id="evRecurringDetails" style="display:none; margin-top:10px;">
+                <div class="form-row-2">
+                    <div class="form-group" style="margin-bottom:0;">
+                        <label for="evRepeatUntil">Upprepa t.o.m. datum</label>
+                        <input type="date" id="evRepeatUntil">
+                    </div>
+                    <div style="display:flex; align-items:flex-end; gap:6px; flex-wrap:wrap;">
+                        <button type="button" class="btn btn-outline btn-sm" onclick="sattSlutdatumVeckor(4)">+4 v</button>
+                        <button type="button" class="btn btn-outline btn-sm" onclick="sattSlutdatumVeckor(10)">+10 v</button>
+                        <button type="button" class="btn btn-outline btn-sm" onclick="sattSlutdatumVeckor(16)">+16 v</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="evNotes">Kort info till elever / lärare (valfritt)</label>
+            <textarea id="evNotes" rows="2" placeholder="T.ex. Kom ombytt med inneskor! Anmälan på plats 5 min innan."></textarea>
+        </div>
+
+        <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:14px;">
+            <button type="button" class="btn btn-outline" onclick="stangModal('eventModal')">Avbryt</button>
+            <button type="button" class="btn btn-green" onclick="sparaAktivitetFranModal()">💾 Spara aktivitet</button>
+        </div>
+    </div>
+</div>
+
+<!-- ========================================== -->
+<!-- MODAL: DAGDETALJ FRÅN MÅNADSVY -->
+<!-- ========================================== -->
+<div class="modal-overlay" id="dayDetailModal">
+    <div class="modal-content">
+        <button type="button" class="modal-close" onclick="stangModal('dayDetailModal')">✕</button>
+        <div class="modal-title" id="dayDetailTitle">📅 Aktiviteter</div>
+        <div id="dayDetailList" style="display:flex; flex-direction:column; gap:10px; margin-bottom:16px;"></div>
+        <div class="admin-only" style="display:flex; justify-content:flex-end;">
+            <button type="button" class="btn btn-green" id="dayDetailAddBtn">➕ Lägg till aktivitet denna dag</button>
+        </div>
+    </div>
+</div>
+
+<!-- ========================================== -->
+<!-- MODAL: ÄNDRA RUBRIK / FÖRENINGSNAMN -->
+<!-- ========================================== -->
+<div class="modal-overlay" id="orgSettingsModal">
+    <div class="modal-content" style="max-width:460px;">
+        <button type="button" class="modal-close" onclick="stangModal('orgSettingsModal')">✕</button>
+        <div class="modal-title">✏️ Anpassa kalenderns rubrik</div>
+        <div class="form-group">
+            <label for="orgNameInput">Föreningens / Skolans namn</label>
+            <input type="text" id="orgNameInput" placeholder="T.ex. Västergårdens Skol-IF">
+        </div>
+        <div class="form-group">
+            <label for="orgSubInput">Underrubrik (visas för besökare &amp; på affisch)</label>
+            <input type="text" id="orgSubInput" placeholder="T.ex. Kommande rastaktiviteter, turneringar och kiosk.">
+        </div>
+        <div style="display:flex; justify-content:flex-end; gap:8px;">
+            <button type="button" class="btn btn-outline" onclick="stangModal('orgSettingsModal')">Avbryt</button>
+            <button type="button" class="btn btn-green" onclick="sparaRubrikSettings()">💾 Spara</button>
+        </div>
+    </div>
+</div>
+
+<!-- ========================================== -->
+<!-- MODAL: QR-KOD & PUBLIK LÄNK -->
+<!-- ========================================== -->
+<div class="modal-overlay" id="qrDelaModal">
+    <div class="modal-content" style="max-width:500px; text-align:center;">
+        <button type="button" class="modal-close" onclick="stangModal('qrDelaModal')">✕</button>
+        <div class="modal-title" style="text-align:left;">📱 QR-kod &amp; Publik Live-länk</div>
+        <p style="font-size:0.86rem; color:#475569; text-align:left; margin-bottom:14px;">
+            Skriv upp eller dela länken i t.ex. Classroom, SchoolSoft eller på skolans anslagstavla. Elever och kollegor ser schemat direkt utan att behöva logga in – och alla ändringar du gör syns automatiskt!
+        </p>
+
+        <div style="background:#F8FAFC; border:1.5px solid #E2E8F0; border-radius:16px; padding:18px; margin-bottom:12px;">
+            <div id="modalQrBox" class="qr-box-render" style="background:white; padding:14px; border-radius:12px; border:1px solid #CBD5E1; display:inline-flex; align-items:center; justify-content:center; min-width:208px; min-height:208px; margin-bottom:10px;"></div>
+            <div id="modalQrTitle" style="font-weight:800; font-size:1rem; color:#143321;">Skol-IF Kalendern</div>
+            <div style="font-size:0.78rem; color:#64748B;">Skanna med mobilkameran för live-kalender</div>
+        </div>
+
+        <div id="qrSyncStatusBanner" style="text-align:left; font-size:0.8rem; border-radius:10px; padding:9px 12px; margin-bottom:12px; background:#F0FDF4; border:1px solid #BBF7D0; color:#166534;">
+            🟢 Live-länk redo!
+        </div>
+
+        <div id="qrLocalhostNotice" style="display:none; text-align:left; font-size:0.78rem; border-radius:10px; padding:8px 12px; margin-bottom:12px; background:#EFF6FF; border:1px solid #BFDBFE; color:#1E40AF;">
+            💻 <strong>Lokal förhandsvisning:</strong> Testa publikvyn i ny flik på datorn nu. När sidan laddas upp till <strong>skolifwebben.se</strong> fungerar QR-koden direkt i alla mobilkameror!
+        </div>
+
+        <div style="display:flex; gap:8px; margin-bottom:12px;">
+            <input type="text" id="publicUrlInput" readonly style="flex:1; padding:9px 11px; border:1.5px solid #CBD5E1; border-radius:9px; font-size:0.8rem; background:#F8FAFC; color:#334155;">
+            <button type="button" class="btn btn-green btn-sm" onclick="kopieraPublikLank()">📋 Kopiera</button>
+        </div>
+
+        <div style="display:flex; gap:8px; justify-content:center; flex-wrap:wrap;">
+            <a id="openPublicPreviewLink" href="#" target="_blank" class="btn btn-outline btn-sm">👀 Öppna publikvy i ny flik</a>
+            <button type="button" class="btn btn-gold btn-sm" onclick="stangModal('qrDelaModal'); oppnaAffischModal();">🖨️ Skriv ut A4-affisch med QR-kod</button>
+        </div>
+    </div>
+</div>
+
+<!-- ========================================== -->
+<!-- MODAL: SKRIV UT A4-AFFISCH -->
+<!-- ========================================== -->
+<div class="modal-overlay" id="affischModal">
+    <div class="modal-content" style="max-width:490px;">
+        <button type="button" class="modal-close" onclick="stangModal('affischModal')">✕</button>
+        <div class="modal-title">🖨️ Skapa &amp; Skriv ut A4-affisch</div>
+        <p style="font-size:0.85rem; color:#475569; margin-bottom:14px;">
+            Perfekt att tejpa upp vid sporthallen, i matsalen eller i korridorerna!
+        </p>
+
+        <div class="form-group">
+            <label for="posterTitleInput">Rubrik på affischen</label>
+            <input type="text" id="posterTitleInput" value="DETTA HÄNDER I SKOL-IF">
+        </div>
+        <div class="form-group">
+            <label for="posterRangeSelect">Vilka datum ska vara med?</label>
+            <select id="posterRangeSelect" onchange="uppdateraAffischAntal()">
+                <option value="14">Kommande 14 dagarna (2 veckor – lagom för A4)</option>
+                <option value="30">Kommande 30 dagarna</option>
+                <option value="60">Kommande 60 dagarna</option>
+                <option value="7">Endast kommande 7 dagarna</option>
+            </select>
+        </div>
+        <label style="display:flex; align-items:center; gap:8px; font-weight:700; font-size:0.86rem; margin-bottom:14px; cursor:pointer;">
+            <input type="checkbox" id="posterIncludeQr" checked style="width:17px; height:17px; accent-color:#2E7D32;">
+            📱 Visa QR-kod i hörnet så elever kan skanna till mobilen
+        </label>
+
+        <div id="posterCountInfo" style="background:#F0FDF4; border:1px solid #BBF7D0; border-radius:10px; padding:10px 12px; font-size:0.84rem; font-weight:700; color:#166534; margin-bottom:16px;">
+            0 aktiviteter kommer med på affischen.
+        </div>
+
+        <div style="display:flex; justify-content:flex-end; gap:8px;">
+            <button type="button" class="btn btn-outline" onclick="stangModal('affischModal')">Avbryt</button>
+            <button type="button" class="btn btn-gold" onclick="skrivUtAffisch()">🖨️ Skriv ut / Spara PDF</button>
+        </div>
+    </div>
+</div>
+
+<!-- ========================================== -->
+<!-- UTSKRIFTSCONTAINER (SYNS ENDAST VID UTSKRIFT) -->
+<!-- ========================================== -->
+<div id="printPosterContainer"></div>
+
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+<script src="klasser.js?v=4"></script>
+
+<script>
+const KALENDER_LOCAL_KEY = 'skolif_kalender_v1';
+
+const CATEGORY_META = {
+    turnering: { icon: '🏆', label: 'Turnering', color: '#D97706', bg: '#FEF3C7', border: '#FCD34D', text: '#92400E' },
+    rast:      { icon: '🏃', label: 'Rastaktivitet', color: '#15803D', bg: '#DCFCE7', border: '#86EFAC', text: '#166534' },
+    kiosk:     { icon: '☕', label: 'Kiosk öppen', color: '#7C3AED', bg: '#EDE9FE', border: '#C4B5FD', text: '#5B21B6' },
+    event:     { icon: '🎒', label: 'Event & Friluftsdag', color: '#0284C7', bg: '#E0F2FE', border: '#7DD3FC', text: '#075985' },
+    mote:      { icon: '📋', label: 'Styrelsemöte', color: '#475569', bg: '#F1F5F9', border: '#CBD5E1', text: '#334155' }
+};
+
+const WEEKDAYS_SHORT = ['Sön', 'Mån', 'Tis', 'Ons', 'Tor', 'Fre', 'Lör'];
+const WEEKDAYS_LONG  = ['söndag', 'måndag', 'tisdag', 'onsdag', 'torsdag', 'fredag', 'lördag'];
+const MONTHS_SHORT   = ['jan', 'feb', 'mar', 'apr', 'maj', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'dec'];
+const MONTHS_LONG    = ['januari', 'februari', 'mars', 'april', 'maj', 'juni', 'juli', 'augusti', 'september', 'oktober', 'november', 'december'];
+
+let calendarState = {
+    orgName: 'Skol-IF Kalendern',
+    subtitle: 'Kommande rastaktiviteter, turneringar och öppettider i kiosken.',
+    publicId: '',
+    updatedAt: 0,
+    events: []
+};
+
+let activeView = 'list';
+let activeCategoryFilter = 'all';
+let currentMonthDate = new Date();
+currentMonthDate = new Date(currentMonthDate.getFullYear(), currentMonthDate.getMonth(), 1);
+let isPublicView = false;
+let publicUnsubscribe = null;
+let boardClockTimer = null;
+let cloudPublicSyncState = 'idle'; // 'idle' | 'syncing' | 'ok' | 'error'
+let lastRenderedYmd = '';
+let lastRenderedMinute = -1;
+
+// ==========================================
+//  DATUMHJÄLPARE (LOKAL TID UTAN UTC-FÖRSKJUTNING)
+// ==========================================
+function parseYmd(ymd) {
+    if (!ymd || typeof ymd !== 'string') return null;
+    const parts = ymd.split('-').map(Number);
+    if (parts.length !== 3 || parts.some(isNaN)) return null;
+    return new Date(parts[0], parts[1] - 1, parts[2], 12, 0, 0, 0);
+}
+
+function formatYmd(dateObj) {
+    const y = dateObj.getFullYear();
+    const m = String(dateObj.getMonth() + 1).padStart(2, '0');
+    const d = String(dateObj.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+}
+
+function getTodayYmd() {
+    return formatYmd(new Date());
+}
+
+function addDaysYmd(ymd, days) {
+    const d = parseYmd(ymd);
+    if (!d) return ymd;
+    d.setDate(d.getDate() + days);
+    return formatYmd(d);
+}
+
+function getIsoWeekNumber(ymd) {
+    const d = parseYmd(ymd);
+    if (!d) return 1;
+    const target = new Date(d.getTime());
+    const dayNr = (d.getDay() + 6) % 7;
+    target.setDate(target.getDate() - dayNr + 3);
+    const firstThursday = target.getTime();
+    target.setMonth(0, 1);
+    if (target.getDay() !== 4) {
+        target.setMonth(0, 1 + ((4 - target.getDay()) + 7) % 7);
+    }
+    return 1 + Math.ceil((firstThursday - target) / 604800000);
+}
+
+function getStartOfWeekYmd(ymd) {
+    const d = parseYmd(ymd);
+    if (!d) return ymd;
+    const mondayOffset = (d.getDay() + 6) % 7;
+    d.setDate(d.getDate() - mondayOffset);
+    return formatYmd(d);
+}
+
+function formatReadableDate(ymd) {
+    const d = parseYmd(ymd);
+    if (!d) return ymd;
+    return `${WEEKDAYS_SHORT[d.getDay()]} ${d.getDate()} ${MONTHS_SHORT[d.getMonth()]}`;
+}
+
+function getNowMinutes() {
+    const now = new Date();
+    return now.getHours() * 60 + now.getMinutes();
+}
+
+function parseTimeToMinutes(hhmm) {
+    if (!hhmm || typeof hhmm !== 'string' || !hhmm.includes(':')) return null;
+    const parts = hhmm.split(':').map(Number);
+    if (parts.length < 2 || isNaN(parts[0]) || isNaN(parts[1])) return null;
+    return parts[0] * 60 + parts[1];
+}
+
+function getEventTimeStatus(ev, todayYmd, nowMin) {
+    if (!ev || ev.instanceDate !== todayYmd || !ev.startTime) return null;
+    const startMin = parseTimeToMinutes(ev.startTime);
+    if (startMin === null) return null;
+    const endMin = parseTimeToMinutes(ev.endTime);
+    const effectiveEnd = endMin !== null ? endMin : (startMin + 45);
+
+    if (nowMin >= startMin && nowMin <= effectiveEnd) {
+        return { state: 'now', label: '🟢 PÅGÅR NU' };
+    }
+    if (nowMin < startMin) {
+        const diff = startMin - nowMin;
+        if (diff <= 120) {
+            return { state: 'soon', label: `⏳ Om ${diff} min` };
+        }
+        return { state: 'upcoming', label: `🕒 Kl ${ev.startTime}` };
+    }
+    return { state: 'done', label: '✓ Avslutad idag' };
+}
+
+function escapeHtml(str) {
+    return String(str || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
+// ==========================================
+//  EXPANSION AV ÅTERKOMMANDE HÄNDELSER
+// ==========================================
+function expandCalendarEvents(eventsList, rangeStartYmd, rangeEndYmd) {
+    const out = [];
+    (eventsList || []).forEach(ev => {
+        if (!ev || !ev.date) return;
+        const excluded = new Set(ev.recurrence && Array.isArray(ev.recurrence.excludedDates) ? ev.recurrence.excludedDates : []);
+
+        if (ev.recurrence && ev.recurrence.freq === 'weekly') {
+            const hardEnd = ev.recurrence.until && ev.recurrence.until >= ev.date
+                ? ev.recurrence.until
+                : addDaysYmd(ev.date, 180);
+            const effectiveEnd = hardEnd < rangeEndYmd ? hardEnd : rangeEndYmd;
+            let cursor = ev.date;
+            let guard = 0;
+            while (cursor <= effectiveEnd && guard < 120) {
+                guard++;
+                if (cursor >= rangeStartYmd && !excluded.has(cursor)) {
+                    out.push({
+                        ...ev,
+                        instanceDate: cursor,
+                        isRecurringInstance: true
+                    });
+                }
+                cursor = addDaysYmd(cursor, 7);
+            }
+        } else {
+            if (ev.date >= rangeStartYmd && ev.date <= rangeEndYmd && !excluded.has(ev.date)) {
+                out.push({
+                    ...ev,
+                    instanceDate: ev.date,
+                    isRecurringInstance: false
+                });
+            }
+        }
+    });
+
+    out.sort((a, b) => {
+        if (a.instanceDate !== b.instanceDate) return a.instanceDate.localeCompare(b.instanceDate);
+        const ta = a.startTime || '99:99';
+        const tb = b.startTime || '99:99';
+        if (ta !== tb) return ta.localeCompare(tb);
+        return String(a.title || '').localeCompare(String(b.title || ''), 'sv');
+    });
+    return out;
+}
+
+// ==========================================
+//  SPARNING, MOLNSYNK & PUBLIK LÄNK
+// ==========================================
+function ensurePublicId() {
+    if (!calendarState.publicId) {
+        calendarState.publicId = 'kal_' + Math.random().toString(36).slice(2, 10);
+    }
+    return calendarState.publicId;
+}
+
+function getCompactPublicSnapshot() {
+    const today = getTodayYmd();
+    const upcomingAll = expandCalendarEvents(calendarState.events, today, addDaysYmd(today, 120));
+    for (let limit = Math.min(4, upcomingAll.length); limit >= 0; limit--) {
+        const payload = {
+            o: (calendarState.orgName || 'Skol-IF Kalendern').slice(0, 60),
+            s: (calendarState.subtitle || '').slice(0, 100),
+            e: upcomingAll.slice(0, limit).map(ev => [
+                ev.instanceDate,
+                ev.title.slice(0, 45),
+                ev.category || 'rast',
+                ev.startTime || '',
+                ev.endTime || '',
+                (ev.location || '').slice(0, 30),
+                (ev.target || '').slice(0, 20),
+                (ev.leaders || '').slice(0, 25)
+            ])
+        };
+        try {
+            const json = JSON.stringify(payload);
+            const b64 = btoa(unescape(encodeURIComponent(json)));
+            if (b64.length <= 450) {
+                return b64;
+            }
+        } catch (e) {
+            return '';
+        }
+    }
+    return '';
+}
+
+function decodeCompactPublicSnapshot(raw) {
+    try {
+        const json = decodeURIComponent(escape(atob(raw)));
+        const parsed = JSON.parse(json);
+        if (!parsed || !Array.isArray(parsed.e)) return null;
+        return {
+            orgName: parsed.o || 'Skol-IF Kalendern',
+            subtitle: parsed.s || '',
+            events: parsed.e.map((arr, idx) => ({
+                id: 'pub_' + idx,
+                date: arr[0] || getTodayYmd(),
+                title: arr[1] || 'Aktivitet',
+                category: arr[2] || 'rast',
+                startTime: arr[3] || '',
+                endTime: arr[4] || '',
+                location: arr[5] || '',
+                target: arr[6] || '',
+                leaders: arr[7] || '',
+                notes: '',
+                recurrence: null
+            }))
+        };
+    } catch (e) {
+        return null;
+    }
+}
+
+function getPublicCalendarUrl(includeBackupHash = false) {
+    ensurePublicId();
+    const base = (window.location.origin && window.location.origin !== 'null' && !window.location.origin.startsWith('file:'))
+        ? (window.location.origin + window.location.pathname)
+        : 'https://skolifwebben.se/kalender.html';
+    const hashSnap = includeBackupHash ? getCompactPublicSnapshot() : '';
+    return `${base}?visa=${encodeURIComponent(calendarState.publicId)}${hashSnap ? '#s=' + encodeURIComponent(hashSnap) : ''}`;
+}
+
+async function publishPublicCalendarSnapshot() {
+    if (isPublicView) return false;
+    ensurePublicId();
+    if (typeof firebase === 'undefined' || !firebase.firestore) {
+        cloudPublicSyncState = 'error';
+        return false;
+    }
+    cloudPublicSyncState = 'syncing';
+    try {
+        const db = firebase.firestore();
+        const publicData = {
+            orgName: calendarState.orgName || 'Skol-IF Kalendern',
+            subtitle: calendarState.subtitle || '',
+            updatedAt: Date.now(),
+            events: calendarState.events || []
+        };
+        await db.collection('skolif_kassa').doc('kalender_' + calendarState.publicId).set({
+            publicCalendarData: JSON.stringify(publicData),
+            senastUppdaterad: Date.now()
+        }, { merge: true });
+        cloudPublicSyncState = 'ok';
+        return true;
+    } catch (e) {
+        cloudPublicSyncState = 'error';
+        return false;
+    }
+}
+
+function saveCalendarState() {
+    if (isPublicView) return;
+    ensurePublicId();
+    calendarState.updatedAt = Date.now();
+    try {
+        localStorage.setItem(KALENDER_LOCAL_KEY, JSON.stringify(calendarState));
+    } catch (e) {}
+
+    if (window.SkolIFKlasser && typeof SkolIFKlasser.saveKalenderData === 'function') {
+        SkolIFKlasser.saveKalenderData(calendarState);
+    }
+    publishPublicCalendarSnapshot();
+    renderAll();
+}
+
+function loadLocalCalendarState() {
+    try {
+        const raw = (window.SkolIFKlasser && SkolIFKlasser.getKalenderData)
+            ? SkolIFKlasser.getKalenderData()
+            : JSON.parse(localStorage.getItem(KALENDER_LOCAL_KEY) || 'null');
+        if (raw && typeof raw === 'object' && Array.isArray(raw.events)) {
+            calendarState = {
+                orgName: raw.orgName || 'Skol-IF Kalendern',
+                subtitle: raw.subtitle !== undefined ? raw.subtitle : 'Kommande rastaktiviteter, turneringar och öppettider i kiosken.',
+                publicId: raw.publicId || '',
+                updatedAt: raw.updatedAt || 0,
+                events: raw.events
+            };
+        }
+    } catch (e) {}
+    ensurePublicId();
+}
+
+// ==========================================
+//  RENDERING: ALLT + DASHBOARD
+// ==========================================
+function renderHeroAndStats() {
+    document.getElementById('heroOrgTitle').textContent = calendarState.orgName || 'Skol-IF Kalendern';
+    document.getElementById('heroOrgSub').textContent = calendarState.subtitle || 'Kommande rastaktiviteter, turneringar och öppettider i kiosken.';
+    document.getElementById('boardOrgTitle').textContent = calendarState.orgName || 'Skol-IF Kalendern';
+
+    const hasDemo = (calendarState.events || []).some(e => e.isDemo);
+    const demoBanner = document.getElementById('demoBanner');
+    if (demoBanner) demoBanner.style.display = (!isPublicView && hasDemo) ? 'flex' : 'none';
+
+    const today = getTodayYmd();
+    const weekStart = getStartOfWeekYmd(today);
+    const weekEnd = addDaysYmd(weekStart, 6);
+    const plus30 = addDaysYmd(today, 30);
+
+    const all30 = expandCalendarEvents(calendarState.events, today, plus30);
+    const todayCount = all30.filter(e => e.instanceDate === today).length;
+    const weekCount = all30.filter(e => e.instanceDate >= weekStart && e.instanceDate <= weekEnd).length;
+    const recSeriesCount = (calendarState.events || []).filter(e => e.recurrence && e.recurrence.freq === 'weekly').length;
+
+    document.getElementById('statTodayCount').textContent = String(todayCount);
+    document.getElementById('statWeekCount').textContent = String(weekCount);
+    document.getElementById('statMonthCount').textContent = String(all30.length);
+    document.getElementById('statRecurringCount').textContent = String(recSeriesCount);
+}
+
+function getFilteredEvents(eventsList) {
+    if (activeCategoryFilter === 'all') return eventsList;
+    return eventsList.filter(e => (e.category || 'rast') === activeCategoryFilter);
+}
+
+function renderEventCardHtml(ev) {
+    const meta = CATEGORY_META[ev.category] || CATEGORY_META.rast;
+    const dObj = parseYmd(ev.instanceDate);
+    const today = getTodayYmd();
+    const isToday = ev.instanceDate === today;
+    const isPast = ev.instanceDate < today;
+    const timeStatus = getEventTimeStatus(ev, today, getNowMinutes());
+
+    const wd = dObj ? WEEKDAYS_SHORT[dObj.getDay()] : '';
+    const dayNum = dObj ? dObj.getDate() : '';
+    const mon = dObj ? MONTHS_SHORT[dObj.getMonth()] : '';
+
+    const timeText = ev.startTime
+        ? (ev.endTime ? `${ev.startTime}–${ev.endTime}` : ev.startTime)
+        : 'Heldag / Ej angiven tid';
+
+    const weekdayLong = dObj ? WEEKDAYS_LONG[dObj.getDay()] : '';
+
+    return `
+        <article class="event-card ${isToday ? 'is-today' : ''} ${isPast || (timeStatus && timeStatus.state === 'done') ? 'is-past' : ''}">
+            <div class="date-badge">
+                <span class="date-badge-wd">${escapeHtml(wd)}</span>
+                <span class="date-badge-day">${escapeHtml(dayNum)}</span>
+                <span class="date-badge-mon">${escapeHtml(mon)}</span>
+            </div>
+            <div class="event-main">
+                <div class="event-badges-row">
+                    ${isToday ? '<span class="today-pill">IDAG</span>' : ''}
+                    ${timeStatus && (timeStatus.state === 'now' || timeStatus.state === 'soon' || timeStatus.state === 'done')
+                        ? `<span class="live-status-pill ${timeStatus.state}">${escapeHtml(timeStatus.label)}</span>`
+                        : ''}
+                    <span class="cat-pill" style="background:${meta.bg}; color:${meta.text}; border-color:${meta.border};">
+                        ${meta.icon} ${escapeHtml(meta.label)}
+                    </span>
+                    ${ev.isRecurringInstance ? `<span class="recur-pill">🔁 Varje ${escapeHtml(weekdayLong)}</span>` : ''}
+                    ${ev.isDemo ? `<span class="recur-pill" style="background:#FEF3C7; color:#92400E; border-color:#FCD34D;">✨ Exempel</span>` : ''}
+                </div>
+                <div class="event-title">${escapeHtml(ev.title)}</div>
+                <div class="event-meta">
+                    <span>⏰ ${escapeHtml(timeText)}</span>
+                    ${ev.location ? `<span>📍 ${escapeHtml(ev.location)}</span>` : ''}
+                    ${ev.target ? `<span>👥 ${escapeHtml(ev.target)}</span>` : ''}
+                    ${ev.leaders ? `<span>🙋 Ledare: ${escapeHtml(ev.leaders)}</span>` : ''}
+                </div>
+                ${ev.notes ? `<div class="event-notes">${escapeHtml(ev.notes)}</div>` : ''}
+                <div class="event-actions">
+                    <button type="button" class="btn btn-outline btn-sm" onclick="laddaNerIcs('${escapeHtml(ev.id)}', '${escapeHtml(ev.instanceDate)}')">📅 Spara i kalender</button>
+                    <button type="button" class="btn btn-soft-green btn-sm admin-only" onclick="oppnaLokFranAktivitet('${escapeHtml(ev.id)}', '${escapeHtml(ev.instanceDate)}')">🏟️ Logga LOK-stöd</button>
+                    <button type="button" class="btn btn-outline btn-sm admin-only" onclick="oppnaRedigeraAktivitet('${escapeHtml(ev.id)}')">✏️ Redigera</button>
+                    ${ev.isRecurringInstance ? `<button type="button" class="btn btn-outline btn-sm admin-only" onclick="hoppaOverDatum('${escapeHtml(ev.id)}', '${escapeHtml(ev.instanceDate)}')">🚫 Hoppa över dag</button>` : ''}
+                    <button type="button" class="btn btn-danger-soft btn-sm admin-only" onclick="taBortAktivitet('${escapeHtml(ev.id)}')">🗑️</button>
+                </div>
+            </div>
+        </article>
+    `;
+}
+
+function renderListView() {
+    const container = document.getElementById('listViewContent');
+    if (!container) return;
+
+    const today = getTodayYmd();
+    const currentWeekStart = getStartOfWeekYmd(today);
+    const currentWeekEnd = addDaysYmd(currentWeekStart, 6);
+    const nextWeekStart = addDaysYmd(currentWeekStart, 7);
+    const nextWeekEnd = addDaysYmd(currentWeekStart, 13);
+
+    const expanded = getFilteredEvents(expandCalendarEvents(calendarState.events, today, addDaysYmd(today, 120)));
+
+    if ((calendarState.events || []).length === 0) {
+        container.innerHTML = `
+            <div class="empty-state">
+                <div class="empty-state-icon">📅</div>
+                <h3>${isPublicView ? 'Inga kommande aktiviteter inlagda än' : 'Din Skol-IF-kalender är redo!'}</h3>
+                <p>${isPublicView
+                    ? 'Håll utkik här snart – Skol-IF kommer att fylla på med nya aktiviteter, turneringar och tider.'
+                    : 'Lägg in kommande rastaktiviteter, turneringar eller öppettider i kiosken på några sekunder – eller testa med en färdig exempelvecka först!'}</p>
+                <div class="admin-only" style="display:flex; gap:10px; justify-content:center; flex-wrap:wrap;">
+                    <button type="button" class="btn btn-green" onclick="oppnaNyAktivitetModal()">➕ Lägg till första aktiviteten</button>
+                    <button type="button" class="btn btn-gold" onclick="laddaExempelVecka()">✨ Ladda testvecka (se exempel)</button>
+                </div>
+            </div>
+        `;
+        return;
+    }
+
+    if (expanded.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state">
+                <div class="empty-state-icon">🔍</div>
+                <h3>Inga matchande kommande aktiviteter</h3>
+                <p>Byt kategorifilter ovan eller lägg till en ny aktivitet.</p>
+                <button type="button" class="btn btn-outline" onclick="sattKategoriFilter('all')">Visa alla kategorier</button>
+            </div>
+        `;
+        return;
+    }
+
+    const groups = [
+        { title: '🔥 Idag', items: [] },
+        { title: `📅 Denna vecka (v.${getIsoWeekNumber(today)})`, items: [] },
+        { title: `🗓️ Nästa vecka (v.${getIsoWeekNumber(nextWeekStart)})`, items: [] },
+        { title: '📆 Längre fram', items: [] }
+    ];
+
+    expanded.forEach(ev => {
+        if (ev.instanceDate === today) groups[0].items.push(ev);
+        else if (ev.instanceDate <= currentWeekEnd) groups[1].items.push(ev);
+        else if (ev.instanceDate >= nextWeekStart && ev.instanceDate <= nextWeekEnd) groups[2].items.push(ev);
+        else groups[3].items.push(ev);
+    });
+
+    container.innerHTML = groups
+        .filter(g => g.items.length > 0)
+        .map(g => `
+            <section class="section-group">
+                <div class="section-heading">
+                    <div class="section-heading-left">
+                        <span>${escapeHtml(g.title)}</span>
+                        <span class="section-count-badge">${g.items.length}</span>
+                    </div>
+                </div>
+                <div class="event-list">
+                    ${g.items.map(renderEventCardHtml).join('')}
+                </div>
+            </section>
+        `).join('');
+}
+
+// ==========================================
+//  MÅNADSVY
+// ==========================================
+function renderMonthView() {
+    const grid = document.getElementById('monthGridContainer');
+    const titleEl = document.getElementById('monthGridTitle');
+    if (!grid || !titleEl) return;
+
+    const year = currentMonthDate.getFullYear();
+    const month = currentMonthDate.getMonth();
+    titleEl.textContent = `${MONTHS_LONG[month]} ${year}`;
+
+    const firstOfMonth = new Date(year, month, 1, 12, 0, 0);
+    const startOffset = (firstOfMonth.getDay() + 6) % 7;
+    const gridStart = new Date(firstOfMonth);
+    gridStart.setDate(firstOfMonth.getDate() - startOffset);
+
+    const gridStartYmd = formatYmd(gridStart);
+    const gridEndYmd = addDaysYmd(gridStartYmd, 41);
+
+    const expanded = getFilteredEvents(expandCalendarEvents(calendarState.events, gridStartYmd, gridEndYmd));
+    const byDate = {};
+    expanded.forEach(ev => {
+        if (!byDate[ev.instanceDate]) byDate[ev.instanceDate] = [];
+        byDate[ev.instanceDate].push(ev);
+    });
+
+    const today = getTodayYmd();
+    let html = `
+        <div class="cal-head-cell">Vecka</div>
+        <div class="cal-head-cell">Mån</div>
+        <div class="cal-head-cell">Tis</div>
+        <div class="cal-head-cell">Ons</div>
+        <div class="cal-head-cell">Tor</div>
+        <div class="cal-head-cell">Fre</div>
+        <div class="cal-head-cell">Lör</div>
+        <div class="cal-head-cell">Sön</div>
+    `;
+
+    for (let row = 0; row < 6; row++) {
+        const rowStartYmd = addDaysYmd(gridStartYmd, row * 7);
+        const weekNum = getIsoWeekNumber(rowStartYmd);
+        html += `<div class="cal-week-cell">v.${weekNum}</div>`;
+
+        for (let col = 0; col < 7; col++) {
+            const cellYmd = addDaysYmd(rowStartYmd, col);
+            const cellDate = parseYmd(cellYmd);
+            const isOtherMonth = cellDate.getMonth() !== month;
+            const isToday = cellYmd === today;
+            const dayEvents = byDate[cellYmd] || [];
+
+            const pillsHtml = dayEvents.slice(0, 3).map(ev => {
+                const m = CATEGORY_META[ev.category] || CATEGORY_META.rast;
+                return `<div class="cal-mini-ev" style="background:${m.bg}; color:${m.text}; border-left-color:${m.color};" title="${escapeHtml(ev.title)}">${ev.startTime ? escapeHtml(ev.startTime) + ' ' : ''}${m.icon} ${escapeHtml(ev.title)}</div>`;
+            }).join('');
+
+            const extraHtml = dayEvents.length > 3
+                ? `<div class="cal-more-txt">+${dayEvents.length - 3} fler</div>`
+                : '';
+
+            html += `
+                <div class="cal-day-cell ${isOtherMonth ? 'other-month' : ''} ${isToday ? 'today' : ''}" onclick="klickaPaManadsDag('${cellYmd}')">
+                    <div class="cal-day-top">
+                        <span class="cal-day-num">${cellDate.getDate()}</span>
+                    </div>
+                    ${pillsHtml}
+                    ${extraHtml}
+                </div>
+            `;
+        }
+    }
+
+    grid.innerHTML = html;
+}
+
+function bytManad(delta) {
+    currentMonthDate = new Date(currentMonthDate.getFullYear(), currentMonthDate.getMonth() + delta, 1);
+    renderMonthView();
+}
+
+function hoppaTillIdagManad() {
+    const now = new Date();
+    currentMonthDate = new Date(now.getFullYear(), now.getMonth(), 1);
+    renderMonthView();
+}
+
+function klickaPaManadsDag(ymd) {
+    const dayEvents = getFilteredEvents(expandCalendarEvents(calendarState.events, ymd, ymd));
+    if (dayEvents.length === 0 && !isPublicView) {
+        oppnaNyAktivitetModal(ymd);
+        return;
+    }
+
+    document.getElementById('dayDetailTitle').textContent = `📅 ${formatReadableDate(ymd)}`;
+    const listEl = document.getElementById('dayDetailList');
+    if (dayEvents.length === 0) {
+        listEl.innerHTML = `<div style="color:#64748B; font-size:0.88rem; padding:10px 0;">Inga inlagda aktiviteter denna dag.</div>`;
+    } else {
+        listEl.innerHTML = dayEvents.map(renderEventCardHtml).join('');
+    }
+    const addBtn = document.getElementById('dayDetailAddBtn');
+    if (addBtn) {
+        addBtn.onclick = () => {
+            stangModal('dayDetailModal');
+            oppnaNyAktivitetModal(ymd);
+        };
+    }
+    oppnaModal('dayDetailModal');
+}
+
+// ==========================================
+//  TAVELLÄGE / STORSKÄRM
+// ==========================================
+function renderBoardView() {
+    const today = getTodayYmd();
+    const nowMin = getNowMinutes();
+    const expanded = getFilteredEvents(expandCalendarEvents(calendarState.events, today, addDaysYmd(today, 30)));
+    const todayEvents = expanded.filter(e => e.instanceDate === today);
+    const upcomingEvents = expanded.filter(e => e.instanceDate > today).slice(0, 8);
+
+    const todayContainer = document.getElementById('boardTodayContainer');
+    const upcomingContainer = document.getElementById('boardUpcomingContainer');
+    const todayHeading = document.getElementById('boardTodayHeading');
+
+    if (todayEvents.length > 0) {
+        todayHeading.textContent = `🔥 IDAG I SKOL-IF (${todayEvents.length} ${todayEvents.length === 1 ? 'aktivitet' : 'aktiviteter'})`;
+        todayContainer.innerHTML = todayEvents.map(ev => {
+            const m = CATEGORY_META[ev.category] || CATEGORY_META.rast;
+            const timeStr = ev.startTime ? (ev.endTime ? `${ev.startTime}–${ev.endTime}` : ev.startTime) : 'Heldag';
+            const timeStatus = getEventTimeStatus(ev, today, nowMin);
+            const stateClass = timeStatus && timeStatus.state === 'now'
+                ? 'is-live-now'
+                : (timeStatus && timeStatus.state === 'done' ? 'is-done-today' : '');
+            const statusPill = timeStatus && (timeStatus.state === 'now' || timeStatus.state === 'soon' || timeStatus.state === 'done')
+                ? `<span class="live-status-pill ${timeStatus.state}">${escapeHtml(timeStatus.label)}</span>`
+                : '';
+            return `
+                <div class="board-item ${stateClass}" style="border-left-color:${m.color};">
+                    <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:2px;">
+                        <span style="font-size:0.78rem; font-weight:800; color:#86EFAC;">${m.icon} ${escapeHtml(m.label.toUpperCase())} • ${escapeHtml(timeStr)}</span>
+                        ${statusPill}
+                    </div>
+                    <div class="board-item-title">${escapeHtml(ev.title)}</div>
+                    <div class="board-item-meta">
+                        ${ev.location ? `📍 ${escapeHtml(ev.location)} ` : ''}
+                        ${ev.target ? ` • 👥 ${escapeHtml(ev.target)}` : ''}
+                        ${ev.leaders ? ` • 🙋 ${escapeHtml(ev.leaders)}` : ''}
+                    </div>
+                    ${ev.notes ? `<div style="font-size:0.8rem; color:rgba(255,255,255,0.78); margin-top:4px;">${escapeHtml(ev.notes)}</div>` : ''}
+                </div>
+            `;
+        }).join('');
+    } else {
+        todayHeading.textContent = '🔥 NÄSTA SOM HÄNDER';
+        const nextEv = upcomingEvents[0];
+        if (nextEv) {
+            const m = CATEGORY_META[nextEv.category] || CATEGORY_META.rast;
+            const timeStr = nextEv.startTime ? (nextEv.endTime ? `${nextEv.startTime}–${nextEv.endTime}` : nextEv.startTime) : 'Heldag';
+            todayContainer.innerHTML = `
+                <div style="font-size:0.85rem; color:rgba(255,255,255,0.75); margin-bottom:10px;">Inga inlagda aktiviteter just idag – nästa pass:</div>
+                <div class="board-item" style="border-left-color:${m.color};">
+                    <div style="font-size:0.82rem; font-weight:800; color:#86EFAC;">${escapeHtml(formatReadableDate(nextEv.instanceDate))} • ${escapeHtml(timeStr)}</div>
+                    <div class="board-item-title">${m.icon} ${escapeHtml(nextEv.title)}</div>
+                    <div class="board-item-meta">
+                        ${nextEv.location ? `📍 ${escapeHtml(nextEv.location)}` : ''}
+                        ${nextEv.target ? ` • 👥 ${escapeHtml(nextEv.target)}` : ''}
+                    </div>
+                </div>
+            `;
+        } else {
+            todayContainer.innerHTML = `<div style="color:rgba(255,255,255,0.7); font-size:0.92rem; padding:12px 0;">Inga inlagda aktiviteter just nu.</div>`;
+        }
+    }
+
+    if (upcomingEvents.length === 0) {
+        upcomingContainer.innerHTML = `<div style="color:rgba(255,255,255,0.7); font-size:0.9rem; padding:10px 0;">Inga fler kommande aktiviteter inplanerade ännu.</div>`;
+    } else {
+        upcomingContainer.innerHTML = upcomingEvents.map(ev => {
+            const m = CATEGORY_META[ev.category] || CATEGORY_META.rast;
+            const timeStr = ev.startTime ? (ev.endTime ? `${ev.startTime}–${ev.endTime}` : ev.startTime) : 'Heldag';
+            return `
+                <div class="board-item" style="padding:9px 12px; border-left-color:${m.color};">
+                    <div style="display:flex; justify-content:space-between; gap:8px; align-items:center; flex-wrap:wrap;">
+                        <strong style="color:white; font-size:0.96rem;">${m.icon} ${escapeHtml(ev.title)}</strong>
+                        <span style="font-size:0.78rem; font-weight:800; color:#86EFAC;">${escapeHtml(formatReadableDate(ev.instanceDate))} • ${escapeHtml(timeStr)}</span>
+                    </div>
+                    <div style="font-size:0.78rem; color:rgba(255,255,255,0.78); margin-top:2px;">
+                        ${ev.location ? `📍 ${escapeHtml(ev.location)}` : ''}
+                        ${ev.target ? ` • 👥 ${escapeHtml(ev.target)}` : ''}
+                        ${ev.leaders ? ` • 🙋 ${escapeHtml(ev.leaders)}` : ''}
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    renderQrIntoBox(document.getElementById('boardQrBox'), getPublicCalendarUrl(false), 78);
+    renderClockOnly();
+}
+
+function renderClockOnly() {
+    const timeEl = document.getElementById('boardClockTime');
+    const dateEl = document.getElementById('boardClockDate');
+    if (!timeEl || !dateEl) return;
+    const now = new Date();
+    const todayYmd = formatYmd(now);
+    timeEl.textContent = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+    dateEl.textContent = `${WEEKDAYS_LONG[now.getDay()]} ${now.getDate()} ${MONTHS_LONG[now.getMonth()]} • v.${getIsoWeekNumber(todayYmd)}`;
+}
+
+function uppdateraTavlaKlocka() {
+    renderClockOnly();
+    const curYmd = getTodayYmd();
+    const curMin = getNowMinutes();
+
+    if (lastRenderedYmd && curYmd !== lastRenderedYmd) {
+        lastRenderedYmd = curYmd;
+        lastRenderedMinute = curMin;
+        renderAll();
+    } else if (lastRenderedMinute !== -1 && curMin !== lastRenderedMinute) {
+        lastRenderedMinute = curMin;
+        renderListView();
+        renderBoardView();
+    }
+}
+
+function updateFullscreenButtonLabel() {
+    const btn = document.getElementById('boardFullscreenBtn');
+    if (!btn) return;
+    const active = Boolean(document.fullscreenElement || document.body.classList.contains('board-pseudo-fullscreen'));
+    btn.textContent = active ? '✕ Avsluta helskärm' : '⛶ Helskärm';
+}
+
+function toggleBoardFullscreen() {
+    const target = document.getElementById('boardFullscreenTarget');
+    if (!target) return;
+
+    if (document.body.classList.contains('board-pseudo-fullscreen')) {
+        document.body.classList.remove('board-pseudo-fullscreen');
+        updateFullscreenButtonLabel();
+        return;
+    }
+
+    if (!document.fullscreenElement) {
+        if (target.requestFullscreen) {
+            target.requestFullscreen().catch(() => {
+                document.body.classList.add('board-pseudo-fullscreen');
+                updateFullscreenButtonLabel();
+            });
+        } else {
+            document.body.classList.add('board-pseudo-fullscreen');
+            updateFullscreenButtonLabel();
+        }
+    } else if (document.exitFullscreen) {
+        document.exitFullscreen().catch(() => {});
+    }
+}
+
+function renderAll() {
+    lastRenderedYmd = getTodayYmd();
+    lastRenderedMinute = getNowMinutes();
+    renderHeroAndStats();
+    renderListView();
+    renderMonthView();
+    renderBoardView();
+}
+
+function bytVy(vy, triggerFullscreen = false) {
+    activeView = vy;
+    document.body.classList.toggle('board-mode-active', vy === 'board');
+    if (vy !== 'board' && document.body.classList.contains('board-pseudo-fullscreen')) {
+        document.body.classList.remove('board-pseudo-fullscreen');
+        updateFullscreenButtonLabel();
+    }
+    ['list', 'month', 'board'].forEach(v => {
+        const el = document.getElementById('view-' + v);
+        const btn = document.getElementById('tabBtn-' + v);
+        if (el) el.style.display = (v === vy) ? 'block' : 'none';
+        if (btn) {
+            if (v === vy) btn.classList.add('active');
+            else btn.classList.remove('active');
+        }
+    });
+    if (vy === 'board') {
+        publishPublicCalendarSnapshot();
+        renderBoardView();
+        if (triggerFullscreen) {
+            setTimeout(toggleBoardFullscreen, 60);
+        }
+    }
+}
+
+function sattKategoriFilter(cat) {
+    activeCategoryFilter = cat;
+    document.querySelectorAll('#filterChipsContainer .filter-chip').forEach(btn => {
+        if (btn.dataset.cat === cat) btn.classList.add('active');
+        else btn.classList.remove('active');
+    });
+    renderListView();
+    renderMonthView();
+    renderBoardView();
+}
+
+// ==========================================
+//  LÄGG TILL / REDIGERA / TA BORT AKTIVITET
+// ==========================================
+function oppnaModal(id) {
+    const el = document.getElementById(id);
+    if (el) el.classList.add('open');
+}
+
+function stangModal(id) {
+    const el = document.getElementById(id);
+    if (el) el.classList.remove('open');
+}
+
+function togglaAterkommandeBox() {
+    const checked = document.getElementById('evRecurring').checked;
+    document.getElementById('evRecurringDetails').style.display = checked ? 'block' : 'none';
+    if (checked && !document.getElementById('evRepeatUntil').value) {
+        sattSlutdatumVeckor(8);
+    }
+}
+
+function sattSlutdatumVeckor(weeks) {
+    const startVal = document.getElementById('evDate').value || getTodayYmd();
+    document.getElementById('evRepeatUntil').value = addDaysYmd(startVal, weeks * 7);
+}
+
+function fyllSnabbMall(cat, title, loc, startTime, endTime, target) {
+    document.getElementById('evCategory').value = cat;
+    document.getElementById('evTitle').value = title;
+    document.getElementById('evLocation').value = loc;
+    document.getElementById('evStartTime').value = startTime;
+    document.getElementById('evEndTime').value = endTime;
+    document.getElementById('evTarget').value = target;
+}
+
+function oppnaNyAktivitetModal(prefillDateYmd) {
+    if (isPublicView) return;
+    document.getElementById('eventModalTitle').textContent = '➕ Ny aktivitet i kalendern';
+    document.getElementById('evId').value = '';
+    document.getElementById('evTitle').value = '';
+    document.getElementById('evCategory').value = 'rast';
+    document.getElementById('evDate').value = prefillDateYmd || getTodayYmd();
+    document.getElementById('evStartTime').value = '11:30';
+    document.getElementById('evEndTime').value = '12:15';
+    document.getElementById('evLocation').value = '';
+    document.getElementById('evTarget').value = '';
+    document.getElementById('evLeaders').value = '';
+    document.getElementById('evNotes').value = '';
+    document.getElementById('evRecurring').checked = false;
+    document.getElementById('evRepeatUntil').value = '';
+    togglaAterkommandeBox();
+    oppnaModal('eventModal');
+    setTimeout(() => document.getElementById('evTitle').focus(), 60);
+}
+
+function oppnaRedigeraAktivitet(evId) {
+    if (isPublicView) return;
+    const ev = (calendarState.events || []).find(e => e.id === evId);
+    if (!ev) return;
+
+    document.getElementById('eventModalTitle').textContent = '✏️ Redigera aktivitet';
+    document.getElementById('evId').value = ev.id;
+    document.getElementById('evTitle').value = ev.title || '';
+    document.getElementById('evCategory').value = ev.category || 'rast';
+    document.getElementById('evDate').value = ev.date || getTodayYmd();
+    document.getElementById('evStartTime').value = ev.startTime || '';
+    document.getElementById('evEndTime').value = ev.endTime || '';
+    document.getElementById('evLocation').value = ev.location || '';
+    document.getElementById('evTarget').value = ev.target || '';
+    document.getElementById('evLeaders').value = ev.leaders || '';
+    document.getElementById('evNotes').value = ev.notes || '';
+    const isRec = Boolean(ev.recurrence && ev.recurrence.freq === 'weekly');
+    document.getElementById('evRecurring').checked = isRec;
+    document.getElementById('evRepeatUntil').value = (isRec && ev.recurrence.until) ? ev.recurrence.until : '';
+    togglaAterkommandeBox();
+    oppnaModal('eventModal');
+}
+
+function sparaAktivitetFranModal() {
+    const title = document.getElementById('evTitle').value.trim();
+    const date = document.getElementById('evDate').value;
+    if (!title) {
+        alert('⚠️ Fyll i vad aktiviteten heter!');
+        return;
+    }
+    if (!date) {
+        alert('⚠️ Välj ett datum för aktiviteten!');
+        return;
+    }
+
+    const editId = document.getElementById('evId').value;
+    const existing = editId ? (calendarState.events || []).find(e => e.id === editId) : null;
+
+    const isRec = document.getElementById('evRecurring').checked;
+    let until = document.getElementById('evRepeatUntil').value;
+    if (isRec && (!until || until < date)) {
+        until = addDaysYmd(date, 56);
+    }
+
+    const evObj = {
+        id: editId || ('ev_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6)),
+        title,
+        category: document.getElementById('evCategory').value || 'rast',
+        date,
+        startTime: document.getElementById('evStartTime').value || '',
+        endTime: document.getElementById('evEndTime').value || '',
+        location: document.getElementById('evLocation').value.trim(),
+        target: document.getElementById('evTarget').value.trim(),
+        leaders: document.getElementById('evLeaders').value.trim(),
+        notes: document.getElementById('evNotes').value.trim(),
+        recurrence: isRec ? {
+            freq: 'weekly',
+            until,
+            excludedDates: (existing && existing.recurrence && Array.isArray(existing.recurrence.excludedDates))
+                ? existing.recurrence.excludedDates
+                : []
+        } : null,
+        isDemo: false
+    };
+
+    if (existing) {
+        const idx = calendarState.events.findIndex(e => e.id === editId);
+        if (idx >= 0) calendarState.events[idx] = evObj;
+    } else {
+        calendarState.events.push(evObj);
+    }
+
+    stangModal('eventModal');
+    saveCalendarState();
+    if (window.visaNotis) window.visaNotis(`✅ "${title}" sparad i kalendern!`, 'success');
+}
+
+function hoppaOverDatum(evId, ymd) {
+    const ev = (calendarState.events || []).find(e => e.id === evId);
+    if (!ev || !ev.recurrence) return;
+    if (!confirm(`Vill du hoppa över tillfället ${formatReadableDate(ymd)} för "${ev.title}"? (Övriga veckor ligger kvar)`)) return;
+    ev.recurrence.excludedDates = ev.recurrence.excludedDates || [];
+    if (!ev.recurrence.excludedDates.includes(ymd)) {
+        ev.recurrence.excludedDates.push(ymd);
+    }
+    saveCalendarState();
+    stangModal('dayDetailModal');
+    if (window.visaNotis) window.visaNotis(`🚫 Hoppade över ${formatReadableDate(ymd)}.`, 'info');
+}
+
+function taBortAktivitet(evId) {
+    const ev = (calendarState.events || []).find(e => e.id === evId);
+    if (!ev) return;
+    const extra = ev.recurrence ? ' (tar bort hela den återkommande serien)' : '';
+    if (!confirm(`Vill du ta bort "${ev.title}"${extra}?`)) return;
+    calendarState.events = (calendarState.events || []).filter(e => e.id !== evId);
+    saveCalendarState();
+    stangModal('dayDetailModal');
+    if (window.visaNotis) window.visaNotis('🗑️ Aktiviteten borttagen.', 'info');
+}
+
+// ==========================================
+//  EXEMPELVECKA FÖR SNABB FÖRHANDSVISNING
+// ==========================================
+function laddaExempelVecka() {
+    if (isPublicView) return;
+    const today = getTodayYmd();
+    const demoEvents = [
+        {
+            id: 'demo_' + Date.now() + '_1',
+            title: 'Öppen idrottshall – Basket & Teknik',
+            category: 'rast',
+            date: today,
+            startTime: '11:30',
+            endTime: '12:15',
+            location: 'Sporthallen',
+            target: 'Åk 4–6',
+            leaders: 'Elsa & Noah (6B)',
+            notes: 'Alla är välkomna! Ha med inneskor.',
+            recurrence: null,
+            isDemo: true
+        },
+        {
+            id: 'demo_' + Date.now() + '_2',
+            title: 'Skol-IF Kiosk öppen!',
+            category: 'kiosk',
+            date: addDaysYmd(today, 1),
+            startTime: '11:15',
+            endTime: '12:15',
+            location: 'Vid kiosken',
+            target: 'Alla elever',
+            leaders: 'Elevstyrelsen',
+            notes: 'Toast, Festis och frukt. Betala med elevsaldo eller Swish.',
+            recurrence: { freq: 'weekly', until: addDaysYmd(today, 42), excludedDates: [] },
+            isDemo: true
+        },
+        {
+            id: 'demo_' + Date.now() + '_3',
+            title: 'Klasskampen: Spökboll & Innebandy',
+            category: 'turnering',
+            date: addDaysYmd(today, 3),
+            startTime: '11:30',
+            endTime: '12:20',
+            location: 'Sporthallen',
+            target: 'Åk 7–9',
+            leaders: 'Skol-IF & Idrottsläraren',
+            notes: 'Se spelschema & tabell via vår turnerings-QR!',
+            recurrence: null,
+            isDemo: true
+        },
+        {
+            id: 'demo_' + Date.now() + '_4',
+            title: 'Elevstyrelsemöte – Planering inför december',
+            category: 'mote',
+            date: addDaysYmd(today, 5),
+            startTime: '12:15',
+            endTime: '12:45',
+            location: 'Konferensrummet',
+            target: 'Elevstyrelsen',
+            leaders: 'Ordförande + lärare',
+            notes: 'Vi går igenom inköp till kiosken och nästa månads turnering.',
+            recurrence: null,
+            isDemo: true
+        },
+        {
+            id: 'demo_' + Date.now() + '_5',
+            title: 'Skoljoggen & Friluftsdag',
+            category: 'event',
+            date: addDaysYmd(today, 10),
+            startTime: '08:45',
+            endTime: '13:30',
+            location: 'Skolgården & Elljusspåret',
+            target: 'Hela skolan',
+            leaders: 'Alla lärare & Skol-IF',
+            notes: 'Skol-IF bjuder på banan & dricka vid målgång!',
+            recurrence: null,
+            isDemo: true
+        }
+    ];
+
+    calendarState.events = [...(calendarState.events || []), ...demoEvents];
+    saveCalendarState();
+    if (window.visaNotis) window.visaNotis('✨ Exempelvecka laddad! Testa gärna Månadsvy, Storskärm & Affisch.', 'success');
+}
+
+function rensaExempelAktiviteter() {
+    calendarState.events = (calendarState.events || []).filter(e => !e.isDemo);
+    saveCalendarState();
+    if (window.visaNotis) window.visaNotis('🗑️ Exempelaktiviteterna är rensade.', 'info');
+}
+
+// ==========================================
+//  RUBRIK / LOK-STÖD / .ICS EXPORT
+// ==========================================
+function oppnaRubrikModal() {
+    document.getElementById('orgNameInput').value = calendarState.orgName || 'Skol-IF Kalendern';
+    document.getElementById('orgSubInput').value = calendarState.subtitle || '';
+    oppnaModal('orgSettingsModal');
+}
+
+function sparaRubrikSettings() {
+    calendarState.orgName = document.getElementById('orgNameInput').value.trim() || 'Skol-IF Kalendern';
+    calendarState.subtitle = document.getElementById('orgSubInput').value.trim();
+    stangModal('orgSettingsModal');
+    saveCalendarState();
+    if (window.visaNotis) window.visaNotis('✅ Kalenderns rubrik uppdaterad!', 'success');
+}
+
+function oppnaLokFranAktivitet(evId, instanceDate) {
+    const ev = (calendarState.events || []).find(e => e.id === evId);
+    if (!ev || !window.SkolIFKlasser || !SkolIFKlasser.openLokModal) return;
+    stangModal('dayDetailModal');
+    SkolIFKlasser.openLokModal({
+        datum: instanceDate || ev.date,
+        titel: ev.title
+    });
+}
+
+function laddaNerIcs(evId, instanceDate) {
+    const ev = (calendarState.events || []).find(e => e.id === evId);
+    if (!ev) return;
+    const dStr = (instanceDate || ev.date).replace(/-/g, '');
+
+    let dtStartLine = `DTSTART;VALUE=DATE:${dStr}`;
+    let dtEndLine = `DTEND;VALUE=DATE:${addDaysYmd(instanceDate || ev.date, 1).replace(/-/g, '')}`;
+    if (ev.startTime) {
+        const sCompact = ev.startTime.replace(':', '') + '00';
+        const eTime = ev.endTime || ev.startTime;
+        const eCompact = eTime.replace(':', '') + '00';
+        dtStartLine = `DTSTART:${dStr}T${sCompact}`;
+        dtEndLine = `DTEND:${dStr}T${eCompact}`;
+    }
+
+    const escIcs = (txt) => String(txt || '').replace(/\\/g, '\\\\').replace(/\n/g, '\\n').replace(/,/g, '\\,').replace(/;/g, '\\;');
+    const descParts = [ev.target ? `Målgrupp: ${ev.target}` : '', ev.leaders ? `Ledare: ${ev.leaders}` : '', ev.notes || ''].filter(Boolean).join(' | ');
+
+    const ics = [
+        'BEGIN:VCALENDAR',
+        'VERSION:2.0',
+        'PRODID:-//Skol-IF Webben//Aktivitetskalender//SV',
+        'BEGIN:VEVENT',
+        `UID:${ev.id}-${dStr}@skolifwebben.se`,
+        dtStartLine,
+        dtEndLine,
+        `SUMMARY:${escIcs(ev.title)}`,
+        ev.location ? `LOCATION:${escIcs(ev.location)}` : '',
+        descParts ? `DESCRIPTION:${escIcs(descParts)}` : '',
+        'END:VEVENT',
+        'END:VCALENDAR'
+    ].filter(Boolean).join('\r\n');
+
+    const blob = new Blob([ics], { type: 'text/calendar;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${(ev.title || 'SkolIF_Aktivitet').replace(/[^a-zA-Z0-9åäöÅÄÖ_-]+/g, '_')}.ics`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+
+// ==========================================
+//  QR-KOD & A4-AFFISCH
+// ==========================================
+function renderQrIntoBox(boxEl, urlStr, sizePx) {
+    if (!boxEl) return;
+    boxEl.innerHTML = '';
+    if (typeof QRCode !== 'undefined') {
+        try {
+            new QRCode(boxEl, {
+                text: urlStr,
+                width: sizePx,
+                height: sizePx,
+                colorDark: '#0F172A',
+                colorLight: '#FFFFFF',
+                correctLevel: QRCode.CorrectLevel.M
+            });
+            return;
+        } catch (e) {}
+    }
+    const img = document.createElement('img');
+    img.src = `https://api.qrserver.com/v1/create-qr-code/?size=${sizePx}x${sizePx}&data=${encodeURIComponent(urlStr)}`;
+    img.alt = 'QR-kod för Skol-IF kalender';
+    img.style.width = sizePx + 'px';
+    img.style.height = sizePx + 'px';
+    boxEl.appendChild(img);
+}
+
+function updateQrModalDisplay(urlStr) {
+    document.getElementById('publicUrlInput').value = urlStr;
+    document.getElementById('modalQrTitle').textContent = calendarState.orgName || 'Skol-IF Kalendern';
+    document.getElementById('openPublicPreviewLink').href = urlStr;
+    renderQrIntoBox(document.getElementById('modalQrBox'), urlStr, 180);
+}
+
+async function oppnaQrDelaModal() {
+    const statusEl = document.getElementById('qrSyncStatusBanner');
+    const localEl = document.getElementById('qrLocalhostNotice');
+    if (localEl) {
+        const isLocal = ['localhost', '127.0.0.1'].includes(window.location.hostname);
+        localEl.style.display = isLocal ? 'block' : 'none';
+    }
+
+    const shortUrl = getPublicCalendarUrl(false);
+    updateQrModalDisplay(shortUrl);
+    if (statusEl) {
+        statusEl.style.background = '#F0FDF4';
+        statusEl.style.borderColor = '#BBF7D0';
+        statusEl.style.color = '#166534';
+        statusEl.innerHTML = '⏳ Ansluter live-kalendern till molnet...';
+    }
+    oppnaModal('qrDelaModal');
+
+    const ok = await publishPublicCalendarSnapshot();
+    if (!statusEl) return;
+
+    if (ok) {
+        statusEl.style.background = '#F0FDF4';
+        statusEl.style.borderColor = '#BBF7D0';
+        statusEl.style.color = '#166534';
+        statusEl.innerHTML = '🟢 <strong>Live-länk aktiv i molnet!</strong> QR-koden uppdateras automatiskt när du ändrar aktiviteter.';
+        updateQrModalDisplay(shortUrl);
+    } else {
+        const offlineUrl = getPublicCalendarUrl(true);
+        statusEl.style.background = '#FFFBEB';
+        statusEl.style.borderColor = '#FDE68A';
+        statusEl.style.color = '#92400E';
+        statusEl.innerHTML = `🟡 <strong>Ej inloggad / saknar molnsynk:</strong> Logga in med Google för kort live-QR som alltid uppdateras. <button type="button" class="btn btn-sm btn-outline" style="margin-top:6px;" onclick="if(window.SkolIFKlasser){SkolIFKlasser.login();}">👤 Logga in med Google</button>`;
+        updateQrModalDisplay(offlineUrl);
+    }
+}
+
+function kopieraPublikLank() {
+    const input = document.getElementById('publicUrlInput');
+    const urlStr = input ? input.value : getPublicCalendarUrl(true);
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(urlStr).then(() => {
+            if (window.visaNotis) window.visaNotis('📋 Publiklänken är kopierad!', 'success');
+        }).catch(() => {});
+    } else if (input) {
+        input.select();
+        document.execCommand('copy');
+        if (window.visaNotis) window.visaNotis('📋 Publiklänken är kopierad!', 'success');
+    }
+}
+
+function oppnaAffischModal() {
+    const org = (calendarState.orgName || 'SKOL-IF').toUpperCase();
+    document.getElementById('posterTitleInput').value = org.includes('SKOL') ? `DETTA HÄNDER HOS ${org}` : `DETTA HÄNDER I SKOL-IF`;
+    uppdateraAffischAntal();
+    oppnaModal('affischModal');
+}
+
+function uppdateraAffischAntal() {
+    const days = Number(document.getElementById('posterRangeSelect').value) || 14;
+    const today = getTodayYmd();
+    const list = expandCalendarEvents(calendarState.events, today, addDaysYmd(today, days));
+    document.getElementById('posterCountInfo').textContent =
+        `${list.length} kommande aktivitet${list.length === 1 ? '' : 'er'} (närmaste ${days} dagarna) kommer med på affischen.`;
+}
+
+async function skrivUtAffisch() {
+    await publishPublicCalendarSnapshot();
+    const title = document.getElementById('posterTitleInput').value.trim() || 'DETTA HÄNDER I SKOL-IF';
+    const days = Number(document.getElementById('posterRangeSelect').value) || 14;
+    const includeQr = document.getElementById('posterIncludeQr').checked;
+
+    const today = getTodayYmd();
+    const endYmd = addDaysYmd(today, days);
+    const list = expandCalendarEvents(calendarState.events, today, endYmd);
+
+    const rowsHtml = list.length === 0
+        ? `<div style="padding:20px; border:1.5px dashed #94A3B8; border-radius:10px; text-align:center; font-size:11pt; color:#475569;">Inga aktiviteter inlagda i det valda intervallet ännu.</div>`
+        : list.map(ev => {
+            const m = CATEGORY_META[ev.category] || CATEGORY_META.rast;
+            const dObj = parseYmd(ev.instanceDate);
+            const wd = dObj ? WEEKDAYS_SHORT[dObj.getDay()] : '';
+            const dayNum = dObj ? dObj.getDate() : '';
+            const mon = dObj ? MONTHS_SHORT[dObj.getMonth()] : '';
+            const timeStr = ev.startTime ? (ev.endTime ? `${ev.startTime}–${ev.endTime}` : ev.startTime) : 'Heldag';
+
+            return `
+                <div class="poster-row">
+                    <div class="poster-date-col">
+                        <div style="font-size:8pt; font-weight:800; text-transform:uppercase;">${escapeHtml(wd)} • v.${getIsoWeekNumber(ev.instanceDate)}</div>
+                        <div style="font-size:17pt; font-weight:900; line-height:1.05;">${escapeHtml(dayNum)}</div>
+                        <div style="font-size:8.5pt; font-weight:700; text-transform:uppercase;">${escapeHtml(mon)}</div>
+                    </div>
+                    <div style="flex:1;">
+                        <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:2px;">
+                            <span style="background:${m.bg}; color:${m.text}; border:1px solid ${m.border}; padding:1px 8px; border-radius:99px; font-size:8.5pt; font-weight:800;">${m.icon} ${escapeHtml(m.label)}</span>
+                            <span style="font-size:9.5pt; font-weight:800; color:#1E293B;">⏰ ${escapeHtml(timeStr)}</span>
+                        </div>
+                        <div class="poster-ev-title">${escapeHtml(ev.title)}</div>
+                        <div class="poster-ev-meta">
+                            ${ev.location ? `📍 ${escapeHtml(ev.location)} ` : ''}
+                            ${ev.target ? ` &nbsp;•&nbsp; 👥 ${escapeHtml(ev.target)}` : ''}
+                            ${ev.leaders ? ` &nbsp;•&nbsp; 🙋 ${escapeHtml(ev.leaders)}` : ''}
+                        </div>
+                        ${ev.notes ? `<div class="poster-ev-notes">${escapeHtml(ev.notes)}</div>` : ''}
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+    const posterEl = document.getElementById('printPosterContainer');
+    posterEl.innerHTML = `
+        <div class="poster-header">
+            <div style="flex:1;">
+                <div class="poster-kicker">🏆 ${escapeHtml(calendarState.orgName || 'Skol-IF Kalendern')} • ${escapeHtml(formatReadableDate(today))} – ${escapeHtml(formatReadableDate(endYmd))}</div>
+                <h1 class="poster-title">${escapeHtml(title)}</h1>
+                <p class="poster-sub">${escapeHtml(calendarState.subtitle || 'Välkommen på rastaktiviteter, turneringar och öppen kiosk!')}</p>
+            </div>
+            ${includeQr ? `
+                <div class="poster-qr-card">
+                    <div id="posterQrTarget" class="qr-box-render" style="width:86px; height:86px; flex-shrink:0; background:white; display:flex; align-items:center; justify-content:center;"></div>
+                    <div style="font-size:8.5pt; line-height:1.3;">
+                        <strong style="color:#15803D; display:block; margin-bottom:2px;">📱 SE LIVE I MOBILEN</strong>
+                        Skanna QR-koden för uppdaterade tider &amp; nya events!
+                    </div>
+                </div>
+            ` : ''}
+        </div>
+        <div>${rowsHtml}</div>
+        <div class="poster-footer">
+            <span>Skapad med skolifwebben.se – Digital plattform för Skol-IF</span>
+            <span>Utskriven ${escapeHtml(formatReadableDate(today))}</span>
+        </div>
+    `;
+
+    if (includeQr) {
+        const posterUrl = getPublicCalendarUrl(cloudPublicSyncState === 'error');
+        renderQrIntoBox(document.getElementById('posterQrTarget'), posterUrl, 82);
+    }
+
+    stangModal('affischModal');
+    setTimeout(() => window.print(), 160);
+}
+
+// ==========================================
+//  PUBLIKT LIVE-LÄGE (?visa=...)
+// ==========================================
+function startPublicCalendarMode(publicId) {
+    isPublicView = true;
+    document.body.classList.add('public-view-mode');
+    calendarState.publicId = publicId;
+
+    let loadedFromHash = false;
+    if (window.location.hash && window.location.hash.includes('s=')) {
+        const rawHash = window.location.hash.split('s=')[1] || '';
+        const decoded = decodeCompactPublicSnapshot(decodeURIComponent(rawHash));
+        if (decoded) {
+            calendarState.orgName = decoded.orgName;
+            calendarState.subtitle = decoded.subtitle;
+            calendarState.events = decoded.events;
+            loadedFromHash = true;
+            renderAll();
+        }
+    }
+
+    function connectPublicSnapshot() {
+        if (typeof firebase === 'undefined' || !firebase.firestore) return;
+        const db = firebase.firestore();
+        if (publicUnsubscribe) publicUnsubscribe();
+        publicUnsubscribe = db.collection('skolif_kassa').doc('kalender_' + publicId).onSnapshot(doc => {
+            if (doc && doc.exists) {
+                const data = doc.data() || {};
+                if (data.publicCalendarData) {
+                    try {
+                        const parsed = JSON.parse(data.publicCalendarData);
+                        calendarState.orgName = parsed.orgName || 'Skol-IF Kalendern';
+                        calendarState.subtitle = parsed.subtitle || '';
+                        calendarState.events = Array.isArray(parsed.events) ? parsed.events : [];
+                        renderAll();
+                    } catch (e) {}
+                }
+            } else if (!loadedFromHash) {
+                renderAll();
+            }
+        }, () => {
+            if (firebase.auth && !firebase.auth().currentUser) {
+                firebase.auth().signInAnonymously().then(connectPublicSnapshot).catch(() => {});
+            }
+        });
+    }
+
+    connectPublicSnapshot();
+    if (!loadedFromHash) renderAll();
+}
+
+// ==========================================
+//  INITIERING
+// ==========================================
+(function init() {
+    const params = new URLSearchParams(window.location.search);
+    const visaId = params.get('visa');
+
+    if (visaId && visaId.trim()) {
+        startPublicCalendarMode(visaId.trim());
+    } else {
+        loadLocalCalendarState();
+        renderAll();
+        if (window.SkolIFKlasser && typeof SkolIFKlasser.onKalenderUpdate === 'function') {
+            SkolIFKlasser.onKalenderUpdate(cloudKal => {
+                if (cloudKal && typeof cloudKal === 'object' && Array.isArray(cloudKal.events)) {
+                    calendarState = {
+                        orgName: cloudKal.orgName || 'Skol-IF Kalendern',
+                        subtitle: cloudKal.subtitle !== undefined ? cloudKal.subtitle : 'Kommande rastaktiviteter, turneringar och öppettider i kiosken.',
+                        publicId: cloudKal.publicId || calendarState.publicId,
+                        updatedAt: cloudKal.updatedAt || Date.now(),
+                        events: cloudKal.events
+                    };
+                    ensurePublicId();
+                    renderAll();
+                }
+            });
+        }
+    }
+
+    boardClockTimer = setInterval(uppdateraTavlaKlocka, 15000);
+    document.addEventListener('fullscreenchange', updateFullscreenButtonLabel);
+    window.addEventListener('focus', uppdateraTavlaKlocka);
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') uppdateraTavlaKlocka();
+    });
+
+    document.querySelectorAll('.modal-overlay').forEach(overlay => {
+        overlay.addEventListener('click', e => {
+            if (e.target === overlay) overlay.classList.remove('open');
+        });
+    });
+})();
+</script>
+</body>
+</html>

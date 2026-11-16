@@ -565,6 +565,34 @@
                         }
                     } catch (e) {}
                 }
+                if (data.kalenderData !== undefined) {
+                    try {
+                        const parsedKal = typeof data.kalenderData === 'string' ? JSON.parse(data.kalenderData) : data.kalenderData;
+                        if (parsedKal && typeof parsedKal === 'object' && Array.isArray(parsedKal.events)) {
+                            const localKal = getKalenderDataLocal();
+                            const cloudEvents = parsedKal.events;
+                            const localRealEvents = (localKal && Array.isArray(localKal.events))
+                                ? localKal.events.filter(ev => !ev.isDemo)
+                                : [];
+                            if (cloudEvents.length === 0 && localRealEvents.length > 0 && (localKal.updatedAt || 0) > (parsedKal.updatedAt || 0)) {
+                                saveKalenderData(localKal);
+                            } else {
+                                localStorage.setItem(KALENDER_STORAGE_KEY, JSON.stringify(parsedKal));
+                                onKalenderCallbacks.forEach(cb => {
+                                    try { cb(parsedKal); } catch (err) {}
+                                });
+                            }
+                        }
+                    } catch (e) {}
+                } else {
+                    const localKal = getKalenderDataLocal();
+                    const localRealEvents = (localKal && Array.isArray(localKal.events))
+                        ? localKal.events.filter(ev => !ev.isDemo)
+                        : [];
+                    if (localRealEvents.length > 0) {
+                        saveKalenderData(localKal);
+                    }
+                }
 
                 syncLocalCacheFromCloud(molnElever, molnVaror, molnTx);
             } else {
@@ -2378,6 +2406,7 @@
         if (path.includes('kiosk')) return 'kiosk';
         if (path.includes('redskapsboden')) return 'redskapsboden';
         if (path.includes('turnering')) return 'turnering';
+        if (path.includes('kalender')) return 'kalender';
         if (path.includes('lopning')) return 'lopning';
         if (path.includes('beeptest')) return 'beeptest';
         if (path.includes('lagdelaren')) return 'lagdelaren';
@@ -3301,6 +3330,50 @@
     }
 
     // ==========================================
+    //  4. AKTIVITETSKALENDER (MOLNSYNK)
+    // ==========================================
+    const KALENDER_STORAGE_KEY = 'skolif_kalender_v1';
+    const onKalenderCallbacks = [];
+
+    function getKalenderDataLocal() {
+        try {
+            const raw = localStorage.getItem(KALENDER_STORAGE_KEY);
+            if (!raw) return null;
+            const parsed = JSON.parse(raw);
+            if (parsed && typeof parsed === 'object' && Array.isArray(parsed.events)) {
+                return parsed;
+            }
+        } catch (e) {}
+        return null;
+    }
+
+    async function saveKalenderData(dataObj) {
+        if (!dataObj || typeof dataObj !== 'object') return;
+        const cleanObj = {
+            orgName: String(dataObj.orgName || 'Skol-IF Kalendern').trim() || 'Skol-IF Kalendern',
+            subtitle: String(dataObj.subtitle || '').trim(),
+            publicId: String(dataObj.publicId || '').trim(),
+            updatedAt: Number(dataObj.updatedAt) || Date.now(),
+            events: Array.isArray(dataObj.events) ? dataObj.events.slice(0, 300) : []
+        };
+        try {
+            localStorage.setItem(KALENDER_STORAGE_KEY, JSON.stringify(cleanObj));
+        } catch (e) {}
+
+        if (currentUser && db) {
+            try {
+                if (!activeKassaDocId) activeKassaDocId = await resolveAndMergeKassa(currentUser);
+                await db.collection('skolif_kassa').doc(activeKassaDocId).set({
+                    kalenderData: JSON.stringify(cleanObj),
+                    senastUppdaterad: Date.now()
+                }, { merge: true });
+            } catch (err) {
+                console.warn('Kunde inte synka kalendern till molnet:', err);
+            }
+        }
+    }
+
+    // ==========================================
     //  HÅLL SKÄRMEN VAKEN (SCREEN WAKE LOCK) PÅ VERKTYGSSIDOR
     // ==========================================
     let skolifWakeLockSentinel = null;
@@ -3389,7 +3462,15 @@
         copyLokNames: copyLokNames,
         deleteLokItem: deleteLokItem,
         exportLokCSV: exportLokCSV,
-        openLokModal: function () { openModal(null, null, 'lokstod'); },
+        openLokModal: function (prefill) {
+            openModal(null, null, 'lokstod');
+            if (prefill && typeof prefill === 'object') {
+                const dateEl = document.getElementById('skolifLokDate');
+                const titleEl = document.getElementById('skolifLokTitle');
+                if (dateEl && prefill.datum) dateEl.value = prefill.datum;
+                if (titleEl && prefill.titel) titleEl.value = prefill.titel;
+            }
+        },
         // 3. Testhistorik (Beep-test & Löprundan)
         saveTestSession: saveTestSession,
         getTestHistory: getTestHistory,
@@ -3398,6 +3479,12 @@
         renderTestHistoryModalContent: renderTestHistoryModalContent,
         deleteTestSession: deleteTestSession,
         exportTestHistoryCSV: exportTestHistoryCSV,
+        // 4. Aktivitetskalender
+        getKalenderData: getKalenderDataLocal,
+        saveKalenderData: saveKalenderData,
+        onKalenderUpdate: function (cb) {
+            if (typeof cb === 'function') onKalenderCallbacks.push(cb);
+        },
         openInstallAppModal: function () {
             if (window._skolifDeferredInstallPrompt) {
                 window._skolifDeferredInstallPrompt.prompt();
