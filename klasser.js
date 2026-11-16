@@ -1884,8 +1884,8 @@
                             <div id="skolifTabContent-lokstod" style="display: none; flex-direction: column; gap: 12px;">
                                 <div style="background: linear-gradient(135deg, #143625, #1E4E35); color: white; border-radius: 12px; padding: 13px 16px; display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;">
                                     <div>
-                                        <div style="font-weight: 800; font-size: 0.92rem;">🏟️ LOK-stödsunderlag för Arenan (Skol-IF)</div>
-                                        <div style="font-size: 0.76rem; color: rgba(255,255,255,0.85);">Spara närvaro från rasternas aktiviteter & turneringar så du enkelt kan föra in dem i Arenan.</div>
+                                        <div style="font-weight: 800; font-size: 0.92rem;">🏟️ Digital Närvarolista för LOK-stöd</div>
+                                        <div style="font-size: 0.76rem; color: rgba(255,255,255,0.85);">Spara vilka elever som deltog under rasten som minnesstöd när du sedan bockar av dem i Arenan (Arenan saknar direktimport av listor).</div>
                                     </div>
                                     <a href="https://forening.idrottsarenan.se" target="_blank" rel="noopener noreferrer" class="skolif-btn-sm" style="background: #4ADE80; color: #064E3B; border: none; text-decoration: none; font-weight: 800; white-space: nowrap;">🏟️ Öppna Arenan ↗</a>
                                 </div>
@@ -1921,8 +1921,8 @@
                                 <!-- Sparade LOK-aktiviteter -->
                                 <div>
                                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                                        <span style="font-size: 0.78rem; font-weight: 800; color: #334155; text-transform: uppercase;">Sparade aktiviteter (Redo för Arenan)</span>
-                                        <button type="button" class="skolif-btn-sm" style="padding: 4px 10px; font-size: 0.74rem;" onclick="SkolIFKlasser.exportLokCSV()">📥 Exportera LOK-lista (Excel/CSV)</button>
+                                        <span style="font-size: 0.78rem; font-weight: 800; color: #334155; text-transform: uppercase;">Sparade närvarolistor (Minnesstöd för Arenan)</span>
+                                        <button type="button" class="skolif-btn-sm" style="padding: 4px 10px; font-size: 0.74rem;" onclick="SkolIFKlasser.exportLokCSV()">📥 Spara egen lista (Excel/CSV)</button>
                                     </div>
                                     <div id="skolifLokListContainer" style="display: flex; flex-direction: column; gap: 6px; max-height: 185px; overflow-y: auto;"></div>
                                 </div>
@@ -3051,7 +3051,7 @@
         const txt = `LOK-stöd: ${item.titel} (${item.datum}) - ${item.klass || ''}\nAntal deltagare: ${(item.deltagare || []).length}\n\n` + (item.deltagare || []).join('\n');
         if (navigator.clipboard) {
             navigator.clipboard.writeText(txt).then(() => {
-                showToast('📋 Deltagarlistan har kopierats till urklipp (redo för Arenan)!', 'info');
+                showToast('📋 Närvarolistan kopierad som minnesstöd – öppna Arenan och bocka av eleverna!', 'info');
             });
         }
     }
