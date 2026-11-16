@@ -561,11 +561,13 @@
         .board-qr-chip {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 14px;
             background: rgba(255,255,255,0.1);
             border: 1px solid rgba(255,255,255,0.22);
             border-radius: 14px;
-            padding: 6px 12px 6px 6px;
+            padding: 8px 14px 8px 8px;
+            margin-top: 12px;
+            flex-shrink: 0;
             cursor: pointer;
             transition: background 0.2s, transform 0.2s;
         }
@@ -575,10 +577,10 @@
         }
         .board-qr-box {
             background: white;
-            padding: 6px;
+            padding: 7px;
             border-radius: 10px;
-            width: 96px;
-            height: 96px;
+            width: 106px;
+            height: 106px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -587,9 +589,9 @@
         #boardFullscreenTarget:fullscreen .board-qr-box,
         #boardFullscreenTarget:-webkit-full-screen .board-qr-box,
         body.board-pseudo-fullscreen #boardFullscreenTarget .board-qr-box {
-            width: 122px;
-            height: 122px;
-            padding: 7px;
+            width: 132px;
+            height: 132px;
+            padding: 8px;
         }
         .board-qr-zoom-overlay {
             position: absolute;
@@ -1056,22 +1058,12 @@
                     <h2 id="boardOrgTitle" style="font-size:1.65rem; font-weight:900; color:white; line-height:1.15;">Skol-IF Kalendern</h2>
                 </div>
                 <div class="board-top-right">
-                    <div class="board-qr-chip" onclick="oppnaBoardQrZoom()" title="Klicka för att visa extra stor QR-kod">
-                        <div id="boardQrBox" class="qr-box-render board-qr-box"></div>
-                        <div style="line-height:1.3;">
-                            <div style="font-weight:800; font-size:0.84rem; color:#FFFFFF;">📱 Schemat i mobilen</div>
-                            <div style="font-size:0.72rem; color:rgba(255,255,255,0.8); max-width:118px;">Skanna för live-kalender</div>
-                            <div style="font-size:0.7rem; font-weight:700; color:#86EFAC; margin-top:2px;">🔍 Klicka för stor</div>
-                        </div>
-                    </div>
                     <div class="board-clock">
                         <div class="board-clock-time" id="boardClockTime">--:--</div>
                         <div class="board-clock-date" id="boardClockDate">---</div>
                     </div>
-                    <div style="display:flex; flex-direction:column; gap:6px;">
-                        <button type="button" id="boardFullscreenBtn" class="btn btn-sm" style="background:rgba(255,255,255,0.16); color:white; border:1px solid rgba(255,255,255,0.3); justify-content:center;" onclick="toggleBoardFullscreen()">⛶ Helskärm</button>
-                        <button type="button" class="btn btn-gold btn-sm" style="justify-content:center;" onclick="oppnaAffischModal()">🖨️ A4-affisch</button>
-                    </div>
+                    <button type="button" id="boardFullscreenBtn" class="btn btn-sm" style="background:rgba(255,255,255,0.16); color:white; border:1px solid rgba(255,255,255,0.3); justify-content:center;" onclick="toggleBoardFullscreen()">⛶ Helskärm</button>
+                    <button type="button" class="btn btn-gold btn-sm" style="justify-content:center;" onclick="oppnaAffischModal()">🖨️ A4-affisch</button>
                 </div>
             </div>
 
@@ -1079,6 +1071,14 @@
                 <div class="board-panel">
                     <div class="board-panel-title" id="boardTodayHeading">🔥 IDAG I SKOL-IF</div>
                     <div id="boardTodayContainer"></div>
+                    <div class="board-qr-chip" onclick="oppnaBoardQrZoom()" title="Klicka för att visa extra stor QR-kod">
+                        <div id="boardQrBox" class="qr-box-render board-qr-box"></div>
+                        <div style="line-height:1.35;">
+                            <div style="font-weight:800; font-size:0.95rem; color:#FFFFFF;">📱 Skanna för schemat i mobilen!</div>
+                            <div style="font-size:0.78rem; color:rgba(255,255,255,0.82); margin-top:2px;">Alltid uppdaterat med tider, platser &amp; turneringar.</div>
+                            <div style="font-size:0.74rem; font-weight:700; color:#86EFAC; margin-top:4px;">🔍 Klicka för extra stor QR-kod</div>
+                        </div>
+                    </div>
                 </div>
                 <div class="board-panel">
                     <div class="board-panel-title">📅 KOMMANDE DAGAR</div>
@@ -1997,7 +1997,7 @@ function renderBoardView() {
         }).join('');
     }
 
-    renderQrIntoBox(document.getElementById('boardQrBox'), getPublicCalendarUrl(false), 112);
+    renderQrIntoBox(document.getElementById('boardQrBox'), getPublicCalendarUrl(false), 120);
     renderClockOnly();
 }
 
