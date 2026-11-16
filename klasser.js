@@ -3025,16 +3025,18 @@
             return;
         }
 
-        listEl.innerHTML = list.map(item => `
-            <div style="background: white; border: 1.5px solid #E2E8F0; border-radius: 10px; padding: 9px 12px; display: flex; flex-direction: column; gap: 6px;">
+        listEl.innerHTML = list.map(item => {
+            const isReported = Boolean(item.inlagdIArenan);
+            return `
+            <div style="background: ${isReported ? '#F0FDF4' : 'white'}; border: 1.5px solid ${isReported ? '#86EFAC' : '#E2E8F0'}; border-radius: 10px; padding: 9px 12px; display: flex; flex-direction: column; gap: 6px;">
                 <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap;">
                     <div>
                         <span style="font-weight: 800; font-size: 0.88rem; color: #1E3A24;">🏟️ ${escapeHtml(item.titel)}</span>
                         <span style="font-size: 0.76rem; color: #64748B; margin-left: 6px;">📅 ${escapeHtml(item.datum)} • ${escapeHtml(item.klass || '')}</span>
                         <span class="skolif-class-item-badge" style="margin-left: 6px;">${Number(item.antal) || (item.deltagare || []).length} deltagare</span>
                     </div>
-                    <div style="display: flex; gap: 5px;">
-                        <button type="button" class="skolif-btn-sm" style="padding: 4px 9px; font-size: 0.74rem;" onclick="SkolIFKlasser.copyLokNames('${escapeHtml(item.id)}')">📋 Kopiera namn</button>
+                    <div style="display: flex; gap: 5px; align-items: center;">
+                        <button type="button" class="skolif-btn-sm ${isReported ? 'primary' : ''}" style="padding: 4px 9px; font-size: 0.74rem;" onclick="SkolIFKlasser.toggleLokReported('${escapeHtml(item.id)}')">${isReported ? '✅ Inlagd i Arenan' : '⬜ Ej inlagd i Arenan'}</button>
                         <button type="button" class="skolif-btn-sm danger" style="padding: 4px 8px; font-size: 0.74rem;" onclick="SkolIFKlasser.deleteLokItem('${escapeHtml(item.id)}')">🗑️</button>
                     </div>
                 </div>
@@ -3042,18 +3044,20 @@
                     ${(item.deltagare || []).map(n => escapeHtml(n)).join(', ')}
                 </div>
             </div>
-        `).join('');
+        `;
+        }).join('');
     }
 
-    function copyLokNames(id) {
-        const item = getLokList().find(x => x.id === id);
+    async function toggleLokReported(id) {
+        const list = getLokList();
+        const item = list.find(x => x.id === id);
         if (!item) return;
-        const txt = `LOK-stöd: ${item.titel} (${item.datum}) - ${item.klass || ''}\nAntal deltagare: ${(item.deltagare || []).length}\n\n` + (item.deltagare || []).join('\n');
-        if (navigator.clipboard) {
-            navigator.clipboard.writeText(txt).then(() => {
-                showToast('📋 Närvarolistan kopierad som minnesstöd – öppna Arenan och bocka av eleverna!', 'info');
-            });
-        }
+        item.inlagdIArenan = !item.inlagdIArenan;
+        await persistLokList(list);
+        showToast(
+            item.inlagdIArenan ? '✅ Markerad som inlagd i Arenan!' : '⬜ Markerad som ej inlagd än.',
+            item.inlagdIArenan ? 'success' : 'info'
+        );
     }
 
     async function deleteLokItem(id) {
@@ -3069,10 +3073,11 @@
             showToast('Det finns inga sparade LOK-aktiviteter att exportera än.', 'warning');
             return;
         }
-        let csv = '\uFEFFDatum;Aktivitet;Klass/Grupp;Antal deltagare;Deltagare\r\n';
+        let csv = '\uFEFFDatum;Aktivitet;Klass/Grupp;Antal deltagare;Status Arenan;Deltagare\r\n';
         list.forEach(item => {
             const names = (item.deltagare || []).join(', ').replace(/"/g, '""');
-            csv += `${item.datum};"${String(item.titel || '').replace(/"/g, '""')}";"${String(item.klass || '').replace(/"/g, '""')}";${(item.deltagare || []).length};"${names}"\r\n`;
+            const statusTxt = item.inlagdIArenan ? 'Inlagd i Arenan' : 'Ej inlagd';
+            csv += `${item.datum};"${String(item.titel || '').replace(/"/g, '""')}";"${String(item.klass || '').replace(/"/g, '""')}";${(item.deltagare || []).length};"${statusTxt}";"${names}"\r\n`;
         });
         const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
         const url = URL.createObjectURL(blob);
@@ -3459,7 +3464,7 @@
         toggleSingleLokStudent: toggleSingleLokStudent,
         toggleAllLokStudents: toggleAllLokStudents,
         saveLokFromModal: saveLokFromModal,
-        copyLokNames: copyLokNames,
+        toggleLokReported: toggleLokReported,
         deleteLokItem: deleteLokItem,
         exportLokCSV: exportLokCSV,
         openLokModal: function (prefill) {
