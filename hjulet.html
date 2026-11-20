@@ -3,19 +3,60 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Uppvärmningshjulet & Aktivitetshjulet för Idrott | Skol-IF Webben</title>
-    <meta name="description" content="Snurra fram dagens uppvärmningslek, styrkestation eller slumpa en elev på storskärmen med Uppvärmningshjulet för idrottslärare och Skol-IF.">
-    <meta name="keywords" content="uppvärmningshjulet, aktivitetshjul idrott, lyckohjul klassrum, uppvärmningslekar idrott, Skol-IF">
+    <title>Uppvärmningshjulet – Slumpa Övning & Elev | Skol-IF Webben</title>
+    <meta name="description" content="Snurra fram dagens uppvärmningslek, styrkestation eller slumpa elev på storskärmen. Färdiga teman för idrott, lek och klassrum – direkt i webbläsaren.">
+    <meta name="keywords" content="uppvärmningshjulet, slumphjul klassrum, aktivitetshjul idrott, slumpa elev hjul, uppvärmningslekar idrott">
     <meta name="robots" content="index, follow">
     <link rel="canonical" href="https://skolifwebben.se/hjulet.html">
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/svg+xml" href="icon.svg">
     <link rel="apple-touch-icon" href="icon.svg">
-    <meta property="og:title" content="Uppvärmningshjulet – Snurra fram lekar, övningar & elever">
-    <meta property="og:description" content="Interaktivt hjul för uppvärmning, fysövningar och klasslistor i idrottshallen.">
+    <meta property="og:title" content="Uppvärmningshjulet – Slumpa Övning & Elev | Skol-IF Webben">
+    <meta property="og:description" content="Interaktivt slumphjul för uppvärmningslekar, fysövningar och klasslistor i idrottshallen.">
     <meta property="og:url" content="https://skolifwebben.se/hjulet.html">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="seo-shared.css">
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "Vilka färdiga lekar och övningar finns i hjulet?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Du kan direkt välja mellan färdiga teman som Uppvärmningslekar (t.ex. Kinesiska muren, Skeppsbrott och Svanskull med regelbeskrivning), Styrka, Puls & Kondition eller Slumpa Elev."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Kan jag använda hjulet för att slumpa fram en elev ur min klass?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Ja! Välj din klass i rullisten från Mina Klasser eller klistra in namnen direkt i textfältet – perfekt när ni ska välja vem som börjar, utser rastledare eller delar in stationer."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Går det att ta bort vinnaren automatiskt efter varje snurr?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Ja, bocka i Eliminera övning/elev efter vinst under listan så tas vinnande alternativ bort inför nästa omgång."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Visas regler när en lek dras i Uppvärmningshjulet?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Ja, för de inbyggda uppvärmningslekarna dyker en tydlig ruta med Regler & utförande upp direkt i vinnarkortet så klassen kan börja direkt."
+          }
+        }
+      ]
+    }
+    </script>
 
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif; }
@@ -450,7 +491,7 @@
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3461073406787574"
      crossorigin="anonymous"></script>
 </head>
-<body>
+<body class="seo-dark">
 
 <nav>
     <a href="index.html" class="nav-logo">
@@ -472,6 +513,7 @@
 <div class="main-container">
     <!-- VÄNSTER: HJUL & SPINN-KNAPP -->
     <div class="wheel-stage">
+        <h1 class="wheel-page-h1" style="font-size:1.3rem; font-weight:800; color:#FFFFFF; text-align:center; margin-bottom:6px; letter-spacing:-0.2px;">🎡 Uppvärmningshjulet – Snurra lek eller elev</h1>
         <div class="wheel-wrapper">
             <div class="wheel-pointer" id="wheelPointer"></div>
             <canvas id="wheelCanvas" width="900" height="900"></canvas>
@@ -523,6 +565,86 @@
         </div>
     </div>
 </div>
+
+<section class="skolif-seo-section" aria-label="Om Uppvärmningshjulet">
+    <div class="skolif-seo-card">
+        <div class="skolif-seo-grid">
+            <div>
+                <span class="skolif-seo-badge">Lyckohjul för Idrott &amp; Klassrum</span>
+                <h2>Slumphjul för uppvärmningslekar, styrka och klasslistor</h2>
+                <p><strong>Uppvärmningshjulet</strong> gör uppstarten av idrottslektionen eller skoldagen extra rolig. Slå upp hjulet på storskärmen och låt slumpen avgöra dagens uppvärmningslek, styrkestation, pulshöjare eller vilken elev i klassen som ska börja.</p>
+                <p>Med ljudeffekter, konfetti och tangentbordsgenväg (<kbd>Mellanslag</kbd>) fungerar hjulet utmärkt i helskärm inför hela klassen – och vill ni ändra alternativ skriver ni bara direkt i listan.</p>
+                <ul class="skolif-seo-bullets">
+                    <li>Färdiga teman för lekar (med regler), styrka och puls</li>
+                    <li>Hämtar sparade klasser från Mina Klasser för att slumpa elever</li>
+                    <li>Valfri eliminering så samma övning eller elev inte dras två gånger</li>
+                    <li>Fullskärmsläge med ljudeffekter, eller ljudlöst i klassrummet</li>
+                </ul>
+            </div>
+            <div>
+                <h3>Vanliga frågor om Uppvärmningshjulet</h3>
+                <div class="skolif-faq-list">
+                    <details class="skolif-faq-item">
+                        <summary>Vilka färdiga lekar och övningar finns i hjulet?</summary>
+                        <p>Du kan direkt välja mellan färdiga teman som Uppvärmningslekar (t.ex. Kinesiska muren, Skeppsbrott och Svanskull med regelbeskrivning), Styrka, Puls &amp; Kondition eller Slumpa Elev.</p>
+                    </details>
+                    <details class="skolif-faq-item">
+                        <summary>Kan jag använda hjulet för att slumpa fram en elev ur min klass?</summary>
+                        <p>Ja! Välj din klass i rullisten från Mina Klasser eller klistra in namnen direkt i textfältet – perfekt när ni ska välja vem som börjar, utser rastledare eller delar in stationer.</p>
+                    </details>
+                    <details class="skolif-faq-item">
+                        <summary>Går det att ta bort vinnaren automatiskt efter varje snurr?</summary>
+                        <p>Ja, bocka i Eliminera övning/elev efter vinst under listan så tas vinnande alternativ bort inför nästa omgång.</p>
+                    </details>
+                    <details class="skolif-faq-item">
+                        <summary>Visas regler när en lek dras i Uppvärmningshjulet?</summary>
+                        <p>Ja, för de inbyggda uppvärmningslekarna dyker en tydlig ruta med Regler &amp; utförande upp direkt i vinnarkortet så klassen kan börja direkt.</p>
+                    </details>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<footer class="skolif-site-footer">
+    <div class="skolif-footer-inner">
+        <div class="skolif-footer-brand">
+            <strong>🏆 Skol-IF Webben</strong>
+            <p>Kostnadsfri digital plattform för svenska Skol-IF-föreningar och lärare i idrott och hälsa – byggd för att fungera direkt i webbläsaren, på iPad och i mobilen.</p>
+        </div>
+        <div class="skolif-footer-col">
+            <h4>För Skol-IF &amp; Förening</h4>
+            <ul>
+                <li><a href="kiosk.html">☕ Skol-IF Kassa (Kiosk)</a></li>
+                <li><a href="redskapsboden.html">⚽ Redskapsboden</a></li>
+                <li><a href="turnering.html">🏆 Skapa Turnering &amp; Spelschema</a></li>
+                <li><a href="kalender.html">📅 Aktivitetskalender &amp; Tavla</a></li>
+            </ul>
+        </div>
+        <div class="skolif-footer-col">
+            <h4>För Idrottsläraren</h4>
+            <ul>
+                <li><a href="lagdelaren.html">🎲 Lagdelaren (Slumpa lag)</a></li>
+                <li><a href="beeptest.html">📢 Beep-test (20m med ljud)</a></li>
+                <li><a href="tabata.html">🔔 Tabatatimer &amp; Intervallklocka</a></li>
+                <li><a href="lopning.html">⏱️ Löprundan (Tidtagning)</a></li>
+                <li><a href="hjulet.html">🎡 Uppvärmningshjulet</a></li>
+            </ul>
+        </div>
+        <div class="skolif-footer-col">
+            <h4>Om tjänsten</h4>
+            <ul>
+                <li><a href="index.html">🏠 Startsidan</a></li>
+                <li><a href="integritet.html">🔒 Integritetspolicy</a></li>
+                <li><a href="https://play.google.com/store/apps/details?id=com.sellin.tabatatimer" target="_blank" rel="noopener noreferrer">📱 Android-app (Google Play)</a></li>
+                <li><a href="https://forening.idrottsarenan.se" target="_blank" rel="noopener noreferrer">🏟️ Idrottsarenan (LOK-stöd)</a></li>
+            </ul>
+        </div>
+    </div>
+    <div class="skolif-footer-bottom">
+        &copy; 2026 Skol-IF Webben &amp; Skol-IF Appen &bull; Utvecklad av Tobias, idrotts- och matematiklärare &bull; <a href="integritet.html">Integritetspolicy</a>
+    </div>
+</footer>
 
 <!-- WINNER MODAL -->
 <div class="winner-modal" id="winnerModal">

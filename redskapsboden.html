@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Redskapsboden – Digital Utlåning av Rastutrustning för Skol-IF | Skol-IF Webben</title>
-    <meta name="description" content="Redskapsboden för Skol-IF-föreningar och rastvärdar. Håll ordning på skolgårdens bollar och utrustning med digital utlåning på sekunder – synkat med Skol-IF Appen.">
-    <meta name="keywords" content="Redskapsboden, redskapsbod skola, rastaktiviteter utlåning, Skol-IF förening, rastvärd verktyg, Skol-IF">
+    <title>Redskapsboden – Rastutlåning för Skol-IF | Skol-IF Webben</title>
+    <meta name="description" content="Håll ordning på rastutrustning, bollar och racketar i skolans redskapsbod. Registrera utlåning och returer på sekunder med synk mellan mobil och iPad.">
+    <meta name="keywords" content="Redskapsboden, redskapsbod skola, utlåning idrottsmaterial, rastaktiviteter utlåning, Skol-IF förening, rastvärd verktyg">
     <meta name="robots" content="index, follow">
     <link rel="canonical" href="https://skolifwebben.se/redskapsboden.html">
     <link rel="manifest" href="manifest.json">
@@ -15,6 +15,47 @@
     <meta property="og:description" content="Registrera lån och returer i skolans redskapsbod på sekunder – synkat mellan dator och mobil.">
     <meta property="og:url" content="https://skolifwebben.se/redskapsboden.html">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="seo-shared.css">
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "Hur registrerar man ett utlån i Redskapsboden?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Klicka direkt på en pryl (t.ex. Fotbollar eller Innebandyklubbor), välj eller sök fram elev från klasslistan och klicka på Låna ut. När prylen kommer tillbaka trycker ni bara på Återlämnad."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Kan eleverna själva sköta rastutlåningen?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Ja! Med Elevläge (PIN-lås) kan rastvärdar enkelt registrera lån och returer på iPad eller mobil utan att råka ändra lagersaldo eller radera artiklar."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Får artiklarna ikoner automatiskt?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Ja, när du lägger till ny rastutrustning (som kingboll, kubb, hopprep, västar eller pingisracketar) matchas rätt sport-emoji automatiskt utifrån namnet."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Synkas redskapsboden mellan flera pedagoger och rastvärdar?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Ja, när du loggar in med Google sparas utlåningar och inventarier i molnet och kan delas med kollegor och skolans Android-app i realtid."
+          }
+        }
+      ]
+    }
+    </script>
 
     <!-- Firebase SDK v8 -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
@@ -397,6 +438,11 @@
 
 <div class="container">
 
+    <div style="margin-bottom:14px;">
+        <h1 style="font-size:1.65rem; font-weight:900; color:#1E3A24; line-height:1.2;">⚽ Redskapsboden – Digital Rastutlåning</h1>
+        <p style="font-size:0.88rem; color:#475569; margin-top:2px;">Håll koll på bollar, klubbor, hopprep och utlånad rastutrustning i realtid.</p>
+    </div>
+
     <!-- Sync Status Bar -->
     <div id="syncBar">
         <div class="sync-left">
@@ -539,6 +585,86 @@
     </div>
 
 </div><!-- /container -->
+
+<section class="skolif-seo-section" aria-label="Om Redskapsboden">
+    <div class="skolif-seo-card">
+        <div class="skolif-seo-grid">
+            <div>
+                <span class="skolif-seo-badge">Rastutlåning &amp; Inventering</span>
+                <h2>Digital utlåning av idrottsmaterial och rastutrustning för skolor</h2>
+                <p>Hur många fotbollar, hopprep och pingisracketar försvinner egentligen på skolgården varje termin? Med <strong>Redskapsboden</strong> slipper ni kladdiga papperslistor – på bara två klick registrerar rastvärdar eller elevledare vem som lånat vad och ser direkt när allt lämnats tillbaka.</p>
+                <p>Verktyget fungerar direkt lokalt i webbläsaren utan inloggning, men när ni loggar in med Google synkas utlåningar och antal tillgängliga prylar i realtid mellan rastbodens iPad, idrottslärarens dator och mobilappen.</p>
+                <ul class="skolif-seo-bullets">
+                    <li>Snabb översikt över artiklar, antal i lager och aktiva lånare just nu</li>
+                    <li>Kopplat till Mina Klasser så du hittar rätt elev på en sekund</li>
+                    <li>Elevläge med PIN-kod för rastvärdar och elevstyrelse</li>
+                    <li>Full händelsehistorik och realtidssynk med kollegor</li>
+                </ul>
+            </div>
+            <div>
+                <h3>Vanliga frågor om Redskapsboden</h3>
+                <div class="skolif-faq-list">
+                    <details class="skolif-faq-item">
+                        <summary>Hur registrerar man ett utlån i Redskapsboden?</summary>
+                        <p>Klicka direkt på en pryl (t.ex. Fotbollar eller Innebandyklubbor), välj eller sök fram elev från klasslistan och klicka på Låna ut. När prylen kommer tillbaka trycker ni bara på Återlämnad.</p>
+                    </details>
+                    <details class="skolif-faq-item">
+                        <summary>Kan eleverna själva sköta rastutlåningen?</summary>
+                        <p>Ja! Med Elevläge (PIN-lås) kan rastvärdar enkelt registrera lån och returer på iPad eller mobil utan att råka ändra lagersaldo eller radera artiklar.</p>
+                    </details>
+                    <details class="skolif-faq-item">
+                        <summary>Får artiklarna ikoner automatiskt?</summary>
+                        <p>Ja, när du lägger till ny rastutrustning (som kingboll, kubb, hopprep, västar eller pingisracketar) matchas rätt sport-emoji automatiskt utifrån namnet.</p>
+                    </details>
+                    <details class="skolif-faq-item">
+                        <summary>Synkas redskapsboden mellan flera pedagoger och rastvärdar?</summary>
+                        <p>Ja, när du loggar in med Google sparas utlåningar och inventarier i molnet och kan delas med kollegor och skolans Android-app i realtid.</p>
+                    </details>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<footer class="skolif-site-footer">
+    <div class="skolif-footer-inner">
+        <div class="skolif-footer-brand">
+            <strong>🏆 Skol-IF Webben</strong>
+            <p>Kostnadsfri digital plattform för svenska Skol-IF-föreningar och lärare i idrott och hälsa – byggd för att fungera direkt i webbläsaren, på iPad och i mobilen.</p>
+        </div>
+        <div class="skolif-footer-col">
+            <h4>För Skol-IF &amp; Förening</h4>
+            <ul>
+                <li><a href="kiosk.html">☕ Skol-IF Kassa (Kiosk)</a></li>
+                <li><a href="redskapsboden.html">⚽ Redskapsboden</a></li>
+                <li><a href="turnering.html">🏆 Skapa Turnering &amp; Spelschema</a></li>
+                <li><a href="kalender.html">📅 Aktivitetskalender &amp; Tavla</a></li>
+            </ul>
+        </div>
+        <div class="skolif-footer-col">
+            <h4>För Idrottsläraren</h4>
+            <ul>
+                <li><a href="lagdelaren.html">🎲 Lagdelaren (Slumpa lag)</a></li>
+                <li><a href="beeptest.html">📢 Beep-test (20m med ljud)</a></li>
+                <li><a href="tabata.html">🔔 Tabatatimer &amp; Intervallklocka</a></li>
+                <li><a href="lopning.html">⏱️ Löprundan (Tidtagning)</a></li>
+                <li><a href="hjulet.html">🎡 Uppvärmningshjulet</a></li>
+            </ul>
+        </div>
+        <div class="skolif-footer-col">
+            <h4>Om tjänsten</h4>
+            <ul>
+                <li><a href="index.html">🏠 Startsidan</a></li>
+                <li><a href="integritet.html">🔒 Integritetspolicy</a></li>
+                <li><a href="https://play.google.com/store/apps/details?id=com.sellin.tabatatimer" target="_blank" rel="noopener noreferrer">📱 Android-app (Google Play)</a></li>
+                <li><a href="https://forening.idrottsarenan.se" target="_blank" rel="noopener noreferrer">🏟️ Idrottsarenan (LOK-stöd)</a></li>
+            </ul>
+        </div>
+    </div>
+    <div class="skolif-footer-bottom">
+        &copy; 2026 Skol-IF Webben &amp; Skol-IF Appen &bull; Utvecklad av Tobias, idrotts- och matematiklärare &bull; <a href="integritet.html">Integritetspolicy</a>
+    </div>
+</footer>
 
 
 <!-- ====== MODAL: NY/REDIGERA ARTIKEL ====== -->

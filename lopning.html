@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Löprundan – Klasstidtagning för Skoljoggen & Terränglopp | Skol-IF Webben</title>
-    <meta name="description" content="Digital klasstidtagning för idrottslärare och Skol-IF-föreningar vid terränglopp, Skoljoggen och varvlopp. Klicka in elever i mål och exportera resultat direkt.">
+    <title>Löprundan – Klasstidtagning & Terränglopp | Skol-IF Webben</title>
+    <meta name="description" content="Enkel klasstidtagning för Skoljoggen, terränglopp och varvlopp i skolan. Klicka in elever i mål, se tempo och placering samt skriv ut diplom och Excel.">
     <meta name="keywords" content="klasstidtagning, tidtagning skola, Skoljoggen tidtagning, terränglopp skola, idrottslärare tidtagare, Skol-IF">
     <meta name="robots" content="index, follow">
     <link rel="canonical" href="https://skolifwebben.se/lopning.html">
@@ -15,6 +15,47 @@
     <meta property="og:description" content="Enkel och exakt tidtagning för hela klassen vid löpning och terränglopp.">
     <meta property="og:url" content="https://skolifwebben.se/lopning.html">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="seo-shared.css">
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "Hur fungerar klasstidtagningen i Löprundan?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Välj klass via Mina Klasser eller klistra in deltagarna, ange valfri distans och tryck på Start. När eleverna springer i mål klickar du bara på respektive elevs ruta så sparas exakt tid, placering och km-tempo."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Vad gör jag om flera elever går i mål exakt samtidigt?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Klicka snabbt på Snabbtid (oidentifierad målgång) för att registrera exakt måltid direkt – sedan kopplar du ihop tiderna med rätt elever i lugn och ro när klungan passerat."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Går det att exportera resultaten eller skriva ut diplom?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Ja! När loppet är klart får du prispall, komplett resultatlista med km-tempo, Excel-export (CSV), klasshistorik i molnet och utskriftsklara A4-diplom."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Raderas tiderna om mobilen låser sig eller råkar laddas om?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Nej, pågående lopp sparas löpande i webbläsaren så att klockan och alla målgångar finns kvar om sidan laddas om."
+          }
+        }
+      ]
+    }
+    </script>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         html { font-size: 14px; }
@@ -466,7 +507,7 @@
         /* ====== VY 3: RESULTAT & EXPORT ====== */
         #summaryView { display: none; max-width: 900px; margin: 0 auto; }
         .summary-header { text-align: center; margin-bottom: 24px; }
-        .summary-header h1 { font-size: 2.2rem; font-weight: 900; color: #1E3A24; margin-bottom: 6px; }
+        .summary-header h2 { font-size: 2.2rem; font-weight: 900; color: #1E3A24; margin-bottom: 6px; }
         .podium {
             display: flex;
             justify-content: center;
@@ -736,7 +777,7 @@
     <!-- ========================================== -->
     <div id="setupView">
         <div class="setup-header">
-            <h1>⏱️ Starta ny löprunda</h1>
+            <h1>⏱️ Löprundan – Klasstidtagning</h1>
             <p>Mata in klassen eller deltagarna. När loppet startar klickar du bara på eleverna i målgångsordning!</p>
             <div style="background: #F0FDF4; border: 1px solid #BBF7D0; border-radius: 12px; padding: 10px 16px; margin: 14px auto 0 auto; max-width: 650px; display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 0.84rem; color: #166534; text-align: left;">
                 <span style="font-size: 1.3rem; flex-shrink: 0;">🌱</span>
@@ -875,7 +916,7 @@
     <div id="summaryView">
         <div class="summary-header">
             <span style="background: #E8F5E9; color: #2E7D32; font-weight: 700; font-size: 0.8rem; padding: 5px 14px; border-radius: 20px;">Slutresultat</span>
-            <h1 id="summaryTitel">Klass 7A - Löpning</h1>
+            <h2 id="summaryTitel">Klass 7A - Löpning</h2>
             <p id="summaryInfoText" style="color: #666; font-size: 0.95rem;">Distans: 2,0 km • 18 deltagare</p>
         </div>
 
@@ -923,6 +964,86 @@
     </div>
 
 </div><!-- /container -->
+
+<section class="skolif-seo-section" aria-label="Om Löprundan">
+    <div class="skolif-seo-card">
+        <div class="skolif-seo-grid">
+            <div>
+                <span class="skolif-seo-badge">Klasstidtagning &amp; Skoljoggen</span>
+                <h2>Enkel digital tidtagning för hela klassen vid löpning och friluftsdagar</h2>
+                <p>Löprundan är byggd för idrottslärare och Skol-IF som håller i <strong>terränglopp, Skoljoggen eller löppass</strong> med 20–30 elever samtidigt. I stället för stoppur och papperslistor startar du klockan på surfplattan eller mobilen och klickar bara på varje elev när de springer över mållinjen.</p>
+                <p>Kommer många i en tät klunga samtidigt finns funktionen <strong>Snabbtid</strong>, där du registrerar exakta måltider först och kopplar dem till elever efteråt. Efter loppet får ni prispall, kilometertempo, klasshistorik och färdiga diplom.</p>
+                <ul class="skolif-seo-bullets">
+                    <li>Hämtar klasslistor med ett klick via Mina Klasser i molnet</li>
+                    <li>Beräknar automatiskt km-tempo och tidsavstånd efter täten</li>
+                    <li>Sparar pågående lopp i webbläsaren så tider inte försvinner</li>
+                    <li>Skriv ut personliga elevdiplom, spara LOK-närvaro eller ladda ner Excel (CSV)</li>
+                </ul>
+            </div>
+            <div>
+                <h3>Vanliga frågor om Löprundan</h3>
+                <div class="skolif-faq-list">
+                    <details class="skolif-faq-item">
+                        <summary>Hur fungerar klasstidtagningen i Löprundan?</summary>
+                        <p>Välj klass via Mina Klasser eller klistra in deltagarna, ange valfri distans och tryck på Start. När eleverna springer i mål klickar du bara på respektive elevs ruta så sparas exakt tid, placering och km-tempo.</p>
+                    </details>
+                    <details class="skolif-faq-item">
+                        <summary>Vad gör jag om flera elever går i mål exakt samtidigt?</summary>
+                        <p>Klicka snabbt på Snabbtid (oidentifierad målgång) för att registrera exakt måltid direkt – sedan kopplar du ihop tiderna med rätt elever i lugn och ro när klungan passerat.</p>
+                    </details>
+                    <details class="skolif-faq-item">
+                        <summary>Går det att exportera resultaten eller skriva ut diplom?</summary>
+                        <p>Ja! När loppet är klart får du prispall, komplett resultatlista med km-tempo, Excel-export (CSV), klasshistorik i molnet och utskriftsklara A4-diplom.</p>
+                    </details>
+                    <details class="skolif-faq-item">
+                        <summary>Raderas tiderna om mobilen låser sig eller råkar laddas om?</summary>
+                        <p>Nej, pågående lopp sparas löpande i webbläsaren så att klockan och alla målgångar finns kvar om sidan laddas om.</p>
+                    </details>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<footer class="skolif-site-footer">
+    <div class="skolif-footer-inner">
+        <div class="skolif-footer-brand">
+            <strong>🏆 Skol-IF Webben</strong>
+            <p>Kostnadsfri digital plattform för svenska Skol-IF-föreningar och lärare i idrott och hälsa – byggd för att fungera direkt i webbläsaren, på iPad och i mobilen.</p>
+        </div>
+        <div class="skolif-footer-col">
+            <h4>För Skol-IF &amp; Förening</h4>
+            <ul>
+                <li><a href="kiosk.html">☕ Skol-IF Kassa (Kiosk)</a></li>
+                <li><a href="redskapsboden.html">⚽ Redskapsboden</a></li>
+                <li><a href="turnering.html">🏆 Skapa Turnering &amp; Spelschema</a></li>
+                <li><a href="kalender.html">📅 Aktivitetskalender &amp; Tavla</a></li>
+            </ul>
+        </div>
+        <div class="skolif-footer-col">
+            <h4>För Idrottsläraren</h4>
+            <ul>
+                <li><a href="lagdelaren.html">🎲 Lagdelaren (Slumpa lag)</a></li>
+                <li><a href="beeptest.html">📢 Beep-test (20m med ljud)</a></li>
+                <li><a href="tabata.html">🔔 Tabatatimer &amp; Intervallklocka</a></li>
+                <li><a href="lopning.html">⏱️ Löprundan (Tidtagning)</a></li>
+                <li><a href="hjulet.html">🎡 Uppvärmningshjulet</a></li>
+            </ul>
+        </div>
+        <div class="skolif-footer-col">
+            <h4>Om tjänsten</h4>
+            <ul>
+                <li><a href="index.html">🏠 Startsidan</a></li>
+                <li><a href="integritet.html">🔒 Integritetspolicy</a></li>
+                <li><a href="https://play.google.com/store/apps/details?id=com.sellin.tabatatimer" target="_blank" rel="noopener noreferrer">📱 Android-app (Google Play)</a></li>
+                <li><a href="https://forening.idrottsarenan.se" target="_blank" rel="noopener noreferrer">🏟️ Idrottsarenan (LOK-stöd)</a></li>
+            </ul>
+        </div>
+    </div>
+    <div class="skolif-footer-bottom">
+        &copy; 2026 Skol-IF Webben &amp; Skol-IF Appen &bull; Utvecklad av Tobias, idrotts- och matematiklärare &bull; <a href="integritet.html">Integritetspolicy</a>
+    </div>
+</footer>
 
 
 <!-- MODAL: KOPPLA OIDENTIFIERAD SPURTTID TILL ELEV -->
@@ -1661,7 +1782,7 @@
 
                 <div class="diplom-header">
                     <div class="diplom-header-badge">🏅</div>
-                    <h1 class="diplom-rubrik">DIPLOM</h1>
+                    <div class="diplom-rubrik">DIPLOM</div>
                     <div class="diplom-sub">SKOL-IF • LÖPRUNDAN</div>
                 </div>
 

@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Beep-test (20m) med Ljud & Nivåregistrering för Skola | Skol-IF Webben</title>
-    <meta name="description" content="Officiellt 20m Beep-test (Multi-Stage Fitness Test) direkt i webbläsaren för idrottslärare och Skol-IF. Synkat beepljud, storskärmsvy och enkel klickregistrering av elever.">
+    <title>Beep-test 20m med Ljud & Nivåer Online | Skol-IF Webben</title>
+    <meta name="description" content="Kör officiellt 20m beep-test online med synkat ljud och nivåer. Klicka ut elever vid vändlinjen, beräkna sträcka och skriv ut diplom till klassen.">
     <meta name="keywords" content="beep-test, beeptest 20m, beep test ljud skola, konditionstest idrott och hälsa, Skol-IF, idrottslärare">
     <meta name="robots" content="index, follow">
     <link rel="canonical" href="https://skolifwebben.se/beeptest.html">
@@ -15,6 +15,47 @@
     <meta property="og:description" content="Kör officiellt 20m Beep-test i idrottshallen med synkat ljud och automatisk resultatlista.">
     <meta property="og:url" content="https://skolifwebben.se/beeptest.html">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="seo-shared.css">
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "Vilken sträcka används för det här beep-testet?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Det bygger på den klassiska 20-metersbanan (Multi-Stage Fitness Test) med exakta ljudstämplar från nivå 1 (8,0 km/h) upp till nivå 21 (18,5 km/h)."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Hur registrerar jag elevernas resultat under testet?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Lägg in klassen i förväg via Mina Klasser eller klistra in namnlistan. När en elev inte hinner fram till linjen före pipet klickar du bara på elevens ruta så sparas exakt nivå, vända och total sträcka automatiskt."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Kan man spara resultaten eller skriva ut diplom till eleverna?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Ja, efter testet kan du spara klassens historik i molnet, exportera till Excel (CSV), spara som LOK-stöd eller skriva ut personliga A4-diplom direkt från webbläsaren."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Fungerar ljudet även utan CD-skiva eller Spotify?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Ja, allt ljud ligger inbyggt direkt på webbplatsen och synkas med nedräkningen på skärmen så att du ser exakt hur många sekunder det är kvar till nästa vändning."
+          }
+        }
+      ]
+    }
+    </script>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         html { font-size: 14px; }
@@ -405,7 +446,7 @@
         /* ====== SUMMARY VIEW ====== */
         #summaryView { display: none; max-width: 900px; margin: 0 auto; }
         .summary-header { text-align: center; margin-bottom: 24px; }
-        .summary-header h1 { font-size: 2.2rem; font-weight: 900; color: #1E3A24; margin-bottom: 6px; }
+        .summary-header h2 { font-size: 2.2rem; font-weight: 900; color: #1E3A24; margin-bottom: 6px; }
 
         .resultat-tabell {
             width: 100%;
@@ -630,7 +671,7 @@
     <!-- ========================================== -->
     <div id="setupView">
         <div class="setup-header">
-            <h1>📢 Nytt Beep-test (20 meter)</h1>
+            <h1>📢 Beep-test (20 meter) med synkat ljud</h1>
             <p>Mata in klassen. När testet startar spelas de officiella ljudsignalerna synkat och du klickar bara på eleverna när de inte hinner fram!</p>
             <div style="background: #F0FDF4; border: 1px solid #BBF7D0; border-radius: 12px; padding: 10px 16px; margin: 14px auto 0 auto; max-width: 650px; display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 0.84rem; color: #166534; text-align: left;">
                 <span style="font-size: 1.3rem; flex-shrink: 0;">🌱</span>
@@ -778,7 +819,7 @@
     <div id="summaryView">
         <div class="summary-header">
             <span style="background: #E8F5E9; color: #2E7D32; font-weight: 700; font-size: 0.8rem; padding: 5px 14px; border-radius: 20px;">Slutresultat</span>
-            <h1 id="summaryTitel">Klass 8B - Beep-test</h1>
+            <h2 id="summaryTitel">Klass 8B - Beep-test</h2>
             <p id="summaryInfoText" style="color: #666; font-size: 0.95rem;">20m Shuttle Run Test</p>
         </div>
 
@@ -824,6 +865,86 @@
     </div>
 
 </div>
+
+<section class="skolif-seo-section" aria-label="Om 20m Beep-test">
+    <div class="skolif-seo-card">
+        <div class="skolif-seo-grid">
+            <div>
+                <span class="skolif-seo-badge">Konditionstest &amp; Lektionsverktyg</span>
+                <h2>Kör officiellt 20m Beep-test direkt i idrottshallen</h2>
+                <p>Med vårt digitala <strong>20-meters Beep-test (Multi-Stage Fitness Test)</strong> slipper du krångla med gamla CD-skivor, Spotify-spår eller pappersprotokoll. Ljudspåret är exakt synkat med nivåer, hastighet och en tydlig förloppsindikator som visar varje vända på storbildsskärm.</p>
+                <p>När elever kliver av klickar du bara på respektive elevs kort. Systemet räknar automatiskt ut nivå, vända, total löpt sträcka och uppskattat VO2-max, och skapar färdiga resultatlistor samt A4-diplom att skriva ut.</p>
+                <ul class="skolif-seo-bullets">
+                    <li>Synkat pipljud från nivå 1 till 21 med nedräkning till nästa vändning</li>
+                    <li>Enkel klickregistrering per elev – fungerar på mobil, iPad och laptop</li>
+                    <li>Export till Excel (CSV), utskrift av personliga elevdiplom och klasshistorik</li>
+                    <li>Byggt för elevers egen träningsglädje och utveckling – inte betygssättning</li>
+                </ul>
+            </div>
+            <div>
+                <h3>Vanliga frågor om Beep-test</h3>
+                <div class="skolif-faq-list">
+                    <details class="skolif-faq-item">
+                        <summary>Vilken sträcka används för det här beep-testet?</summary>
+                        <p>Det bygger på den klassiska 20-metersbanan (Multi-Stage Fitness Test) med exakta ljudstämplar från nivå 1 (8,0 km/h) upp till nivå 21 (18,5 km/h).</p>
+                    </details>
+                    <details class="skolif-faq-item">
+                        <summary>Hur registrerar jag elevernas resultat under testet?</summary>
+                        <p>Lägg in klassen i förväg via Mina Klasser eller klistra in namnlistan. När en elev inte hinner fram till linjen före pipet klickar du bara på elevens ruta så sparas exakt nivå, vända och total sträcka automatiskt.</p>
+                    </details>
+                    <details class="skolif-faq-item">
+                        <summary>Kan man spara resultaten eller skriva ut diplom till eleverna?</summary>
+                        <p>Ja, efter testet kan du spara klassens historik i molnet, exportera till Excel (CSV), spara som LOK-stöd eller skriva ut personliga A4-diplom direkt från webbläsaren.</p>
+                    </details>
+                    <details class="skolif-faq-item">
+                        <summary>Fungerar ljudet även utan CD-skiva eller Spotify?</summary>
+                        <p>Ja, allt ljud ligger inbyggt direkt på webbplatsen och synkas med nedräkningen på skärmen så att du ser exakt hur många sekunder det är kvar till nästa vändning.</p>
+                    </details>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<footer class="skolif-site-footer">
+    <div class="skolif-footer-inner">
+        <div class="skolif-footer-brand">
+            <strong>🏆 Skol-IF Webben</strong>
+            <p>Kostnadsfri digital plattform för svenska Skol-IF-föreningar och lärare i idrott och hälsa – byggd för att fungera direkt i webbläsaren, på iPad och i mobilen.</p>
+        </div>
+        <div class="skolif-footer-col">
+            <h4>För Skol-IF &amp; Förening</h4>
+            <ul>
+                <li><a href="kiosk.html">☕ Skol-IF Kassa (Kiosk)</a></li>
+                <li><a href="redskapsboden.html">⚽ Redskapsboden</a></li>
+                <li><a href="turnering.html">🏆 Skapa Turnering &amp; Spelschema</a></li>
+                <li><a href="kalender.html">📅 Aktivitetskalender &amp; Tavla</a></li>
+            </ul>
+        </div>
+        <div class="skolif-footer-col">
+            <h4>För Idrottsläraren</h4>
+            <ul>
+                <li><a href="lagdelaren.html">🎲 Lagdelaren (Slumpa lag)</a></li>
+                <li><a href="beeptest.html">📢 Beep-test (20m med ljud)</a></li>
+                <li><a href="tabata.html">🔔 Tabatatimer &amp; Intervallklocka</a></li>
+                <li><a href="lopning.html">⏱️ Löprundan (Tidtagning)</a></li>
+                <li><a href="hjulet.html">🎡 Uppvärmningshjulet</a></li>
+            </ul>
+        </div>
+        <div class="skolif-footer-col">
+            <h4>Om tjänsten</h4>
+            <ul>
+                <li><a href="index.html">🏠 Startsidan</a></li>
+                <li><a href="integritet.html">🔒 Integritetspolicy</a></li>
+                <li><a href="https://play.google.com/store/apps/details?id=com.sellin.tabatatimer" target="_blank" rel="noopener noreferrer">📱 Android-app (Google Play)</a></li>
+                <li><a href="https://forening.idrottsarenan.se" target="_blank" rel="noopener noreferrer">🏟️ Idrottsarenan (LOK-stöd)</a></li>
+            </ul>
+        </div>
+    </div>
+    <div class="skolif-footer-bottom">
+        &copy; 2026 Skol-IF Webben &amp; Skol-IF Appen &bull; Utvecklad av Tobias, idrotts- och matematiklärare &bull; <a href="integritet.html">Integritetspolicy</a>
+    </div>
+</footer>
 
 <!-- MODAL: SKRIV UT DIPLOM -->
 <div class="diplom-modal-overlay" id="diplomModal">
@@ -1598,7 +1719,7 @@
 
                 <div class="diplom-header">
                     <div class="diplom-header-badge">📢</div>
-                    <h1 class="diplom-rubrik">DIPLOM</h1>
+                    <div class="diplom-rubrik">DIPLOM</div>
                     <div class="diplom-sub">SKOL-IF • 20M BEEP-TEST</div>
                 </div>
 
