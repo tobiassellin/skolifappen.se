@@ -911,10 +911,10 @@
         <div class="card no-print" style="padding:16px 20px; display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;">
             <div style="display:flex; gap:8px; flex-wrap:wrap;">
                 <button type="button" id="exportExcelMainBtn" class="btn btn-green btn-sm" onclick="exporteraHotellExcel()">
-                    📊 Exportera Rums- &amp; Specialkostlista (Excel .xlsx)
+                    📊 Exportera Hotellista (1 flik, Excel .xlsx)
                 </button>
-                <button type="button" id="exportExcelAllergyBtn" class="btn btn-blue btn-sm" onclick="exporteraAllergiExcel()">
-                    🍽️ Endast Specialkost/Allergier (Excel .xlsx)
+                <button type="button" class="btn btn-blue btn-sm" onclick="kopieraHotellistaTillMejl()">
+                    📋 Kopiera allt till mejl
                 </button>
                 <button type="button" class="btn btn-outline btn-sm" onclick="window.print()">
                     🖨️ Skriv ut / Spara PDF
@@ -2775,38 +2775,39 @@ async function exporteraHotellExcel() {
         workbook.created = new Date();
 
         // ==========================================
-        // FLIK 1: RUMSFÖRDELNING (1 RAD PER PERSON, GRUPPERAD PER RUM)
+        // ALLT PÅ EN ENDA FLIK (LÄTT ATT KOPIERA TILL MEJL)
         // ==========================================
-        const wsRooms = workbook.addWorksheet('Rumsfördelning', {
+        const ws = workbook.addWorksheet('Hotellista', {
             pageSetup: { paperSize: 9, orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0 }
         });
 
-        wsRooms.columns = [
-            { width: 12 }, // Rum
-            { width: 22 }, // Rumstyp
-            { width: 34 }, // Vistelse / Nätter
-            { width: 22 }, // Distrikt
-            { width: 28 }, // Namn (Deltagare)
-            { width: 34 }  // Specialkost / Allergi
+        ws.columns = [
+            { width: 14 }, // A: Rum / Vistelse / Namn
+            { width: 22 }, // B: Rumstyp / Enkelrum / Specialkost
+            { width: 34 }, // C: Vistelse / Dubbelrum / Distrikt
+            { width: 22 }, // D: Distrikt / Trebäddsrum / Rum
+            { width: 28 }, // E: Namn (Deltagare) / Totalt rum
+            { width: 34 }  // F: Specialkost / Allergi / Deltagare
         ];
 
         let totalGuests = 0;
         rooms.forEach(r => r.guests.forEach(g => { if (g && String(g.name || '').trim()) totalGuests++; }));
 
-        wsRooms.mergeCells('A1:F1');
-        const t1 = wsRooms.getCell('A1');
+        ws.mergeCells('A1:F1');
+        const t1 = ws.getCell('A1');
         t1.value = `${eventConfig.titel} – Rumsfördelning & Specialkost`;
         t1.font = { name: 'Calibri', size: 15, bold: true, color: { argb: 'FF143321' } };
-        wsRooms.getRow(1).height = 24;
+        ws.getRow(1).height = 24;
 
-        wsRooms.mergeCells('A2:F2');
-        const s1 = wsRooms.getCell('A2');
+        ws.mergeCells('A2:F2');
+        const s1 = ws.getCell('A2');
         s1.value = `Exporterad ${today} • ${rooms.length} rum totalt • ${totalGuests} anmälda deltagare • Personer i samma dubbel- eller trebäddsrum är grupperade ihop.`;
         s1.font = { name: 'Calibri', size: 10, italic: true, color: { argb: 'FF475569' } };
-        wsRooms.getRow(2).height = 18;
-        wsRooms.getRow(3).height = 8;
+        ws.getRow(2).height = 18;
+        ws.getRow(3).height = 8;
 
-        const hdrRow = wsRooms.addRow(['Rum', 'Rumstyp', 'Vistelse / Nätter', 'Distrikt', 'Namn (Deltagare)', 'Specialkost / Allergi']);
+        // 1. RUMSFÖRDELNING (1 RAD PER PERSON, GRUPPERAD PER RUM)
+        const hdrRow = ws.addRow(['Rum', 'Rumstyp', 'Vistelse / Nätter', 'Distrikt', 'Namn (Deltagare)', 'Specialkost / Allergi']);
         hdrRow.height = 26;
         hdrRow.eachCell(cell => {
             cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1B4332' } };
@@ -2820,7 +2821,7 @@ async function exporteraHotellExcel() {
 
         rooms.forEach((r, rIdx) => {
             const rowCount = Math.max(1, r.capacity);
-            const startRow = wsRooms.lastRow.number + 1;
+            const startRow = ws.lastRow.number + 1;
             const endRow = startRow + rowCount - 1;
             const roomBg = rIdx % 2 === 0 ? 'FFFFFFFF' : 'FFF2F7F4';
             const typeFull = (ROOM_TYPES[r.type] && ROOM_TYPES[r.type].label) || r.typeLabel;
@@ -2830,7 +2831,7 @@ async function exporteraHotellExcel() {
                 const g = r.guests[gIdx] || {};
                 const gName = String(g.name || '').trim();
                 const gAllergy = String(g.allergy || '').trim();
-                const row = wsRooms.addRow([
+                const row = ws.addRow([
                     `Rum ${r.globalNr}`,
                     typeFull,
                     r.stay,
@@ -2874,46 +2875,24 @@ async function exporteraHotellExcel() {
                 });
             }
 
-            // Slå ihop Rum, Rumstyp, Vistelse och Distrikt vertikalt för dubbel- & trebäddsrum
             if (rowCount > 1) {
-                wsRooms.mergeCells(startRow, 1, endRow, 1);
-                wsRooms.mergeCells(startRow, 2, endRow, 2);
-                wsRooms.mergeCells(startRow, 3, endRow, 3);
-                wsRooms.mergeCells(startRow, 4, endRow, 4);
+                ws.mergeCells(startRow, 1, endRow, 1);
+                ws.mergeCells(startRow, 2, endRow, 2);
+                ws.mergeCells(startRow, 3, endRow, 3);
+                ws.mergeCells(startRow, 4, endRow, 4);
             }
         });
 
-        wsRooms.views = [{ state: 'frozen', ySplit: 4 }];
+        // 2. SUMMERING AV ANTAL RUM & NÄTTER (PÅ SAMMA FLIK)
+        ws.addRow([]);
+        ws.addRow([]);
+        const sumTitleRow = ws.addRow(['SUMMERING TILL HOTELLET (ANTAL RUM PER NATT)']);
+        ws.mergeCells(sumTitleRow.number, 1, sumTitleRow.number, 6);
+        sumTitleRow.getCell(1).font = { name: 'Calibri', size: 12, bold: true, color: { argb: 'FF143321' } };
+        sumTitleRow.height = 22;
 
-        // ==========================================
-        // FLIK 2: SUMMERING TILL HOTELLET & KONTAKTPERSONER
-        // ==========================================
-        const wsSum = workbook.addWorksheet('Summering till hotellet', {
-            pageSetup: { paperSize: 9, orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0 }
-        });
-
-        wsSum.columns = [
-            { width: 34 },
-            { width: 16 },
-            { width: 16 },
-            { width: 18 },
-            { width: 16 },
-            { width: 24 }
-        ];
-
-        wsSum.mergeCells('A1:F1');
-        wsSum.getCell('A1').value = `${eventConfig.titel} – Summering till hotellet`;
-        wsSum.getCell('A1').font = { name: 'Calibri', size: 15, bold: true, color: { argb: 'FF143321' } };
-        wsSum.getRow(1).height = 24;
-
-        wsSum.mergeCells('A2:F2');
-        wsSum.getCell('A2').value = `Exporterad ${today}`;
-        wsSum.getCell('A2').font = { name: 'Calibri', size: 10, italic: true, color: { argb: 'FF475569' } };
-        wsSum.getRow(2).height = 18;
-        wsSum.getRow(3).height = 8;
-
-        const sumHdr = wsSum.addRow(['Vistelse / Nätter', 'Enkelrum (1p)', 'Dubbelrum (2p)', 'Trebäddsrum (3p)', 'Totalt antal rum', 'Antal deltagare']);
-        sumHdr.height = 25;
+        const sumHdr = ws.addRow(['Enkelrum (1p)', 'Dubbelrum (2p)', 'Vistelse / Nätter', 'Trebäddsrum (3p)', 'Totalt antal rum', 'Antal deltagare']);
+        sumHdr.height = 24;
         sumHdr.eachCell(cell => {
             cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1B4332' } };
             cell.font = { name: 'Calibri', size: 11, bold: true, color: { argb: 'FFFFFFFF' } };
@@ -2933,72 +2912,95 @@ async function exporteraHotellExcel() {
             subset.forEach(r => r.guests.forEach(g => { if (g && String(g.name || '').trim()) pC++; }));
             totS += sC; totD += dC; totT += tC; totR += subset.length; totP += pC;
 
-            const row = wsSum.addRow([stayLabel, sC, dC, tC, subset.length, pC]);
+            const row = ws.addRow([`${sC} st`, `${dC} st`, stayLabel, `${tC} st`, `${subset.length} rum`, `${pC} pers`]);
             row.height = 22;
             row.eachCell((cell, colNum) => {
-                cell.font = { name: 'Calibri', size: 11, bold: colNum === 1 || colNum === 5 };
-                cell.alignment = { vertical: 'middle', horizontal: colNum === 1 ? 'left' : 'center' };
-                cell.border = { bottom: { style: 'thin', color: { argb: 'FFE2E8F0' } } };
+                cell.font = { name: 'Calibri', size: 11, bold: colNum === 3 || colNum === 5 };
+                cell.alignment = { vertical: 'middle', horizontal: colNum === 3 ? 'left' : 'center' };
+                cell.border = {
+                    bottom: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+                    left: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+                    right: { style: 'thin', color: { argb: 'FFE2E8F0' } }
+                };
             });
         });
 
-        const totRow = wsSum.addRow(['TOTALT', totS, totD, totT, totR, totP]);
+        const totRow = ws.addRow([`${totS} st`, `${totD} st`, 'TOTALT ALLA NÄTTER', `${totT} st`, `${totR} rum`, `${totP} pers`]);
         totRow.height = 24;
         totRow.eachCell((cell, colNum) => {
             cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE8F5E9' } };
             cell.font = { name: 'Calibri', size: 11, bold: true, color: { argb: 'FF143321' } };
-            cell.alignment = { vertical: 'middle', horizontal: colNum === 1 ? 'left' : 'center' };
+            cell.alignment = { vertical: 'middle', horizontal: colNum === 3 ? 'left' : 'center' };
             cell.border = {
                 top: { style: 'medium', color: { argb: 'FF2E7D32' } },
                 bottom: { style: 'medium', color: { argb: 'FF2E7D32' } }
             };
         });
 
-        wsSum.addRow([]);
-        wsSum.addRow([]);
-        const contactTitleRow = wsSum.addRow(['Kontaktpersoner per distrikt']);
-        contactTitleRow.getCell(1).font = { name: 'Calibri', size: 13, bold: true, color: { argb: 'FF143321' } };
-        contactTitleRow.height = 22;
-
-        const cHdr = wsSum.addRow(['Distrikt', 'Kontaktperson', 'Telefon', 'Antal rum', 'Antal deltagare', 'Övrig notering']);
-        cHdr.height = 24;
-        cHdr.eachCell(cell => {
-            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1B4332' } };
-            cell.font = { name: 'Calibri', size: 11, bold: true, color: { argb: 'FFFFFFFF' } };
-            cell.alignment = { vertical: 'middle', horizontal: 'left' };
-        });
-
-        Object.keys(DISTRICTS).forEach(distId => {
-            const meta = DISTRICTS[distId];
-            const d = allDistrictsData[distId] || {};
-            const dRooms = Array.isArray(d.rooms) ? d.rooms : [];
-            let dGuests = 0;
-            dRooms.forEach(r => (r.guests || []).forEach(g => { if (g && String(g.name || '').trim()) dGuests++; }));
-            const cRow = wsSum.addRow([
-                meta.name,
-                d.contactName || 'Ej angiven',
-                d.contactPhone || '—',
-                dRooms.length,
-                dGuests,
-                d.comment || '—'
-            ]);
-            cRow.height = 22;
-            cRow.eachCell((cell, colNum) => {
-                cell.font = { name: 'Calibri', size: 11, bold: colNum === 1 };
-                cell.alignment = { vertical: 'middle', horizontal: (colNum === 4 || colNum === 5) ? 'center' : 'left', wrapText: true };
-                cell.border = { bottom: { style: 'thin', color: { argb: 'FFE2E8F0' } } };
+        // 3. SAMLAD SPECIALKOST / ALLERGIER (PÅ SAMMA FLIK)
+        const allergyList = [];
+        rooms.forEach(r => {
+            const typeFull = (ROOM_TYPES[r.type] && ROOM_TYPES[r.type].label) || r.typeLabel;
+            r.guests.forEach(g => {
+                if (g && String(g.allergy || '').trim()) {
+                    allergyList.push([
+                        `Rum ${r.globalNr}`,
+                        typeFull,
+                        r.stay,
+                        r.districtName,
+                        String(g.name || '').trim() || '(Namn saknas)',
+                        String(g.allergy || '').trim()
+                    ]);
+                }
             });
         });
 
-        // ==========================================
-        // FLIK 3: SPECIALKOST & ALLERGIER
-        // ==========================================
-        buildSpecialkostSheet(workbook, rooms, today);
+        ws.addRow([]);
+        ws.addRow([]);
+        const algTitleRow = ws.addRow([`SAMLAD SPECIALKOST & ALLERGIER (${allergyList.length} st)`]);
+        ws.mergeCells(algTitleRow.number, 1, algTitleRow.number, 6);
+        algTitleRow.getCell(1).font = { name: 'Calibri', size: 12, bold: true, color: { argb: 'FFB91C1C' } };
+        algTitleRow.height = 22;
+
+        if (allergyList.length === 0) {
+            const noAlg = ws.addRow(['Inga allergier eller specialkost anmälda.']);
+            ws.mergeCells(noAlg.number, 1, noAlg.number, 6);
+            noAlg.getCell(1).font = { name: 'Calibri', size: 10, italic: true, color: { argb: 'FF64748B' } };
+        } else {
+            const algHdr = ws.addRow(['Rum', 'Rumstyp', 'Vistelse / Nätter', 'Distrikt', 'Namn (Deltagare)', 'Specialkost / Allergi']);
+            algHdr.height = 24;
+            algHdr.eachCell(cell => {
+                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF991B1B' } };
+                cell.font = { name: 'Calibri', size: 11, bold: true, color: { argb: 'FFFFFFFF' } };
+                cell.alignment = { vertical: 'middle', horizontal: 'left' };
+            });
+
+            allergyList.forEach(vals => {
+                const aRow = ws.addRow(vals);
+                aRow.height = 22;
+                aRow.eachCell((cell, colNum) => {
+                    cell.alignment = { vertical: 'middle', horizontal: 'left', wrapText: true };
+                    cell.border = {
+                        bottom: { style: 'thin', color: { argb: 'FFFECACA' } },
+                        left: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+                        right: { style: 'thin', color: { argb: 'FFE2E8F0' } }
+                    };
+                    if (colNum === 6) {
+                        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFEF2F2' } };
+                        cell.font = { name: 'Calibri', size: 11, bold: true, color: { argb: 'FFB91C1C' } };
+                    } else {
+                        cell.font = { name: 'Calibri', size: 11, bold: colNum === 5, color: { argb: 'FF0F172A' } };
+                    }
+                });
+            });
+        }
+
+        ws.views = [{ state: 'frozen', ySplit: 4 }];
 
         const buffer = await workbook.xlsx.writeBuffer();
         const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
         downloadBlobFile(`SkolIF_Hotell_Rumslista_${today}.xlsx`, blob);
-        showToast('📊 Snygg Excel-fil (.xlsx) med 3 flikar har laddats ner!', 'success');
+        showToast('📊 Hotellistan (allt på 1 flik, .xlsx) har laddats ner!', 'success');
     } catch (err) {
         console.error('Excel-export misslyckades, använder CSV-reserv:', err);
         exporteraHotellCSV();
@@ -3006,6 +3008,87 @@ async function exporteraHotellExcel() {
         if (btn) {
             btn.disabled = false;
             btn.textContent = origText;
+        }
+    }
+}
+
+async function kopieraHotellistaTillMejl() {
+    const rooms = getFlattenedRooms('ALL');
+    if (rooms.length === 0) {
+        showToast('Det finns inga bokade rum att kopiera ännu.', 'warning');
+        return;
+    }
+
+    const staysSet = new Set(eventConfig.nightOptions);
+    rooms.forEach(r => { if (r.stay) staysSet.add(r.stay); });
+
+    // Bygg både snygg HTML-tabell (för Outlook/Gmail) och ren text
+    let plain = `${eventConfig.titel}\n\nSUMMERING:\n`;
+    let html = `<div style="font-family:Calibri,Arial,sans-serif; font-size:14px; color:#0F172A;">`;
+    html += `<h2 style="color:#143321; margin-bottom:6px;">${escapeHtml(eventConfig.titel)}</h2>`;
+
+    // Summering
+    html += `<h3 style="color:#143321; margin:12px 0 6px;">Summering av antal rum</h3>`;
+    html += `<table style="border-collapse:collapse; width:100%; max-width:780px; font-size:13px; margin-bottom:16px;">`;
+    html += `<tr style="background:#1B4332; color:white;"><th style="padding:7px 10px; border:1px solid #CBD5E1; text-align:left;">Vistelse / Nätter</th><th style="padding:7px 10px; border:1px solid #CBD5E1;">Enkelrum</th><th style="padding:7px 10px; border:1px solid #CBD5E1;">Dubbelrum</th><th style="padding:7px 10px; border:1px solid #CBD5E1;">Trebäddsrum</th><th style="padding:7px 10px; border:1px solid #CBD5E1;">Totalt rum</th></tr>`;
+    Array.from(staysSet).forEach(stayLabel => {
+        const subset = rooms.filter(r => r.stay === stayLabel);
+        if (subset.length === 0) return;
+        const sC = subset.filter(r => r.type === 'single').length;
+        const dC = subset.filter(r => r.type === 'double').length;
+        const tC = subset.filter(r => r.type === 'triple').length;
+        plain += `- ${stayLabel}: ${sC} Enkelrum, ${dC} Dubbelrum, ${tC} Trebäddsrum (Totalt ${subset.length} rum)\n`;
+        html += `<tr><td style="padding:6px 10px; border:1px solid #CBD5E1; font-weight:bold;">${escapeHtml(stayLabel)}</td><td style="padding:6px 10px; border:1px solid #CBD5E1; text-align:center;">${sC} st</td><td style="padding:6px 10px; border:1px solid #CBD5E1; text-align:center;">${dC} st</td><td style="padding:6px 10px; border:1px solid #CBD5E1; text-align:center;">${tC} st</td><td style="padding:6px 10px; border:1px solid #CBD5E1; text-align:center; font-weight:bold;">${subset.length} rum</td></tr>`;
+    });
+    html += `</table>`;
+
+    // Rumsfördelning
+    plain += `\nRUMSFÖRDELNING & SPECIALKOST:\n`;
+    html += `<h3 style="color:#143321; margin:12px 0 6px;">Rumsfördelning &amp; Specialkost</h3>`;
+    html += `<table style="border-collapse:collapse; width:100%; max-width:900px; font-size:13px;">`;
+    html += `<tr style="background:#1B4332; color:white;"><th style="padding:7px 10px; border:1px solid #CBD5E1; text-align:left;">Rum</th><th style="padding:7px 10px; border:1px solid #CBD5E1; text-align:left;">Rumstyp</th><th style="padding:7px 10px; border:1px solid #CBD5E1; text-align:left;">Vistelse / Nätter</th><th style="padding:7px 10px; border:1px solid #CBD5E1; text-align:left;">Distrikt</th><th style="padding:7px 10px; border:1px solid #CBD5E1; text-align:left;">Namn</th><th style="padding:7px 10px; border:1px solid #CBD5E1; text-align:left;">Specialkost / Allergi</th></tr>`;
+
+    rooms.forEach((r, rIdx) => {
+        const rowCount = Math.max(1, r.capacity);
+        const bg = rIdx % 2 === 0 ? '#FFFFFF' : '#F4F9F5';
+        const typeFull = (ROOM_TYPES[r.type] && ROOM_TYPES[r.type].label) || r.typeLabel;
+        plain += `\nRum ${r.globalNr} – ${typeFull} (${r.stay}) [${r.districtName}]:\n`;
+        for (let gIdx = 0; gIdx < rowCount; gIdx++) {
+            const g = r.guests[gIdx] || {};
+            const gName = String(g.name || '').trim() || '(Tom bädd)';
+            const gAllergy = String(g.allergy || '').trim();
+            plain += `  ${gIdx + 1}. ${gName}${gAllergy ? ' — Specialkost: ' + gAllergy : ''}\n`;
+            html += `<tr style="background:${bg};">`;
+            if (gIdx === 0) {
+                html += `<td rowspan="${rowCount}" style="padding:6px 10px; border:1px solid #94A3B8; font-weight:bold; vertical-align:middle;">Rum ${r.globalNr}</td>`;
+                html += `<td rowspan="${rowCount}" style="padding:6px 10px; border:1px solid #94A3B8; font-weight:bold; vertical-align:middle;">${escapeHtml(typeFull)}</td>`;
+                html += `<td rowspan="${rowCount}" style="padding:6px 10px; border:1px solid #94A3B8; vertical-align:middle;">${escapeHtml(r.stay)}</td>`;
+                html += `<td rowspan="${rowCount}" style="padding:6px 10px; border:1px solid #94A3B8; vertical-align:middle;">${escapeHtml(r.districtName)}</td>`;
+            }
+            html += `<td style="padding:6px 10px; border:1px solid #CBD5E1; font-weight:bold;">${escapeHtml(gName)}</td>`;
+            html += `<td style="padding:6px 10px; border:1px solid #CBD5E1; ${gAllergy ? 'background:#FEF2F2; color:#B91C1C; font-weight:bold;' : 'color:#94A3B8;'}">${gAllergy ? escapeHtml(gAllergy) : '—'}</td>`;
+            html += `</tr>`;
+        }
+    });
+    html += `</table></div>`;
+
+    try {
+        if (navigator.clipboard && window.ClipboardItem) {
+            const item = new ClipboardItem({
+                'text/html': new Blob([html], { type: 'text/html' }),
+                'text/plain': new Blob([plain], { type: 'text/plain' })
+            });
+            await navigator.clipboard.write([item]);
+        } else {
+            await navigator.clipboard.writeText(plain);
+        }
+        showToast('📋 Hela hotellistan är kopierad! Klistra in direkt i mejlet (Ctrl+V).', 'success');
+    } catch (err) {
+        try {
+            await navigator.clipboard.writeText(plain);
+            showToast('📋 Hotellistan kopierad som text! Klistra in i mejlet (Ctrl+V).', 'success');
+        } catch (e) {
+            showToast('Kunde inte kopiera automatiskt – ladda ner Excel-filen istället.', 'warning');
         }
     }
 }
