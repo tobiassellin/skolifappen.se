@@ -910,11 +910,11 @@
         <!-- Snabbåtgärder & Export -->
         <div class="card no-print" style="padding:16px 20px; display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;">
             <div style="display:flex; gap:8px; flex-wrap:wrap;">
-                <button type="button" class="btn btn-green btn-sm" onclick="exporteraHotellCSV()">
-                    🏨 Exportera Rumslista (Excel/CSV)
+                <button type="button" id="exportExcelMainBtn" class="btn btn-green btn-sm" onclick="exporteraHotellExcel()">
+                    📊 Exportera Rums- &amp; Specialkostlista (Excel .xlsx)
                 </button>
-                <button type="button" class="btn btn-blue btn-sm" onclick="exporteraAllergiCSV()">
-                    🍽️ Exportera Specialkost/Allergier (Excel/CSV)
+                <button type="button" id="exportExcelAllergyBtn" class="btn btn-blue btn-sm" onclick="exporteraAllergiExcel()">
+                    🍽️ Endast Specialkost/Allergier (Excel .xlsx)
                 </button>
                 <button type="button" class="btn btn-outline btn-sm" onclick="window.print()">
                     🖨️ Skriv ut / Spara PDF
@@ -1084,10 +1084,11 @@ match /utbildning_anmalan/{districtId} {
     </div>
 </div>
 
-<!-- FIREBASE SDK v8 (Fristående utan klasser.js eller AdSense) -->
+<!-- FIREBASE SDK v8 & EXCELJS (Fristående utan klasser.js eller AdSense) -->
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
 
 <script>
 const firebaseConfig = {
@@ -2636,14 +2637,13 @@ async function raderaRumFranAdminModal() {
 }
 
 // ==========================================
-//  CSV-EXPORTER (MED UTF-8 BOM FÖR SVENSKT EXCEL)
+//  EXCEL-EXPORTER (.XLSX MED SNYGG RUMSGUPPERING + CSV-FALLBACK)
 // ==========================================
 function csvCell(val) {
     return `"${String(val || '').replace(/"/g, '""')}"`;
 }
 
-function downloadCsvFile(filename, csvContent) {
-    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+function downloadBlobFile(filename, blob) {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -2654,6 +2654,392 @@ function downloadCsvFile(filename, csvContent) {
     URL.revokeObjectURL(url);
 }
 
+function downloadCsvFile(filename, csvContent) {
+    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    downloadBlobFile(filename, blob);
+}
+
+function buildSpecialkostSheet(workbook, rooms, today) {
+    const ws = workbook.addWorksheet('Specialkost & Allergier', {
+        pageSetup: { paperSize: 9, orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0 }
+    });
+
+    ws.columns = [
+        { width: 28 }, // Namn
+        { width: 38 }, // Specialkost / Allergi
+        { width: 22 }, // Distrikt
+        { width: 12 }, // Rum
+        { width: 22 }, // Rumstyp
+        { width: 34 }  // Vistelse / Nätter
+    ];
+
+    ws.mergeCells('A1:F1');
+    const titleCell = ws.getCell('A1');
+    titleCell.value = `${eventConfig.titel} – Specialkost & Allergier`;
+    titleCell.font = { name: 'Calibri', size: 15, bold: true, color: { argb: 'FF143321' } };
+    ws.getRow(1).height = 24;
+
+    ws.mergeCells('A2:F2');
+    const subCell = ws.getCell('A2');
+    subCell.value = `Exporterad ${today} • Samlad lista för kök och restaurang`;
+    subCell.font = { name: 'Calibri', size: 10, italic: true, color: { argb: 'FF475569' } };
+    ws.getRow(2).height = 18;
+    ws.getRow(3).height = 8;
+
+    const headerRow = ws.addRow(['Namn (Deltagare)', 'Specialkost / Allergi', 'Distrikt', 'Rum', 'Rumstyp', 'Vistelse / Nätter']);
+    headerRow.height = 26;
+    headerRow.eachCell(cell => {
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1B4332' } };
+        cell.font = { name: 'Calibri', size: 11, bold: true, color: { argb: 'FFFFFFFF' } };
+        cell.alignment = { vertical: 'middle', horizontal: 'left', wrapText: true };
+        cell.border = {
+            top: { style: 'thin', color: { argb: 'FF143321' } },
+            bottom: { style: 'medium', color: { argb: 'FF143321' } }
+        };
+    });
+
+    const allergyRows = [];
+    rooms.forEach(r => {
+        const typeFull = (ROOM_TYPES[r.type] && ROOM_TYPES[r.type].label) || r.typeLabel;
+        r.guests.forEach(g => {
+            if (g && String(g.allergy || '').trim()) {
+                allergyRows.push([
+                    String(g.name || '').trim() || '(Namn saknas)',
+                    String(g.allergy || '').trim(),
+                    r.districtName,
+                    `Rum ${r.globalNr}`,
+                    typeFull,
+                    r.stay
+                ]);
+            }
+        });
+    });
+
+    if (allergyRows.length === 0) {
+        ws.mergeCells('A5:F5');
+        const emptyCell = ws.getCell('A5');
+        emptyCell.value = 'Inga allergier eller specialkost har anmälts.';
+        emptyCell.font = { name: 'Calibri', size: 11, italic: true, color: { argb: 'FF64748B' } };
+        ws.getRow(5).height = 24;
+    } else {
+        allergyRows.forEach((vals, idx) => {
+            const row = ws.addRow(vals);
+            row.height = 22;
+            const bg = idx % 2 === 0 ? 'FFFFFFFF' : 'FFF8FAFC';
+            row.eachCell((cell, colNum) => {
+                cell.alignment = { vertical: 'middle', horizontal: 'left', wrapText: true };
+                cell.border = {
+                    top: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+                    bottom: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+                    left: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+                    right: { style: 'thin', color: { argb: 'FFE2E8F0' } }
+                };
+                if (colNum === 2) {
+                    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFEF2F2' } };
+                    cell.font = { name: 'Calibri', size: 11, bold: true, color: { argb: 'FFB91C1C' } };
+                } else {
+                    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bg } };
+                    cell.font = { name: 'Calibri', size: 11, bold: colNum === 1, color: { argb: 'FF0F172A' } };
+                }
+            });
+        });
+    }
+
+    ws.views = [{ state: 'frozen', ySplit: 4 }];
+    return allergyRows.length;
+}
+
+async function exporteraHotellExcel() {
+    const rooms = getFlattenedRooms('ALL');
+    if (rooms.length === 0) {
+        showToast('Det finns inga bokade rum att exportera ännu.', 'warning');
+        return;
+    }
+
+    if (typeof ExcelJS === 'undefined') {
+        exporteraHotellCSV();
+        return;
+    }
+
+    const btn = document.getElementById('exportExcelMainBtn');
+    const origText = btn ? btn.textContent : '';
+    if (btn) {
+        btn.disabled = true;
+        btn.textContent = '⏳ Skapar Excel-fil...';
+    }
+
+    try {
+        const today = new Date().toISOString().slice(0, 10);
+        const workbook = new ExcelJS.Workbook();
+        workbook.creator = 'Skol-IF Webben';
+        workbook.created = new Date();
+
+        // ==========================================
+        // FLIK 1: RUMSFÖRDELNING (1 RAD PER PERSON, GRUPPERAD PER RUM)
+        // ==========================================
+        const wsRooms = workbook.addWorksheet('Rumsfördelning', {
+            pageSetup: { paperSize: 9, orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0 }
+        });
+
+        wsRooms.columns = [
+            { width: 12 }, // Rum
+            { width: 22 }, // Rumstyp
+            { width: 34 }, // Vistelse / Nätter
+            { width: 22 }, // Distrikt
+            { width: 28 }, // Namn (Deltagare)
+            { width: 34 }  // Specialkost / Allergi
+        ];
+
+        let totalGuests = 0;
+        rooms.forEach(r => r.guests.forEach(g => { if (g && String(g.name || '').trim()) totalGuests++; }));
+
+        wsRooms.mergeCells('A1:F1');
+        const t1 = wsRooms.getCell('A1');
+        t1.value = `${eventConfig.titel} – Rumsfördelning & Specialkost`;
+        t1.font = { name: 'Calibri', size: 15, bold: true, color: { argb: 'FF143321' } };
+        wsRooms.getRow(1).height = 24;
+
+        wsRooms.mergeCells('A2:F2');
+        const s1 = wsRooms.getCell('A2');
+        s1.value = `Exporterad ${today} • ${rooms.length} rum totalt • ${totalGuests} anmälda deltagare • Personer i samma dubbel- eller trebäddsrum är grupperade ihop.`;
+        s1.font = { name: 'Calibri', size: 10, italic: true, color: { argb: 'FF475569' } };
+        wsRooms.getRow(2).height = 18;
+        wsRooms.getRow(3).height = 8;
+
+        const hdrRow = wsRooms.addRow(['Rum', 'Rumstyp', 'Vistelse / Nätter', 'Distrikt', 'Namn (Deltagare)', 'Specialkost / Allergi']);
+        hdrRow.height = 26;
+        hdrRow.eachCell(cell => {
+            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1B4332' } };
+            cell.font = { name: 'Calibri', size: 11, bold: true, color: { argb: 'FFFFFFFF' } };
+            cell.alignment = { vertical: 'middle', horizontal: 'left', wrapText: true };
+            cell.border = {
+                top: { style: 'thin', color: { argb: 'FF143321' } },
+                bottom: { style: 'medium', color: { argb: 'FF143321' } }
+            };
+        });
+
+        rooms.forEach((r, rIdx) => {
+            const rowCount = Math.max(1, r.capacity);
+            const startRow = wsRooms.lastRow.number + 1;
+            const endRow = startRow + rowCount - 1;
+            const roomBg = rIdx % 2 === 0 ? 'FFFFFFFF' : 'FFF2F7F4';
+            const typeFull = (ROOM_TYPES[r.type] && ROOM_TYPES[r.type].label) || r.typeLabel;
+            const typeColor = r.type === 'single' ? 'FF1D4ED8' : (r.type === 'triple' ? 'FFB45309' : 'FF047857');
+
+            for (let gIdx = 0; gIdx < rowCount; gIdx++) {
+                const g = r.guests[gIdx] || {};
+                const gName = String(g.name || '').trim();
+                const gAllergy = String(g.allergy || '').trim();
+                const row = wsRooms.addRow([
+                    `Rum ${r.globalNr}`,
+                    typeFull,
+                    r.stay,
+                    r.districtName,
+                    gName || '(Tom bädd)',
+                    gAllergy || '—'
+                ]);
+                row.height = 23;
+
+                const isFirst = (gIdx === 0);
+                const isLast = (gIdx === rowCount - 1);
+
+                row.eachCell((cell, colNum) => {
+                    cell.alignment = { vertical: 'middle', horizontal: 'left', wrapText: true };
+                    cell.border = {
+                        top: isFirst ? { style: 'medium', color: { argb: 'FF2E7D32' } } : { style: 'thin', color: { argb: 'FFE2E8F0' } },
+                        bottom: isLast ? { style: 'medium', color: { argb: 'FF2E7D32' } } : { style: 'thin', color: { argb: 'FFE2E8F0' } },
+                        left: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+                        right: { style: 'thin', color: { argb: 'FFCBD5E1' } }
+                    };
+
+                    if (colNum === 6 && gAllergy) {
+                        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFEF2F2' } };
+                        cell.font = { name: 'Calibri', size: 11, bold: true, color: { argb: 'FFB91C1C' } };
+                    } else {
+                        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: roomBg } };
+                        if (colNum === 1) {
+                            cell.font = { name: 'Calibri', size: 11, bold: true, color: { argb: 'FF143321' } };
+                        } else if (colNum === 2) {
+                            cell.font = { name: 'Calibri', size: 11, bold: true, color: { argb: typeColor } };
+                        } else if (colNum === 5) {
+                            cell.font = gName
+                                ? { name: 'Calibri', size: 11, bold: true, color: { argb: 'FF0F172A' } }
+                                : { name: 'Calibri', size: 10, italic: true, color: { argb: 'FF94A3B8' } };
+                        } else if (colNum === 6) {
+                            cell.font = { name: 'Calibri', size: 10, color: { argb: 'FF94A3B8' } };
+                        } else {
+                            cell.font = { name: 'Calibri', size: 10, color: { argb: 'FF334155' } };
+                        }
+                    }
+                });
+            }
+
+            // Slå ihop Rum, Rumstyp, Vistelse och Distrikt vertikalt för dubbel- & trebäddsrum
+            if (rowCount > 1) {
+                wsRooms.mergeCells(startRow, 1, endRow, 1);
+                wsRooms.mergeCells(startRow, 2, endRow, 2);
+                wsRooms.mergeCells(startRow, 3, endRow, 3);
+                wsRooms.mergeCells(startRow, 4, endRow, 4);
+            }
+        });
+
+        wsRooms.views = [{ state: 'frozen', ySplit: 4 }];
+
+        // ==========================================
+        // FLIK 2: SUMMERING TILL HOTELLET & KONTAKTPERSONER
+        // ==========================================
+        const wsSum = workbook.addWorksheet('Summering till hotellet', {
+            pageSetup: { paperSize: 9, orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0 }
+        });
+
+        wsSum.columns = [
+            { width: 34 },
+            { width: 16 },
+            { width: 16 },
+            { width: 18 },
+            { width: 16 },
+            { width: 24 }
+        ];
+
+        wsSum.mergeCells('A1:F1');
+        wsSum.getCell('A1').value = `${eventConfig.titel} – Summering till hotellet`;
+        wsSum.getCell('A1').font = { name: 'Calibri', size: 15, bold: true, color: { argb: 'FF143321' } };
+        wsSum.getRow(1).height = 24;
+
+        wsSum.mergeCells('A2:F2');
+        wsSum.getCell('A2').value = `Exporterad ${today}`;
+        wsSum.getCell('A2').font = { name: 'Calibri', size: 10, italic: true, color: { argb: 'FF475569' } };
+        wsSum.getRow(2).height = 18;
+        wsSum.getRow(3).height = 8;
+
+        const sumHdr = wsSum.addRow(['Vistelse / Nätter', 'Enkelrum (1p)', 'Dubbelrum (2p)', 'Trebäddsrum (3p)', 'Totalt antal rum', 'Antal deltagare']);
+        sumHdr.height = 25;
+        sumHdr.eachCell(cell => {
+            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1B4332' } };
+            cell.font = { name: 'Calibri', size: 11, bold: true, color: { argb: 'FFFFFFFF' } };
+            cell.alignment = { vertical: 'middle', horizontal: 'left' };
+        });
+
+        const staysSet = new Set(eventConfig.nightOptions);
+        rooms.forEach(r => { if (r.stay) staysSet.add(r.stay); });
+        let totS = 0, totD = 0, totT = 0, totR = 0, totP = 0;
+
+        Array.from(staysSet).forEach(stayLabel => {
+            const subset = rooms.filter(r => r.stay === stayLabel);
+            const sC = subset.filter(r => r.type === 'single').length;
+            const dC = subset.filter(r => r.type === 'double').length;
+            const tC = subset.filter(r => r.type === 'triple').length;
+            let pC = 0;
+            subset.forEach(r => r.guests.forEach(g => { if (g && String(g.name || '').trim()) pC++; }));
+            totS += sC; totD += dC; totT += tC; totR += subset.length; totP += pC;
+
+            const row = wsSum.addRow([stayLabel, sC, dC, tC, subset.length, pC]);
+            row.height = 22;
+            row.eachCell((cell, colNum) => {
+                cell.font = { name: 'Calibri', size: 11, bold: colNum === 1 || colNum === 5 };
+                cell.alignment = { vertical: 'middle', horizontal: colNum === 1 ? 'left' : 'center' };
+                cell.border = { bottom: { style: 'thin', color: { argb: 'FFE2E8F0' } } };
+            });
+        });
+
+        const totRow = wsSum.addRow(['TOTALT', totS, totD, totT, totR, totP]);
+        totRow.height = 24;
+        totRow.eachCell((cell, colNum) => {
+            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE8F5E9' } };
+            cell.font = { name: 'Calibri', size: 11, bold: true, color: { argb: 'FF143321' } };
+            cell.alignment = { vertical: 'middle', horizontal: colNum === 1 ? 'left' : 'center' };
+            cell.border = {
+                top: { style: 'medium', color: { argb: 'FF2E7D32' } },
+                bottom: { style: 'medium', color: { argb: 'FF2E7D32' } }
+            };
+        });
+
+        wsSum.addRow([]);
+        wsSum.addRow([]);
+        const contactTitleRow = wsSum.addRow(['Kontaktpersoner per distrikt']);
+        contactTitleRow.getCell(1).font = { name: 'Calibri', size: 13, bold: true, color: { argb: 'FF143321' } };
+        contactTitleRow.height = 22;
+
+        const cHdr = wsSum.addRow(['Distrikt', 'Kontaktperson', 'Telefon', 'Antal rum', 'Antal deltagare', 'Övrig notering']);
+        cHdr.height = 24;
+        cHdr.eachCell(cell => {
+            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1B4332' } };
+            cell.font = { name: 'Calibri', size: 11, bold: true, color: { argb: 'FFFFFFFF' } };
+            cell.alignment = { vertical: 'middle', horizontal: 'left' };
+        });
+
+        Object.keys(DISTRICTS).forEach(distId => {
+            const meta = DISTRICTS[distId];
+            const d = allDistrictsData[distId] || {};
+            const dRooms = Array.isArray(d.rooms) ? d.rooms : [];
+            let dGuests = 0;
+            dRooms.forEach(r => (r.guests || []).forEach(g => { if (g && String(g.name || '').trim()) dGuests++; }));
+            const cRow = wsSum.addRow([
+                meta.name,
+                d.contactName || 'Ej angiven',
+                d.contactPhone || '—',
+                dRooms.length,
+                dGuests,
+                d.comment || '—'
+            ]);
+            cRow.height = 22;
+            cRow.eachCell((cell, colNum) => {
+                cell.font = { name: 'Calibri', size: 11, bold: colNum === 1 };
+                cell.alignment = { vertical: 'middle', horizontal: (colNum === 4 || colNum === 5) ? 'center' : 'left', wrapText: true };
+                cell.border = { bottom: { style: 'thin', color: { argb: 'FFE2E8F0' } } };
+            });
+        });
+
+        // ==========================================
+        // FLIK 3: SPECIALKOST & ALLERGIER
+        // ==========================================
+        buildSpecialkostSheet(workbook, rooms, today);
+
+        const buffer = await workbook.xlsx.writeBuffer();
+        const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        downloadBlobFile(`SkolIF_Hotell_Rumslista_${today}.xlsx`, blob);
+        showToast('📊 Snygg Excel-fil (.xlsx) med 3 flikar har laddats ner!', 'success');
+    } catch (err) {
+        console.error('Excel-export misslyckades, använder CSV-reserv:', err);
+        exporteraHotellCSV();
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.textContent = origText;
+        }
+    }
+}
+
+async function exporteraAllergiExcel() {
+    const rooms = getFlattenedRooms('ALL');
+    const hasAny = rooms.some(r => r.guests.some(g => g && String(g.allergy || '').trim()));
+    if (!hasAny) {
+        showToast('Inga allergier eller specialkost inlagda att exportera.', 'warning');
+        return;
+    }
+
+    if (typeof ExcelJS === 'undefined') {
+        exporteraAllergiCSV();
+        return;
+    }
+
+    try {
+        const today = new Date().toISOString().slice(0, 10);
+        const workbook = new ExcelJS.Workbook();
+        workbook.creator = 'Skol-IF Webben';
+        workbook.created = new Date();
+        buildSpecialkostSheet(workbook, rooms, today);
+
+        const buffer = await workbook.xlsx.writeBuffer();
+        const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        downloadBlobFile(`SkolIF_Specialkost_Allergier_${today}.xlsx`, blob);
+        showToast('🍽️ Specialkost- & allergilistan (Excel .xlsx) har laddats ner!', 'success');
+    } catch (err) {
+        console.error('Excel-allergiexport misslyckades:', err);
+        exporteraAllergiCSV();
+    }
+}
+
 function exporteraHotellCSV() {
     const rooms = getFlattenedRooms('ALL');
     if (rooms.length === 0) {
@@ -2661,31 +3047,26 @@ function exporteraHotellCSV() {
         return;
     }
 
-    let csv = 'Rum nr;Distrikt;Rumstyp;Antal bäddar;Vistelse / Nätter;Deltagare 1;Allergi 1;Deltagare 2;Allergi 2;Deltagare 3;Allergi 3;Kontaktperson;Kontakttelefon\r\n';
+    let csv = 'Rum;Rumstyp;Vistelse / Nätter;Distrikt;Namn (Deltagare);Specialkost / Allergi\r\n';
     rooms.forEach(r => {
-        const g1 = r.guests[0] || {};
-        const g2 = r.guests[1] || {};
-        const g3 = r.guests[2] || {};
-        csv += [
-            csvCell('Rum ' + r.globalNr),
-            csvCell(r.districtName),
-            csvCell(r.typeLabel),
-            r.capacity,
-            csvCell(r.stay),
-            csvCell(g1.name),
-            csvCell(g1.allergy),
-            csvCell(g2.name),
-            csvCell(g2.allergy),
-            csvCell(g3.name),
-            csvCell(g3.allergy),
-            csvCell(r.contactName),
-            csvCell(r.contactPhone)
-        ].join(';') + '\r\n';
+        const rowCount = Math.max(1, r.capacity);
+        const typeFull = (ROOM_TYPES[r.type] && ROOM_TYPES[r.type].label) || r.typeLabel;
+        for (let gIdx = 0; gIdx < rowCount; gIdx++) {
+            const g = r.guests[gIdx] || {};
+            csv += [
+                csvCell('Rum ' + r.globalNr),
+                csvCell(typeFull),
+                csvCell(r.stay),
+                csvCell(r.districtName),
+                csvCell(String(g.name || '').trim() || '(Tom bädd)'),
+                csvCell(String(g.allergy || '').trim() || '—')
+            ].join(';') + '\r\n';
+        }
     });
 
     const today = new Date().toISOString().slice(0, 10);
     downloadCsvFile(`SkolIF_Hotell_Rumslista_${today}.csv`, csv);
-    showToast('🏨 Rumslistan har laddats ner till Excel/CSV!', 'success');
+    showToast('🏨 Rumslistan (CSV) har laddats ner!', 'success');
 }
 
 function exporteraAllergiCSV() {
@@ -2710,7 +3091,7 @@ function exporteraAllergiCSV() {
         return;
     }
 
-    let csv = 'Deltagare;Allergi / Specialkost;Distrikt;Rum;Vistelse / Nätter\r\n';
+    let csv = 'Namn (Deltagare);Specialkost / Allergi;Distrikt;Rum;Vistelse / Nätter\r\n';
     rows.forEach(row => {
         csv += [
             csvCell(row.name),
@@ -2723,7 +3104,7 @@ function exporteraAllergiCSV() {
 
     const today = new Date().toISOString().slice(0, 10);
     downloadCsvFile(`SkolIF_Specialkost_Allergier_${today}.csv`, csv);
-    showToast('🍽️ Allergi- och specialkostlistan har laddats ner!', 'success');
+    showToast('🍽️ Allergi- och specialkostlistan (CSV) har laddats ner!', 'success');
 }
 
 async function rensaAllaPersonuppgifterGDPR() {
