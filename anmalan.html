@@ -408,6 +408,105 @@
             border-radius: 6px;
         }
 
+        /* ====== RUMSTYPS-BADGES & ÖVERBLICKSLÄGE ====== */
+        .room-type-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 0.78rem;
+            font-weight: 800;
+            padding: 3px 10px;
+            border-radius: 99px;
+            white-space: nowrap;
+        }
+        .room-type-badge.single { background: #EFF6FF; color: #1D4ED8; border: 1px solid #BFDBFE; }
+        .room-type-badge.double { background: #ECFDF5; color: #047857; border: 1px solid #A7F3D0; }
+        .room-type-badge.triple { background: #FEF3C7; color: #B45309; border: 1px solid #FDE68A; }
+
+        .stay-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            background: #F1F5F9;
+            color: #334155;
+            border: 1px solid #CBD5E1;
+            font-weight: 700;
+            font-size: 0.77rem;
+            padding: 3px 10px;
+            border-radius: 99px;
+            white-space: nowrap;
+        }
+
+        .overview-summary-strip {
+            background: #F8FAFC;
+            border: 1.5px solid #DCE7DF;
+            border-radius: 14px;
+            padding: 14px 16px;
+            margin-bottom: 16px;
+        }
+        .overview-pill-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .room-overview-card {
+            background: #FFFFFF;
+            border: 1.5px solid #DCE7DF;
+            border-left: 5px solid #2E7D32;
+            border-radius: 14px;
+            padding: 14px 18px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 14px;
+            flex-wrap: wrap;
+            box-shadow: 0 4px 12px rgba(15, 41, 30, 0.04);
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .room-overview-card:hover {
+            border-color: #4CAF50;
+            box-shadow: 0 6px 16px rgba(15, 41, 30, 0.08);
+        }
+        .room-overview-guests {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 8px;
+        }
+        .guest-chip {
+            background: #F8FAFC;
+            border: 1px solid #E2E8F0;
+            border-radius: 8px;
+            padding: 4px 10px;
+            font-size: 0.83rem;
+            font-weight: 600;
+            color: #1E293B;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .admin-dist-room-list {
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px dashed #E2E8F0;
+            display: flex;
+            flex-direction: column;
+            gap: 7px;
+        }
+        .admin-dist-room-item {
+            background: #F8FAFC;
+            border: 1px solid #E2E8F0;
+            border-radius: 10px;
+            padding: 8px 10px;
+            font-size: 0.8rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 8px;
+        }
+
         /* ====== MODAL ====== */
         .modal-overlay {
             position: fixed;
@@ -609,24 +708,38 @@
                 </div>
             </div>
             <div class="kpi-tile">
-                <div class="kpi-icon">🛏️</div>
+                <div class="kpi-icon">🏨</div>
                 <div>
                     <div class="kpi-num" id="distKpiRooms">0</div>
                     <div class="kpi-lbl">Bokade rum totalt</div>
                 </div>
             </div>
             <div class="kpi-tile">
-                <div class="kpi-icon">🔑</div>
+                <div class="kpi-icon">🛏️</div>
                 <div>
-                    <div class="kpi-num" id="distKpiBreakdown">0 / 0 / 0</div>
-                    <div class="kpi-lbl">Enkel / Dubbel / Trebädd</div>
+                    <div class="kpi-num" id="distKpiSingle">0</div>
+                    <div class="kpi-lbl">Enkelrum (1 pers)</div>
+                </div>
+            </div>
+            <div class="kpi-tile">
+                <div class="kpi-icon">🛏️</div>
+                <div>
+                    <div class="kpi-num" id="distKpiDouble">0</div>
+                    <div class="kpi-lbl">Dubbelrum (2 pers)</div>
+                </div>
+            </div>
+            <div class="kpi-tile">
+                <div class="kpi-icon">🛏️</div>
+                <div>
+                    <div class="kpi-num" id="distKpiTriple">0</div>
+                    <div class="kpi-lbl">Trebäddsrum (3 pers)</div>
                 </div>
             </div>
             <div class="kpi-tile">
                 <div class="kpi-icon">🍽️</div>
                 <div>
                     <div class="kpi-num" id="distKpiAllergies">0</div>
-                    <div class="kpi-lbl">Med specialkost/allergi</div>
+                    <div class="kpi-lbl">Specialkost / Allergi</div>
                 </div>
             </div>
         </div>
@@ -652,17 +765,25 @@
             </div>
         </div>
 
-        <!-- Rumsbokning -->
-        <div class="card">
-            <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:16px;">
+        <!-- Rumsbokning & Överblick -->
+        <div class="card" id="districtRoomsCard">
+            <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:14px;">
                 <div>
                     <h2 style="font-size:1.18rem; font-weight:800; color:#143321;">🏨 Hotellrum &amp; Deltagare</h2>
-                    <p style="font-size:0.84rem; color:#64748B;">Lägg till de rum ni behöver och fyll i namn samt eventuell allergi/specialkost för varje person i rummet.</p>
+                    <p style="font-size:0.84rem; color:#64748B;">Här ser ni en tydlig överblick över era bokade rum. Klicka på <strong>✏️ Redigera rum</strong> för att ändra ett rum eller lägg till fler.</p>
                 </div>
-                <button type="button" id="addRoomBtnTop" class="btn btn-green no-print" onclick="laggTillRum()">
-                    ➕ Lägg till rum
-                </button>
+                <div class="no-print" style="display:flex; gap:8px; flex-wrap:wrap;">
+                    <button type="button" id="toggleAllEditBtn" class="btn btn-outline btn-sm" onclick="togglaAllaRumRedigering()" style="display:none;">
+                        ✏️ Redigera alla rum
+                    </button>
+                    <button type="button" id="addRoomBtnTop" class="btn btn-green" onclick="laggTillRum()">
+                        ➕ Lägg till rum
+                    </button>
+                </div>
             </div>
+
+            <!-- Tydlig rumsöverblick (antal per rumstyp och nätter) -->
+            <div id="districtRoomSummaryStrip"></div>
 
             <div id="districtRoomsContainer" class="rooms-list"></div>
 
@@ -883,6 +1004,42 @@ match /utbildning_anmalan/{districtId} {
         <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:16px;">
             <button type="button" class="btn btn-outline" onclick="stangConfigModal()">Avbryt</button>
             <button type="button" class="btn btn-green" onclick="sparaConfigFranModal()">💾 Spara inställningar</button>
+        </div>
+    </div>
+</div>
+
+<!-- ========================================== -->
+<!-- MODAL: SNABBREDIGERA / LÄGG TILL RUM       -->
+<!-- ========================================== -->
+<div class="modal-overlay" id="adminRoomModal" onclick="if(event.target===this) stangAdminRumModal()">
+    <div class="modal-box">
+        <button type="button" class="modal-close" onclick="stangAdminRumModal()">✕</button>
+        <h3 id="admRoomModalTitle" style="font-size:1.18rem; font-weight:800; color:#143321; margin-bottom:4px;">✏️ Redigera rum</h3>
+        <div id="admRoomModalSub" style="font-size:0.82rem; color:#64748B; margin-bottom:14px;"></div>
+
+        <div class="form-grid-2">
+            <div class="form-group">
+                <label for="admRoomTypeSelect">Rumsstorlek (Vad för rum)</label>
+                <select id="admRoomTypeSelect" onchange="onAdminModalRoomTypeChange()">
+                    <option value="single">Enkelrum (1 person)</option>
+                    <option value="double">Dubbelrum (2 personer)</option>
+                    <option value="triple">Trebäddsrum (3 personer)</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="admRoomStaySelect">Vistelse / Nätter</label>
+                <select id="admRoomStaySelect"></select>
+            </div>
+        </div>
+
+        <div class="guests-box" id="admRoomGuestsContainer"></div>
+
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-top:16px; flex-wrap:wrap;">
+            <button type="button" id="admRoomDeleteBtn" class="btn btn-danger-soft btn-sm" onclick="raderaRumFranAdminModal()">🗑️ Ta bort rummet</button>
+            <div style="display:flex; gap:8px; margin-left:auto;">
+                <button type="button" class="btn btn-outline" onclick="stangAdminRumModal()">Avbryt</button>
+                <button type="button" id="admRoomSaveBtn" class="btn btn-green" onclick="sparaAdminRumModal()">💾 Spara rum</button>
+            </div>
         </div>
     </div>
 </div>
@@ -1239,7 +1396,15 @@ function isDistrictReadOnly() {
     return eventConfig.isLocked && currentUserRole !== 'admin';
 }
 
-function normalizeRoomForEdit(rawRoom) {
+function getRoomTypeBadgeHtml(type, countPrefix = '') {
+    const t = ROOM_TYPES[type] ? type : 'double';
+    const meta = ROOM_TYPES[t];
+    const bedsIcon = t === 'single' ? '🛏️' : (t === 'double' ? '🛏️🛏️' : '🛏️🛏️🛏️');
+    const prefix = countPrefix !== '' ? `${countPrefix} ` : '';
+    return `<span class="room-type-badge ${t}">${bedsIcon} ${prefix}${escapeHtml(meta.label)}</span>`;
+}
+
+function normalizeRoomForEdit(rawRoom, defaultEditing = false) {
     const type = ROOM_TYPES[rawRoom.type] ? rawRoom.type : 'double';
     const cap = ROOM_TYPES[type].capacity;
     const savedGuests = Array.isArray(rawRoom.guests) ? rawRoom.guests : [];
@@ -1248,12 +1413,14 @@ function normalizeRoomForEdit(rawRoom) {
         allergy: (savedGuests[idx] && savedGuests[idx].allergy) ? String(savedGuests[idx].allergy) : ''
     }));
     const rawStay = rawRoom.stay ? (LEGACY_NIGHT_MAP[rawRoom.stay] || rawRoom.stay) : '';
+    const hasAnySavedName = guestsDraft.slice(0, cap).some(g => g.name.trim() !== '');
     return {
         roomId: rawRoom.roomId || ('r_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6)),
         type: type,
         capacity: cap,
         stay: rawStay || eventConfig.nightOptions[0] || DEFAULT_NIGHT_OPTIONS[0],
-        guestsDraft: guestsDraft
+        guestsDraft: guestsDraft,
+        isEditing: typeof rawRoom.isEditing === 'boolean' ? rawRoom.isEditing : (defaultEditing || !hasAnySavedName)
     };
 }
 
@@ -1278,7 +1445,8 @@ async function laddaDistriktsAnmalan(distId) {
                 contactPhone: d.contactPhone || '',
                 comment: d.comment || '',
                 updatedAt: d.updatedAt || 0,
-                rooms: Array.isArray(d.rooms) ? d.rooms.map(normalizeRoomForEdit) : []
+                // När en sparad anmälan laddas visas rummen direkt i tydligt överblicksläge (isEditing: false)
+                rooms: Array.isArray(d.rooms) ? d.rooms.map(r => normalizeRoomForEdit({ ...r, isEditing: false }, false)) : []
             };
         } else {
             districtState = {
@@ -1288,7 +1456,7 @@ async function laddaDistriktsAnmalan(distId) {
                 contactPhone: '',
                 comment: '',
                 updatedAt: 0,
-                rooms: [normalizeRoomForEdit({ type: 'double' })]
+                rooms: [normalizeRoomForEdit({ type: 'double', isEditing: true }, true)]
             };
         }
     } catch (err) {
@@ -1334,9 +1502,25 @@ function laggTillRum() {
     if (isDistrictReadOnly()) return;
     districtState.rooms.push(normalizeRoomForEdit({
         type: 'double',
-        stay: eventConfig.nightOptions[0] || DEFAULT_NIGHT_OPTIONS[0]
-    }));
+        stay: eventConfig.nightOptions[0] || DEFAULT_NIGHT_OPTIONS[0],
+        isEditing: true
+    }, true));
     setDistrictDirty(true);
+    renderDistrictRooms();
+}
+
+function togglaRumRedigering(index, forceState) {
+    if (isDistrictReadOnly()) return;
+    const room = districtState.rooms[index];
+    if (!room) return;
+    room.isEditing = typeof forceState === 'boolean' ? forceState : !room.isEditing;
+    renderDistrictRooms();
+}
+
+function togglaAllaRumRedigering() {
+    if (isDistrictReadOnly() || districtState.rooms.length === 0) return;
+    const anyNotEditing = districtState.rooms.some(r => !r.isEditing);
+    districtState.rooms.forEach(r => { r.isEditing = anyNotEditing; });
     renderDistrictRooms();
 }
 
@@ -1345,7 +1529,7 @@ function taBortRum(index) {
     const room = districtState.rooms[index];
     if (!room) return;
     const hasNames = room.guestsDraft.slice(0, room.capacity).some(g => g.name.trim() !== '');
-    if (hasNames && !confirm(`Vill du ta bort Rum ${index + 1} och deltagarna i rummet?`)) {
+    if (hasNames && !confirm(`Vill du ta bort Rum ${index + 1} (${ROOM_TYPES[room.type].shortLabel}) och deltagarna i rummet?`)) {
         return;
     }
     districtState.rooms.splice(index, 1);
@@ -1369,6 +1553,7 @@ function onRoomStayChange(index, newStay) {
     if (!room) return;
     room.stay = newStay;
     setDistrictDirty(true);
+    updateDistrictKpis();
 }
 
 function onGuestFieldInput(roomIdx, guestIdx, field, val) {
@@ -1385,11 +1570,21 @@ function updateDistrictKpis() {
     let doubleCount = 0;
     let tripleCount = 0;
     let allergyCount = 0;
+    const stayBreakdown = {};
 
     districtState.rooms.forEach(r => {
         if (r.type === 'single') singleCount++;
         else if (r.type === 'double') doubleCount++;
         else if (r.type === 'triple') tripleCount++;
+
+        const stayKey = r.stay || eventConfig.nightOptions[0] || DEFAULT_NIGHT_OPTIONS[0];
+        if (!stayBreakdown[stayKey]) {
+            stayBreakdown[stayKey] = { total: 0, single: 0, double: 0, triple: 0 };
+        }
+        stayBreakdown[stayKey].total++;
+        if (r.type === 'single') stayBreakdown[stayKey].single++;
+        else if (r.type === 'double') stayBreakdown[stayKey].double++;
+        else if (r.type === 'triple') stayBreakdown[stayKey].triple++;
 
         const activeGuests = r.guestsDraft.slice(0, r.capacity);
         activeGuests.forEach(g => {
@@ -1400,10 +1595,55 @@ function updateDistrictKpis() {
         });
     });
 
-    document.getElementById('distKpiGuests').textContent = String(guestsCount);
-    document.getElementById('distKpiRooms').textContent = String(districtState.rooms.length);
-    document.getElementById('distKpiBreakdown').textContent = `${singleCount} / ${doubleCount} / ${tripleCount}`;
-    document.getElementById('distKpiAllergies').textContent = String(allergyCount);
+    const elGuests = document.getElementById('distKpiGuests');
+    const elRooms = document.getElementById('distKpiRooms');
+    const elSingle = document.getElementById('distKpiSingle');
+    const elDouble = document.getElementById('distKpiDouble');
+    const elTriple = document.getElementById('distKpiTriple');
+    const elAllergies = document.getElementById('distKpiAllergies');
+
+    if (elGuests) elGuests.textContent = String(guestsCount);
+    if (elRooms) elRooms.textContent = String(districtState.rooms.length);
+    if (elSingle) elSingle.textContent = `${singleCount} st`;
+    if (elDouble) elDouble.textContent = `${doubleCount} st`;
+    if (elTriple) elTriple.textContent = `${tripleCount} st`;
+    if (elAllergies) elAllergies.textContent = `${allergyCount} st`;
+
+    // Uppdatera tydlig rumsöverblick-strip ovanför rumslistan
+    const strip = document.getElementById('districtRoomSummaryStrip');
+    if (strip) {
+        if (districtState.rooms.length === 0) {
+            strip.innerHTML = '';
+        } else {
+            const stayLines = Object.keys(stayBreakdown).map(sKey => {
+                const sb = stayBreakdown[sKey];
+                const parts = [];
+                if (sb.single > 0) parts.push(`${sb.single} Enkelrum`);
+                if (sb.double > 0) parts.push(`${sb.double} Dubbelrum`);
+                if (sb.triple > 0) parts.push(`${sb.triple} Trebäddsrum`);
+                return `<span class="stay-badge">📅 <strong>${escapeHtml(sKey)}:</strong> ${escapeHtml(parts.join(', '))}</span>`;
+            }).join(' ');
+
+            strip.innerHTML = `
+                <div class="overview-summary-strip">
+                    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:8px;">
+                        <div style="font-size:0.84rem; font-weight:800; color:#143321;">
+                            📊 Sammanställning av inlagda rum (${districtState.rooms.length} ${districtState.rooms.length === 1 ? 'rum' : 'rum totalt'}, ${guestsCount} ${guestsCount === 1 ? 'deltagare' : 'deltagare'})
+                        </div>
+                        ${!hasUnsavedChanges && districtState.updatedAt ? `<span style="font-size:0.76rem; font-weight:700; color:#15803D; background:#DCFCE7; padding:2px 10px; border-radius:99px;">✅ Sparad överblick</span>` : ''}
+                    </div>
+                    <div class="overview-pill-row" style="margin-bottom:8px;">
+                        <span class="room-type-badge single">🛏️ ${singleCount} st Enkelrum (1 pers)</span>
+                        <span class="room-type-badge double">🛏️🛏️ ${doubleCount} st Dubbelrum (2 pers)</span>
+                        <span class="room-type-badge triple">🛏️🛏️🛏️ ${tripleCount} st Trebäddsrum (3 pers)</span>
+                    </div>
+                    <div class="overview-pill-row">
+                        ${stayLines}
+                    </div>
+                </div>
+            `;
+        }
+    }
 }
 
 function renderDistrictRooms() {
@@ -1420,6 +1660,17 @@ function renderDistrictRooms() {
     document.getElementById('addRoomBtnBottom').disabled = readOnly;
     document.getElementById('saveDistrictBtn').disabled = readOnly;
 
+    const toggleAllBtn = document.getElementById('toggleAllEditBtn');
+    if (toggleAllBtn) {
+        if (readOnly || districtState.rooms.length === 0) {
+            toggleAllBtn.style.display = 'none';
+        } else {
+            toggleAllBtn.style.display = 'inline-flex';
+            const anyNotEditing = districtState.rooms.some(r => !r.isEditing);
+            toggleAllBtn.textContent = anyNotEditing ? '✏️ Öppna alla rum för redigering' : '👁️ Fäll ihop till överblick';
+        }
+    }
+
     if (districtState.rooms.length === 0) {
         container.innerHTML = `
             <div style="text-align:center; padding:32px 18px; background:#F8FAFC; border:1.5px dashed #CBD5E1; border-radius:14px; color:#64748B;">
@@ -1434,6 +1685,49 @@ function renderDistrictRooms() {
     }
 
     container.innerHTML = districtState.rooms.map((room, rIdx) => {
+        const activeGuests = room.guestsDraft.slice(0, room.capacity);
+
+        // === KOMPAKT & TYDLIGT ÖVERBLICKSLÄGE FÖR RUMMET ===
+        if (!room.isEditing || readOnly) {
+            const guestsChipsHtml = activeGuests.map((g, gIdx) => {
+                const name = g.name.trim();
+                const allergy = g.allergy.trim();
+                return `
+                    <span class="guest-chip">
+                        <strong style="color:#15803D;">${gIdx + 1}.</strong>
+                        ${name ? escapeHtml(name) : '<em style="color:#94A3B8;">Tom bädd (namn saknas)</em>'}
+                        ${allergy ? `<span class="allergy-badge">🍽️ ${escapeHtml(allergy)}</span>` : ''}
+                    </span>
+                `;
+            }).join('');
+
+            return `
+                <div class="room-overview-card">
+                    <div style="flex:1; min-width:240px;">
+                        <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                            <span class="room-num-pill">Rum ${rIdx + 1}</span>
+                            ${getRoomTypeBadgeHtml(room.type)}
+                            <span class="stay-badge">📅 ${escapeHtml(room.stay)}</span>
+                        </div>
+                        <div class="room-overview-guests">
+                            ${guestsChipsHtml}
+                        </div>
+                    </div>
+                    ${!readOnly ? `
+                        <div class="no-print" style="display:flex; gap:6px; align-items:center;">
+                            <button type="button" class="btn btn-outline btn-sm" onclick="togglaRumRedigering(${rIdx}, true)">
+                                ✏️ Redigera rum
+                            </button>
+                            <button type="button" class="btn btn-danger-soft btn-sm" onclick="taBortRum(${rIdx})" title="Ta bort rum">
+                                🗑️
+                            </button>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+        }
+
+        // === REDIGERINGSLÄGE FÖR RUMMET ===
         const nightChoices = [...eventConfig.nightOptions];
         if (room.stay && !nightChoices.includes(room.stay)) {
             nightChoices.push(room.stay);
@@ -1447,7 +1741,7 @@ function renderDistrictRooms() {
             <option value="${escapeHtml(nOpt)}" ${room.stay === nOpt ? 'selected' : ''}>${escapeHtml(nOpt)}</option>
         `).join('');
 
-        const guestRowsHtml = room.guestsDraft.slice(0, room.capacity).map((g, gIdx) => `
+        const guestRowsHtml = activeGuests.map((g, gIdx) => `
             <div class="guest-row">
                 <span class="guest-idx">P${gIdx + 1}</span>
                 <div>
@@ -1466,14 +1760,21 @@ function renderDistrictRooms() {
                 <div class="room-card-header">
                     <div class="room-badge-title">
                         <span class="room-num-pill">Rum ${rIdx + 1}</span>
-                        <span>${escapeHtml(ROOM_TYPES[room.type].label)}</span>
+                        ${getRoomTypeBadgeHtml(room.type)}
                     </div>
-                    ${!readOnly ? `<button type="button" class="btn btn-danger-soft btn-sm no-print" onclick="taBortRum(${rIdx})">🗑️ Ta bort rum</button>` : ''}
+                    <div class="no-print" style="display:flex; gap:6px; align-items:center;">
+                        <button type="button" class="btn btn-outline btn-sm" onclick="togglaRumRedigering(${rIdx}, false)">
+                            ✅ Visa som överblick
+                        </button>
+                        <button type="button" class="btn btn-danger-soft btn-sm" onclick="taBortRum(${rIdx})">
+                            🗑️ Ta bort rum
+                        </button>
+                    </div>
                 </div>
                 <div class="room-card-body">
                     <div class="form-grid-2">
                         <div class="form-group" style="margin-bottom:8px;">
-                            <label>Rumsstorlek</label>
+                            <label>Rumsstorlek (Vad för rum)</label>
                             <select onchange="onRoomTypeChange(${rIdx}, this.value)" ${disAttr}>
                                 ${typeOptionsHtml}
                             </select>
@@ -1549,8 +1850,13 @@ async function sparaDistriktsAnmalan() {
         await db.collection(COLLECTION_NAME).doc(activeDistrictId).set(payload, { merge: true });
         districtState.updatedAt = now;
         document.getElementById('districtLastSavedText').textContent = `Senast sparad: ${formatTimestamp(now)}`;
+        // Fäll ihop alla rum till tydligt överblicksläge direkt efter sparning!
+        districtState.rooms.forEach(r => { r.isEditing = false; });
         setDistrictDirty(false);
-        showToast(`✅ Anmälan för ${meta.name} är sparad!`, 'success');
+        renderDistrictRooms();
+        const cardEl = document.getElementById('districtRoomsCard');
+        if (cardEl) cardEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        showToast(`✅ Sparat! Visar nu överblicken över ${meta.name}s bokade rum.`, 'success');
     } catch (err) {
         console.error('Fel vid sparning:', err);
         showToast('Kunde inte spara anmälan. Kontrollera din uppkoppling eller om anmälan har låsts.', 'error');
@@ -1655,28 +1961,79 @@ function renderAdminDistrictCards() {
         const d = allDistrictsData[distId];
         const rooms = (d && Array.isArray(d.rooms)) ? d.rooms : [];
         let guestsCount = 0;
+        let singleCount = 0;
+        let doubleCount = 0;
+        let tripleCount = 0;
+
         rooms.forEach(r => {
+            if (r.type === 'single') singleCount++;
+            else if (r.type === 'double') doubleCount++;
+            else if (r.type === 'triple') tripleCount++;
             (r.guests || []).forEach(g => {
                 if (g && String(g.name || '').trim()) guestsCount++;
             });
         });
 
+        const roomTypePills = [];
+        if (singleCount > 0) roomTypePills.push(`<span class="room-type-badge single">🛏️ ${singleCount} Enkelrum (1p)</span>`);
+        if (doubleCount > 0) roomTypePills.push(`<span class="room-type-badge double">🛏️🛏️ ${doubleCount} Dubbelrum (2p)</span>`);
+        if (tripleCount > 0) roomTypePills.push(`<span class="room-type-badge triple">🛏️🛏️🛏️ ${tripleCount} Trebäddsrum (3p)</span>`);
+
+        const compactRoomsHtml = rooms.length === 0
+            ? `<div style="font-size:0.78rem; color:#94A3B8; font-style:italic; margin-top:6px;">Inga rum inlagda ännu.</div>`
+            : `<div class="admin-dist-room-list">
+                ${rooms.map((r, rIdx) => {
+                    const rType = ROOM_TYPES[r.type] ? r.type : 'double';
+                    const rMeta = ROOM_TYPES[rType];
+                    const stayStr = (r.stay && LEGACY_NIGHT_MAP[r.stay]) ? LEGACY_NIGHT_MAP[r.stay] : (r.stay || DEFAULT_NIGHT_OPTIONS[0]);
+                    const names = (r.guests || []).slice(0, rMeta.capacity).map(g => String((g && g.name) || '').trim()).filter(Boolean);
+                    return `
+                        <div class="admin-dist-room-item">
+                            <div>
+                                <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+                                    <strong style="color:#143321;">Rum ${rIdx + 1}:</strong>
+                                    <span class="room-type-badge ${rType}" style="font-size:0.72rem; padding:1px 8px;">${escapeHtml(rMeta.label)}</span>
+                                </div>
+                                <div style="color:#475569; font-size:0.75rem; margin-top:2px;">📅 ${escapeHtml(stayStr)}</div>
+                                <div style="color:#0F172A; font-weight:600; font-size:0.78rem; margin-top:2px;">
+                                    👥 ${names.length > 0 ? escapeHtml(names.join(', ')) : '<em style="color:#94A3B8;">Namn ej ifyllt</em>'}
+                                </div>
+                            </div>
+                            <button type="button" class="btn btn-outline btn-sm no-print" style="padding:4px 8px; font-size:0.74rem;" onclick="oppnaAdminRumModal('${distId}', ${rIdx})" title="Redigera detta rum">
+                                ✏️
+                            </button>
+                        </div>
+                    `;
+                }).join('')}
+            </div>`;
+
         return `
-            <div class="card" style="margin-bottom:0; padding:18px;">
-                <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px; margin-bottom:8px;">
-                    <div>
-                        <span class="district-tag ${distId}">${meta.icon} ${escapeHtml(meta.name)}</span>
-                        <div style="font-size:0.75rem; color:#64748B; margin-top:4px;">${formatTimestamp(d && d.updatedAt)}</div>
+            <div class="card" style="margin-bottom:0; padding:18px; display:flex; flex-direction:column; justify-content:space-between;">
+                <div>
+                    <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px; margin-bottom:8px;">
+                        <div>
+                            <span class="district-tag ${distId}">${meta.icon} ${escapeHtml(meta.name)}</span>
+                            <div style="font-size:0.75rem; color:#64748B; margin-top:4px;">${formatTimestamp(d && d.updatedAt)}</div>
+                        </div>
+                        <button type="button" class="btn btn-outline btn-sm no-print" onclick="adminRedigeraDistrikt('${distId}')">✏️ Öppna vy</button>
                     </div>
-                    <button type="button" class="btn btn-outline btn-sm no-print" onclick="adminRedigeraDistrikt('${distId}')">✏️ Redigera</button>
+                    <div style="font-weight:800; font-size:1.05rem; color:#143321; margin-bottom:6px;">
+                        ${guestsCount} deltagare &bull; ${rooms.length} ${rooms.length === 1 ? 'rum' : 'rum totalt'}
+                    </div>
+                    <div style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:8px;">
+                        ${roomTypePills.length > 0 ? roomTypePills.join('') : '<span style="font-size:0.76rem; color:#94A3B8;">0 Enkel &bull; 0 Dubbel &bull; 0 Trebädd</span>'}
+                    </div>
+                    <div style="font-size:0.8rem; color:#475569; line-height:1.45;">
+                        <strong>Kontakt:</strong> ${d && d.contactName ? escapeHtml(d.contactName) : '<em>Ej angiven</em>'}
+                        ${d && d.contactPhone ? ` (${escapeHtml(d.contactPhone)})` : ''}<br>
+                        ${d && d.comment ? `<strong>Notering:</strong> ${escapeHtml(d.comment)}` : ''}
+                    </div>
+                    ${compactRoomsHtml}
                 </div>
-                <div style="font-weight:800; font-size:1.05rem; color:#143321; margin-bottom:6px;">
-                    ${guestsCount} deltagare &bull; ${rooms.length} rum
-                </div>
-                <div style="font-size:0.8rem; color:#475569; line-height:1.45;">
-                    <strong>Kontakt:</strong> ${d && d.contactName ? escapeHtml(d.contactName) : '<em>Ej angiven</em>'}
-                    ${d && d.contactPhone ? ` (${escapeHtml(d.contactPhone)})` : ''}<br>
-                    ${d && d.comment ? `<strong>Notering:</strong> ${escapeHtml(d.comment)}` : ''}
+                <div class="no-print" style="margin-top:12px; padding-top:10px; border-top:1px solid #F1F5F9; display:flex; gap:6px;">
+                    <button type="button" class="btn btn-green btn-sm" style="flex:1; justify-content:center;" onclick="oppnaAdminRumModal('${distId}', -1)">
+                        ➕ Lägg till rum
+                    </button>
                 </div>
             </div>
         `;
@@ -1742,16 +2099,29 @@ function renderAdminTables() {
     if (rooms.length === 0) {
         roomsWrap.innerHTML = `<div style="padding:20px; text-align:center; color:#64748B;">Inga rum inlagda ännu för valt filter.</div>`;
     } else {
+        const sCount = rooms.filter(r => r.type === 'single').length;
+        const dCount = rooms.filter(r => r.type === 'double').length;
+        const tCount = rooms.filter(r => r.type === 'triple').length;
+
         roomsWrap.innerHTML = `
+            <div class="overview-summary-strip" style="margin-bottom:14px;">
+                <div class="overview-pill-row">
+                    <strong style="font-size:0.83rem; color:#143321; margin-right:4px;">Visar ${rooms.length} rum:</strong>
+                    <span class="room-type-badge single">🛏️ ${sCount} st Enkelrum (1 pers)</span>
+                    <span class="room-type-badge double">🛏️🛏️ ${dCount} st Dubbelrum (2 pers)</span>
+                    <span class="room-type-badge triple">🛏️🛏️🛏️ ${tCount} st Trebäddsrum (3 pers)</span>
+                </div>
+            </div>
             <table class="data-table">
                 <thead>
                     <tr>
                         <th>Rum #</th>
                         <th>Distrikt</th>
-                        <th>Rumstyp</th>
+                        <th>Vad för rum (Rumstyp)</th>
                         <th>Vistelse / Nätter</th>
                         <th>Deltagare i rummet</th>
                         <th>Allergier / Specialkost</th>
+                        <th class="no-print">Redigera</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -1771,10 +2141,15 @@ function renderAdminTables() {
                             <tr>
                                 <td><strong>#${r.globalNr}</strong> <span style="color:#64748B; font-size:0.76rem;">(${r.districtShort} #${r.distNr})</span></td>
                                 <td><span class="district-tag ${r.districtId}">${escapeHtml(r.districtShort)}</span></td>
-                                <td><strong>${escapeHtml(r.typeLabel)}</strong></td>
-                                <td>${escapeHtml(r.stay)}</td>
+                                <td>${getRoomTypeBadgeHtml(r.type)}</td>
+                                <td><span class="stay-badge">📅 ${escapeHtml(r.stay)}</span></td>
                                 <td>${namesHtml}</td>
                                 <td>${allergyHtml}</td>
+                                <td class="no-print" style="white-space:nowrap;">
+                                    <button type="button" class="btn btn-outline btn-sm" onclick="oppnaAdminRumModal('${r.districtId}', ${r.distNr - 1})">
+                                        ✏️ Redigera rum
+                                    </button>
+                                </td>
                             </tr>
                         `;
                     }).join('')}
@@ -1918,6 +2293,175 @@ async function sparaConfigFranModal() {
         showToast('✅ Utbildningsinställningarna är sparade!', 'success');
     } catch (err) {
         showToast('Kunde inte spara inställningarna.', 'error');
+    }
+}
+
+// ==========================================
+//  SNABBREDIGERA / LÄGG TILL RUM DIREKT I ADMINVYN
+// ==========================================
+let adminModalState = {
+    distId: null,
+    roomIdx: -1, // -1 = nytt rum
+    roomDraft: null
+};
+
+function oppnaAdminRumModal(distId, roomIdx) {
+    if (currentUserRole !== 'admin') return;
+    const meta = DISTRICTS[distId];
+    if (!meta) return;
+
+    const d = allDistrictsData[distId] || {};
+    const rooms = Array.isArray(d.rooms) ? d.rooms : [];
+    const isNew = (roomIdx < 0 || roomIdx >= rooms.length);
+    const raw = isNew ? { type: 'double', stay: eventConfig.nightOptions[0] || DEFAULT_NIGHT_OPTIONS[0], guests: [] } : rooms[roomIdx];
+
+    adminModalState = {
+        distId,
+        roomIdx: isNew ? -1 : roomIdx,
+        roomDraft: normalizeRoomForEdit(raw, true)
+    };
+
+    document.getElementById('admRoomModalTitle').textContent = isNew
+        ? `➕ Lägg till rum (${meta.name})`
+        : `✏️ Redigera Rum ${roomIdx + 1} (${meta.name})`;
+    document.getElementById('admRoomModalSub').textContent = isNew
+        ? `Lägg till ett nytt hotellrum för ${meta.name} direkt från adminöversikten.`
+        : `Ändra rumsstorlek, datum eller deltagare för ${meta.name}s Rum ${roomIdx + 1}.`;
+
+    document.getElementById('admRoomTypeSelect').value = adminModalState.roomDraft.type;
+
+    const staySelect = document.getElementById('admRoomStaySelect');
+    const nightChoices = [...eventConfig.nightOptions];
+    if (adminModalState.roomDraft.stay && !nightChoices.includes(adminModalState.roomDraft.stay)) {
+        nightChoices.push(adminModalState.roomDraft.stay);
+    }
+    staySelect.innerHTML = nightChoices.map(nOpt => `
+        <option value="${escapeHtml(nOpt)}" ${adminModalState.roomDraft.stay === nOpt ? 'selected' : ''}>${escapeHtml(nOpt)}</option>
+    `).join('');
+
+    document.getElementById('admRoomDeleteBtn').style.display = isNew ? 'none' : 'inline-flex';
+    renderAdminModalGuestRows();
+    document.getElementById('adminRoomModal').classList.add('open');
+}
+
+function stangAdminRumModal() {
+    document.getElementById('adminRoomModal').classList.remove('open');
+}
+
+function onAdminModalRoomTypeChange() {
+    if (!adminModalState.roomDraft) return;
+    const newType = document.getElementById('admRoomTypeSelect').value;
+    if (!ROOM_TYPES[newType]) return;
+    adminModalState.roomDraft.type = newType;
+    adminModalState.roomDraft.capacity = ROOM_TYPES[newType].capacity;
+    renderAdminModalGuestRows();
+}
+
+function onAdminModalGuestInput(gIdx, field, val) {
+    if (!adminModalState.roomDraft || !adminModalState.roomDraft.guestsDraft[gIdx]) return;
+    adminModalState.roomDraft.guestsDraft[gIdx][field] = val;
+}
+
+function renderAdminModalGuestRows() {
+    const draft = adminModalState.roomDraft;
+    const box = document.getElementById('admRoomGuestsContainer');
+    if (!draft || !box) return;
+
+    const activeGuests = draft.guestsDraft.slice(0, draft.capacity);
+    box.innerHTML = `
+        <div style="font-size:0.78rem; font-weight:800; color:#475569; margin-bottom:8px; text-transform:uppercase; letter-spacing:0.4px;">
+            👥 Personer i rummet (${draft.capacity} ${draft.capacity === 1 ? 'bädd' : 'bäddar'})
+        </div>
+        ${activeGuests.map((g, gIdx) => `
+            <div class="guest-row">
+                <span class="guest-idx">P${gIdx + 1}</span>
+                <div>
+                    <input type="text" value="${escapeHtml(g.name)}" placeholder="Deltagare ${gIdx + 1}: För- och efternamn"
+                        oninput="onAdminModalGuestInput(${gIdx}, 'name', this.value)">
+                </div>
+                <div>
+                    <input type="text" value="${escapeHtml(g.allergy)}" placeholder="Allergi / specialkost (valfritt)"
+                        oninput="onAdminModalGuestInput(${gIdx}, 'allergy', this.value)">
+                </div>
+            </div>
+        `).join('')}
+    `;
+}
+
+async function sparaAdminRumModal() {
+    if (currentUserRole !== 'admin' || !adminModalState.distId || !adminModalState.roomDraft) return;
+    const distId = adminModalState.distId;
+    const meta = DISTRICTS[distId];
+    const d = allDistrictsData[distId] || {};
+    const rooms = Array.isArray(d.rooms) ? [...d.rooms] : [];
+
+    const draft = adminModalState.roomDraft;
+    const stayVal = document.getElementById('admRoomStaySelect').value;
+    const cap = ROOM_TYPES[draft.type] ? ROOM_TYPES[draft.type].capacity : 2;
+    const cleanRoom = {
+        roomId: draft.roomId,
+        type: draft.type,
+        typeLabel: ROOM_TYPES[draft.type].shortLabel,
+        capacity: cap,
+        stay: stayVal,
+        guests: draft.guestsDraft.slice(0, cap).map(g => ({
+            name: String(g.name || '').trim(),
+            allergy: String(g.allergy || '').trim()
+        }))
+    };
+
+    if (adminModalState.roomIdx === -1) {
+        rooms.push(cleanRoom);
+    } else {
+        rooms[adminModalState.roomIdx] = cleanRoom;
+    }
+
+    const saveBtn = document.getElementById('admRoomSaveBtn');
+    saveBtn.disabled = true;
+    saveBtn.textContent = '⏳ Sparar...';
+
+    try {
+        await db.collection(COLLECTION_NAME).doc(distId).set({
+            districtId: distId,
+            districtName: meta.name,
+            contactName: d.contactName || '',
+            contactPhone: d.contactPhone || '',
+            comment: d.comment || '',
+            updatedAt: Date.now(),
+            rooms: rooms
+        }, { merge: true });
+        stangAdminRumModal();
+        showToast(`✅ Sparat! Rummet för ${meta.name} har uppdaterats.`, 'success');
+    } catch (err) {
+        console.error('Fel vid sparning från adminmodal:', err);
+        showToast('Kunde inte spara rummet.', 'error');
+    } finally {
+        saveBtn.disabled = false;
+        saveBtn.textContent = '💾 Spara rum';
+    }
+}
+
+async function raderaRumFranAdminModal() {
+    if (currentUserRole !== 'admin' || !adminModalState.distId || adminModalState.roomIdx < 0) return;
+    const distId = adminModalState.distId;
+    const meta = DISTRICTS[distId];
+    const d = allDistrictsData[distId] || {};
+    const rooms = Array.isArray(d.rooms) ? [...d.rooms] : [];
+
+    if (!confirm(`Vill du ta bort Rum ${adminModalState.roomIdx + 1} från ${meta.name}?`)) return;
+    rooms.splice(adminModalState.roomIdx, 1);
+
+    try {
+        await db.collection(COLLECTION_NAME).doc(distId).set({
+            districtId: distId,
+            districtName: meta.name,
+            updatedAt: Date.now(),
+            rooms: rooms
+        }, { merge: true });
+        stangAdminRumModal();
+        showToast(`🗑️ Rummet togs bort från ${meta.name}.`, 'success');
+    } catch (err) {
+        showToast('Kunde inte ta bort rummet.', 'error');
     }
 }
 
