@@ -876,7 +876,7 @@ match /utbildning_anmalan/{districtId} {
         </div>
         <div class="form-group">
             <label for="cfgNightsInput">Valbara alternativ för nätter / vistelse (ett val per rad)</label>
-            <textarea id="cfgNightsInput" rows="4" placeholder="Fredag–Söndag (2 nätter)&#10;Fredag–Lördag (1 natt)&#10;Lördag–Söndag (1 natt)&#10;Endast dagdeltagare (Ingen logi)"></textarea>
+            <textarea id="cfgNightsInput" rows="3" placeholder="Fredag 29/1 – Lördag 30/1 (1 natt)&#10;Fredag 29/1 – Söndag 31/1 (2 nätter)"></textarea>
             <div style="font-size:0.75rem; color:#64748B; margin-top:4px;">Dessa alternativ visas i rullgardinsmenyn för varje rum.</div>
         </div>
 
@@ -944,11 +944,16 @@ const ROOM_TYPES = {
 };
 
 const DEFAULT_NIGHT_OPTIONS = [
-    'Fredag–Söndag (2 nätter)',
-    'Fredag–Lördag (1 natt)',
-    'Lördag–Söndag (1 natt)',
-    'Endast dagdeltagare (Ingen logi)'
+    'Fredag 29/1 – Lördag 30/1 (1 natt)',
+    'Fredag 29/1 – Söndag 31/1 (2 nätter)'
 ];
+
+const LEGACY_NIGHT_MAP = {
+    'Fredag–Lördag (1 natt)': 'Fredag 29/1 – Lördag 30/1 (1 natt)',
+    'Fredag–Söndag (2 nätter)': 'Fredag 29/1 – Söndag 31/1 (2 nätter)',
+    'Lördag–Söndag (1 natt)': 'Fredag 29/1 – Lördag 30/1 (1 natt)',
+    'Endast dagdeltagare (Ingen logi)': 'Fredag 29/1 – Lördag 30/1 (1 natt)'
+};
 
 let eventConfig = {
     titel: 'Gemensam Utbildning – Skol-IF Distrikten',
@@ -1178,7 +1183,10 @@ function startConfigListener() {
             eventConfig.subtitle = d.subtitle || 'Hotell- & deltagaranmälan för Jämtland/Härjedalen, Medelpad och Ångermanland';
             eventConfig.isLocked = Boolean(d.isLocked);
             if (Array.isArray(d.nightOptions) && d.nightOptions.length > 0) {
-                eventConfig.nightOptions = d.nightOptions;
+                const cleaned = d.nightOptions
+                    .map(opt => LEGACY_NIGHT_MAP[opt] || opt)
+                    .filter((opt, idx, arr) => arr.indexOf(opt) === idx);
+                eventConfig.nightOptions = cleaned.length > 0 ? cleaned : [...DEFAULT_NIGHT_OPTIONS];
             } else {
                 eventConfig.nightOptions = [...DEFAULT_NIGHT_OPTIONS];
             }
@@ -1239,11 +1247,12 @@ function normalizeRoomForEdit(rawRoom) {
         name: (savedGuests[idx] && savedGuests[idx].name) ? String(savedGuests[idx].name) : '',
         allergy: (savedGuests[idx] && savedGuests[idx].allergy) ? String(savedGuests[idx].allergy) : ''
     }));
+    const rawStay = rawRoom.stay ? (LEGACY_NIGHT_MAP[rawRoom.stay] || rawRoom.stay) : '';
     return {
         roomId: rawRoom.roomId || ('r_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6)),
         type: type,
         capacity: cap,
-        stay: rawRoom.stay || eventConfig.nightOptions[0] || DEFAULT_NIGHT_OPTIONS[0],
+        stay: rawStay || eventConfig.nightOptions[0] || DEFAULT_NIGHT_OPTIONS[0],
         guestsDraft: guestsDraft
     };
 }
@@ -1591,7 +1600,7 @@ function getFlattenedRooms(filterDistId = 'ALL') {
                 type: r.type || 'double',
                 typeLabel: (ROOM_TYPES[r.type] && ROOM_TYPES[r.type].shortLabel) || r.typeLabel || 'Dubbelrum',
                 capacity: cap,
-                stay: r.stay || DEFAULT_NIGHT_OPTIONS[0],
+                stay: (r.stay && LEGACY_NIGHT_MAP[r.stay]) ? LEGACY_NIGHT_MAP[r.stay] : (r.stay || DEFAULT_NIGHT_OPTIONS[0]),
                 guests: guests
             };
             if (filterDistId === 'ALL' || filterDistId === distId) {
