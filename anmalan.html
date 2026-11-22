@@ -682,7 +682,12 @@
 
         <section class="hero-banner">
             <div>
-                <div id="districtStatusPill" class="status-pill open">🟢 Anmälan är öppen</div>
+                <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:8px;">
+                    <div id="districtStatusPill" class="status-pill open" style="margin-bottom:0;">🟢 Anmälan är öppen</div>
+                    <div id="districtHeroDeadlinePill" class="status-pill" style="display:none; margin-bottom:0; background:rgba(254, 243, 199, 0.22); border:1px solid rgba(253, 224, 71, 0.55); color:#FEF08A;">
+                        ⏰ Sista anmälan: <span id="districtHeroDeadlineText"></span>
+                    </div>
+                </div>
                 <h1 id="districtEventTitle">Gemensam Utbildning – Skol-IF Distrikten</h1>
                 <p id="districtEventSub">Hotell- &amp; deltagaranmälan</p>
             </div>
@@ -692,6 +697,20 @@
                 <div id="districtLastSavedText" style="font-size:0.76rem; color:rgba(255,255,255,0.78); margin-top:2px;">Ej sparad ännu</div>
             </div>
         </section>
+
+        <!-- Tydlig ruta för Sista anmälningsdag/tid för distrikten -->
+        <div id="districtDeadlineBanner" class="card" style="display:none; background:linear-gradient(135deg, #FFFBEB 0%, #FEF3C7 100%); border:1.5px solid #F59E0B; padding:14px 20px; margin-bottom:18px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;">
+                <div style="display:flex; align-items:center; gap:12px;">
+                    <div style="width:40px; height:40px; border-radius:10px; background:#F59E0B; color:white; display:flex; align-items:center; justify-content:center; font-size:1.25rem; flex-shrink:0;">⏰</div>
+                    <div>
+                        <div style="font-size:0.75rem; font-weight:800; text-transform:uppercase; letter-spacing:0.5px; color:#B45309;">Sista dag &amp; tid att svara / spara anmälan</div>
+                        <div id="districtDeadlineMainText" style="font-size:1.08rem; font-weight:900; color:#78350F;">---</div>
+                    </div>
+                </div>
+                <div id="districtDeadlineCountdown" style="font-size:0.82rem; font-weight:800; padding:5px 12px; border-radius:99px; background:white; color:#92400E; border:1px solid #FCD34D;"></div>
+            </div>
+        </div>
 
         <div id="lockedWarningBanner" class="card" style="display:none; background:#FEF2F2; border:1.5px solid #FCA5A5; color:#991B1B; padding:16px 20px;">
             <strong>🔒 Anmälan är låst</strong>
@@ -817,11 +836,19 @@
 
         <section class="hero-banner">
             <div>
-                <div id="adminLockStatusPill" class="status-pill open">🟢 Anmälan är ÖPPEN för distrikten</div>
+                <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:8px;">
+                    <div id="adminLockStatusPill" class="status-pill open" style="margin-bottom:0;">🟢 Anmälan är ÖPPEN för distrikten</div>
+                    <div id="adminHeroDeadlinePill" class="status-pill" style="margin-bottom:0; background:rgba(254, 243, 199, 0.22); border:1px solid rgba(253, 224, 71, 0.55); color:#FEF08A; cursor:pointer;" onclick="oppnaConfigModal()" title="Klicka för att ändra sista anmälningsdag">
+                        ⏰ Sista anmälan: <span id="adminHeroDeadlineText">Ej angiven (klicka för att välja)</span>
+                    </div>
+                </div>
                 <h1 id="adminEventTitle">Gemensam Utbildning – Adminöversikt</h1>
                 <p id="adminEventSub">Samlad rumsfördelning och specialkost för Jämtland/Härjedalen, Medelpad &amp; Ångermanland.</p>
             </div>
             <div class="no-print" style="display:flex; gap:8px; flex-wrap:wrap;">
+                <button type="button" class="btn btn-sm" style="background:rgba(254, 243, 199, 0.2); color:#FEF08A; border:1px solid rgba(253, 224, 71, 0.45);" onclick="oppnaConfigModal(true)">
+                    ⏰ Sista anmälningsdag
+                </button>
                 <button type="button" class="btn btn-sm" style="background:rgba(255,255,255,0.16); color:white; border:1px solid rgba(255,255,255,0.3);" onclick="oppnaConfigModal()">
                     ⚙️ Utbildningsinställningar
                 </button>
@@ -990,7 +1017,20 @@ match /utbildning_anmalan/{districtId} {
         </div>
         <div class="form-group">
             <label for="cfgSubInput">Underrubrik / Datum &amp; Plats</label>
-            <input type="text" id="cfgSubInput" placeholder="T.ex. Hotell Sundsvall • 24–26 januari • Sista anmälningsdag 15 dec">
+            <input type="text" id="cfgSubInput" placeholder="T.ex. Hotell Sundsvall • 29–31 januari">
+        </div>
+        <div class="form-group" style="background:#FFFBEB; border:1.5px solid #FCD34D; border-radius:12px; padding:12px 14px;">
+            <label for="cfgDeadlineIsoInput" style="color:#92400E;">⏰ Sista dag &amp; tid för anmälan (visas tydligt för alla distrikt)</label>
+            <div class="form-grid-2" style="gap:10px; margin-top:4px;">
+                <div>
+                    <input type="datetime-local" id="cfgDeadlineIsoInput" onchange="onDeadlineIsoChange()" style="width:100%; padding:9px 11px; border:1.5px solid #F59E0B; border-radius:10px; font-size:0.88rem; background:white;">
+                    <div style="font-size:0.72rem; color:#92400E; margin-top:3px;">Välj datum och klockslag i kalendern...</div>
+                </div>
+                <div>
+                    <input type="text" id="cfgDeadlineTextInput" placeholder="T.ex. Fredag 15/1 kl. 16:00" style="border-color:#F59E0B;">
+                    <div style="font-size:0.72rem; color:#92400E; margin-top:3px;">...eller skriv valfri text som visas på skärmen.</div>
+                </div>
+            </div>
         </div>
         <div class="form-group">
             <label for="cfgNightsInput">Valbara alternativ för nätter / vistelse (ett val per rad)</label>
@@ -1112,6 +1152,8 @@ const LEGACY_NIGHT_MAP = {
 let eventConfig = {
     titel: 'Gemensam Utbildning – Skol-IF Distrikten',
     subtitle: 'Hotell- & deltagaranmälan för Jämtland/Härjedalen, Medelpad och Ångermanland',
+    deadlineIso: '',
+    deadlineText: '',
     isLocked: false,
     nightOptions: [...DEFAULT_NIGHT_OPTIONS]
 };
@@ -1329,12 +1371,45 @@ auth.onAuthStateChanged(async (user) => {
 // ==========================================
 //  KONFIGURATION (_config)
 // ==========================================
+function formatDeadlineFromIso(isoStr) {
+    if (!isoStr) return '';
+    const d = new Date(isoStr);
+    if (isNaN(d.getTime())) return '';
+    const datePart = d.toLocaleDateString('sv-SE', { weekday: 'long', day: 'numeric', month: 'long' });
+    const timePart = d.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' });
+    const capDate = datePart.charAt(0).toUpperCase() + datePart.slice(1);
+    return `${capDate} kl. ${timePart}`;
+}
+
+function getDeadlineCountdownText(isoStr) {
+    if (!isoStr) return '';
+    const target = new Date(isoStr).getTime();
+    if (isNaN(target)) return '';
+    const diffMs = target - Date.now();
+    if (diffMs <= 0) {
+        return '⚠️ Sista anmälningsdag har passerat';
+    }
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    const diffDays = Math.floor(diffHours / 24);
+    if (diffDays >= 2) {
+        return `⏳ ${diffDays} dagar kvar att svara`;
+    } else if (diffDays === 1) {
+        return `⏳ Imorgon är sista dagen (${diffHours} tim kvar)`;
+    } else if (diffHours >= 1) {
+        return `⚠️ Mindre än 1 dygn kvar (${diffHours} tim)`;
+    }
+    const diffMins = Math.max(1, Math.floor(diffMs / (1000 * 60)));
+    return `⚠️ Endast ${diffMins} min kvar!`;
+}
+
 function startConfigListener() {
     configUnsubscribe = db.collection(COLLECTION_NAME).doc('_config').onSnapshot((doc) => {
         if (doc.exists) {
             const d = doc.data() || {};
             eventConfig.titel = d.titel || 'Gemensam Utbildning – Skol-IF Distrikten';
             eventConfig.subtitle = d.subtitle || 'Hotell- & deltagaranmälan för Jämtland/Härjedalen, Medelpad och Ångermanland';
+            eventConfig.deadlineIso = d.deadlineIso || '';
+            eventConfig.deadlineText = d.deadlineText || '';
             eventConfig.isLocked = Boolean(d.isLocked);
             if (Array.isArray(d.nightOptions) && d.nightOptions.length > 0) {
                 const cleaned = d.nightOptions
@@ -1356,6 +1431,42 @@ function uppdateraConfigUI() {
     document.getElementById('districtEventSub').textContent = eventConfig.subtitle;
     document.getElementById('adminEventTitle').textContent = eventConfig.titel + ' – Adminöversikt';
     document.getElementById('adminEventSub').textContent = eventConfig.subtitle;
+
+    // Sista anmälningsdag & tid (visas både för distrikt och admin)
+    const displayDeadline = (eventConfig.deadlineText || '').trim() || formatDeadlineFromIso(eventConfig.deadlineIso);
+    const distHeroPill = document.getElementById('districtHeroDeadlinePill');
+    const distHeroText = document.getElementById('districtHeroDeadlineText');
+    const distBanner = document.getElementById('districtDeadlineBanner');
+    const distMainText = document.getElementById('districtDeadlineMainText');
+    const distCountdown = document.getElementById('districtDeadlineCountdown');
+    const admHeroText = document.getElementById('adminHeroDeadlineText');
+
+    if (displayDeadline) {
+        if (distHeroPill && distHeroText) {
+            distHeroPill.style.display = 'inline-flex';
+            distHeroText.textContent = displayDeadline;
+        }
+        if (distBanner && distMainText) {
+            distBanner.style.display = 'block';
+            distMainText.textContent = displayDeadline;
+        }
+        if (distCountdown) {
+            const cd = getDeadlineCountdownText(eventConfig.deadlineIso);
+            if (cd) {
+                distCountdown.style.display = 'inline-block';
+                distCountdown.textContent = cd;
+            } else {
+                distCountdown.style.display = 'none';
+            }
+        }
+        if (admHeroText) {
+            admHeroText.textContent = displayDeadline;
+        }
+    } else {
+        if (distHeroPill) distHeroPill.style.display = 'none';
+        if (distBanner) distBanner.style.display = 'none';
+        if (admHeroText) admHeroText.textContent = 'Ej angiven (klicka för att välja)';
+    }
 
     const distPill = document.getElementById('districtStatusPill');
     const lockedBanner = document.getElementById('lockedWarningBanner');
@@ -2247,6 +2358,8 @@ async function togglaAnmalanLas() {
         await db.collection(COLLECTION_NAME).doc('_config').set({
             titel: eventConfig.titel,
             subtitle: eventConfig.subtitle,
+            deadlineIso: eventConfig.deadlineIso || '',
+            deadlineText: eventConfig.deadlineText || '',
             nightOptions: eventConfig.nightOptions,
             isLocked: nextLocked,
             updatedAt: Date.now()
@@ -2257,11 +2370,27 @@ async function togglaAnmalanLas() {
     }
 }
 
-function oppnaConfigModal() {
+function onDeadlineIsoChange() {
+    const isoVal = document.getElementById('cfgDeadlineIsoInput').value;
+    const textInp = document.getElementById('cfgDeadlineTextInput');
+    if (isoVal && textInp) {
+        textInp.value = formatDeadlineFromIso(isoVal);
+    }
+}
+
+function oppnaConfigModal(focusDeadline = false) {
     document.getElementById('cfgTitleInput').value = eventConfig.titel;
     document.getElementById('cfgSubInput').value = eventConfig.subtitle;
+    document.getElementById('cfgDeadlineIsoInput').value = eventConfig.deadlineIso || '';
+    document.getElementById('cfgDeadlineTextInput').value = eventConfig.deadlineText || formatDeadlineFromIso(eventConfig.deadlineIso) || '';
     document.getElementById('cfgNightsInput').value = eventConfig.nightOptions.join('\n');
     document.getElementById('configModal').classList.add('open');
+    if (focusDeadline) {
+        setTimeout(() => {
+            const el = document.getElementById('cfgDeadlineIsoInput');
+            if (el) el.focus();
+        }, 80);
+    }
 }
 
 function stangConfigModal() {
@@ -2271,6 +2400,8 @@ function stangConfigModal() {
 async function sparaConfigFranModal() {
     const titel = document.getElementById('cfgTitleInput').value.trim() || 'Gemensam Utbildning – Skol-IF Distrikten';
     const subtitle = document.getElementById('cfgSubInput').value.trim();
+    const deadlineIso = document.getElementById('cfgDeadlineIsoInput').value.trim();
+    const deadlineText = document.getElementById('cfgDeadlineTextInput').value.trim() || formatDeadlineFromIso(deadlineIso);
     const nights = document.getElementById('cfgNightsInput').value
         .split('\n')
         .map(s => s.trim())
@@ -2280,12 +2411,14 @@ async function sparaConfigFranModal() {
         await db.collection(COLLECTION_NAME).doc('_config').set({
             titel,
             subtitle,
+            deadlineIso,
+            deadlineText,
             nightOptions: nights.length > 0 ? nights : [...DEFAULT_NIGHT_OPTIONS],
             isLocked: eventConfig.isLocked,
             updatedAt: Date.now()
         }, { merge: true });
         stangConfigModal();
-        showToast('✅ Utbildningsinställningarna är sparade!', 'success');
+        showToast('✅ Utbildningsinställningarna och sista anmälningsdag är sparade!', 'success');
     } catch (err) {
         showToast('Kunde inte spara inställningarna.', 'error');
     }
