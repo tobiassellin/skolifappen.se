@@ -773,9 +773,6 @@
                     <p style="font-size:0.84rem; color:#64748B;">Här ser ni en tydlig överblick över era bokade rum. Klicka på <strong>✏️ Redigera rum</strong> för att ändra ett rum eller lägg till fler.</p>
                 </div>
                 <div class="no-print" style="display:flex; gap:8px; flex-wrap:wrap;">
-                    <button type="button" id="toggleAllEditBtn" class="btn btn-outline btn-sm" onclick="togglaAllaRumRedigering()" style="display:none;">
-                        ✏️ Redigera alla rum
-                    </button>
                     <button type="button" id="addRoomBtnTop" class="btn btn-green" onclick="laggTillRum()">
                         ➕ Lägg till rum
                     </button>
@@ -1660,17 +1657,6 @@ function renderDistrictRooms() {
     document.getElementById('addRoomBtnBottom').disabled = readOnly;
     document.getElementById('saveDistrictBtn').disabled = readOnly;
 
-    const toggleAllBtn = document.getElementById('toggleAllEditBtn');
-    if (toggleAllBtn) {
-        if (readOnly || districtState.rooms.length === 0) {
-            toggleAllBtn.style.display = 'none';
-        } else {
-            toggleAllBtn.style.display = 'inline-flex';
-            const anyNotEditing = districtState.rooms.some(r => !r.isEditing);
-            toggleAllBtn.textContent = anyNotEditing ? '✏️ Öppna alla rum för redigering' : '👁️ Fäll ihop till överblick';
-        }
-    }
-
     if (districtState.rooms.length === 0) {
         container.innerHTML = `
             <div style="text-align:center; padding:32px 18px; background:#F8FAFC; border:1.5px dashed #CBD5E1; border-radius:14px; color:#64748B;">
@@ -1763,8 +1749,8 @@ function renderDistrictRooms() {
                         ${getRoomTypeBadgeHtml(room.type)}
                     </div>
                     <div class="no-print" style="display:flex; gap:6px; align-items:center;">
-                        <button type="button" class="btn btn-outline btn-sm" onclick="togglaRumRedigering(${rIdx}, false)">
-                            ✅ Visa som överblick
+                        <button type="button" class="btn btn-green btn-sm" onclick="sparaDistriktsAnmalan()">
+                            💾 Spara
                         </button>
                         <button type="button" class="btn btn-danger-soft btn-sm" onclick="taBortRum(${rIdx})">
                             🗑️ Ta bort rum
@@ -1792,6 +1778,15 @@ function renderDistrictRooms() {
                             👥 Personer som bor i Rum ${rIdx + 1} (${room.capacity} ${room.capacity === 1 ? 'bädd' : 'bäddar'})
                         </div>
                         ${guestRowsHtml}
+                    </div>
+
+                    <div class="no-print" style="margin-top:12px; padding:12px 14px; background:#F1F8E9; border:1.5px solid #C8E6C9; border-radius:12px; display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;">
+                        <span style="font-size:0.83rem; font-weight:700; color:#143321;">
+                            ✅ Klar med Rum ${rIdx + 1}? Spara så kommer du direkt till överblicken:
+                        </span>
+                        <button type="button" class="btn btn-green btn-sm" onclick="sparaDistriktsAnmalan()">
+                            💾 Spara &amp; visa överblick
+                        </button>
                     </div>
                 </div>
             </div>
