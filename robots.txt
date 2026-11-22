@@ -1,5 +1,6 @@
 User-agent: *
 Allow: /
 Disallow: /statistik.html
+Disallow: /anmalan.html
 
 Sitemap: https://skolifwebben.se/sitemap.xml

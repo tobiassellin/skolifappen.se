@@ -1,0 +1,2036 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Distriktsanmälan &amp; Hotellbokning – Skol-IF Webben</title>
+    <meta name="robots" content="noindex, nofollow">
+    <link rel="icon" type="image/svg+xml" href="icon.svg">
+    <link rel="apple-touch-icon" href="icon.svg">
+    <meta name="theme-color" content="#143625">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif; }
+        html { font-size: 14px; }
+        body {
+            background-color: #F3F7F4;
+            background-image: radial-gradient(at 15% 15%, rgba(76, 175, 80, 0.07) 0px, transparent 50%),
+                              radial-gradient(at 85% 80%, rgba(46, 125, 50, 0.06) 0px, transparent 50%);
+            color: #1E293B;
+            line-height: 1.55;
+            min-height: 100vh;
+            padding-bottom: 60px;
+        }
+
+        /* ====== TOPPNAVIGATION ====== */
+        nav {
+            background: rgba(15, 41, 30, 0.95);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            padding: 0.75rem 5%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+            position: sticky;
+            top: 0;
+            z-index: 900;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .logo {
+            color: white;
+            font-size: 1.25rem;
+            font-weight: 800;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 9px;
+        }
+        .logo-badge {
+            background: linear-gradient(135deg, #4CAF50, #2E7D32);
+            width: 30px;
+            height: 30px;
+            border-radius: 8px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.95rem;
+        }
+        .nav-right { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+        .nav-btn {
+            color: rgba(255,255,255,0.92);
+            text-decoration: none;
+            font-weight: 600;
+            background: rgba(255,255,255,0.12);
+            padding: 7px 13px;
+            border-radius: 10px;
+            transition: all 0.2s;
+            font-size: 0.84rem;
+            border: 1px solid rgba(255,255,255,0.16);
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .nav-btn:hover { background: rgba(255,255,255,0.22); }
+        .nav-btn.danger { background: rgba(220, 38, 38, 0.25); border-color: rgba(248, 113, 113, 0.4); color: #FECACA; }
+        .nav-btn.danger:hover { background: rgba(220, 38, 38, 0.4); }
+
+        .container { max-width: 1120px; margin: 26px auto; padding: 0 18px; }
+
+        /* ====== KNAPPAR ====== */
+        .btn {
+            padding: 10px 18px;
+            border: none;
+            border-radius: 10px;
+            font-weight: 700;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            text-decoration: none;
+        }
+        .btn:disabled { opacity: 0.55; cursor: not-allowed; transform: none !important; }
+        .btn-green { background: linear-gradient(135deg, #4CAF50 0%, #2E7D32 100%); color: white; box-shadow: 0 4px 12px rgba(46, 125, 50, 0.25); }
+        .btn-green:hover:not(:disabled) { filter: brightness(1.06); transform: translateY(-1px); }
+        .btn-gold { background: linear-gradient(135deg, #F59E0B, #D97706); color: white; box-shadow: 0 4px 12px rgba(217, 119, 6, 0.25); }
+        .btn-gold:hover:not(:disabled) { filter: brightness(1.05); transform: translateY(-1px); }
+        .btn-blue { background: #1976D2; color: white; }
+        .btn-blue:hover:not(:disabled) { background: #1565C0; }
+        .btn-red { background: #DC2626; color: white; }
+        .btn-red:hover:not(:disabled) { background: #B91C1C; }
+        .btn-outline { background: white; color: #1E3A24; border: 1.5px solid #CBD5E1; }
+        .btn-outline:hover:not(:disabled) { background: #F8FAFC; border-color: #4CAF50; color: #2E7D32; }
+        .btn-danger-soft { background: #FEF2F2; color: #DC2626; border: 1px solid #FECACA; }
+        .btn-danger-soft:hover:not(:disabled) { background: #FEE2E2; }
+        .btn-sm { padding: 6px 12px; font-size: 0.8rem; border-radius: 8px; }
+
+        /* ====== KORT & PANELER ====== */
+        .card {
+            background: white;
+            border-radius: 18px;
+            padding: 24px;
+            box-shadow: 0 10px 28px rgba(15, 41, 30, 0.06);
+            border: 1px solid rgba(46, 125, 50, 0.14);
+            margin-bottom: 20px;
+        }
+        .card-top-accent { border-top: 4px solid #2E7D32; }
+
+        .hero-banner {
+            background: linear-gradient(135deg, #102B1F 0%, #1B4332 60%, #265D41 100%);
+            color: white;
+            border-radius: 20px;
+            padding: 24px 26px;
+            margin-bottom: 20px;
+            box-shadow: 0 12px 30px rgba(15, 41, 30, 0.14);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+        .hero-banner h1 { font-size: 1.65rem; font-weight: 800; line-height: 1.2; margin-bottom: 4px; }
+        .hero-banner p { font-size: 0.88rem; color: rgba(255,255,255,0.84); }
+
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.76rem;
+            font-weight: 800;
+            padding: 4px 12px;
+            border-radius: 99px;
+            margin-bottom: 8px;
+        }
+        .status-pill.open { background: rgba(74, 222, 128, 0.2); border: 1px solid rgba(74, 222, 128, 0.45); color: #BBF7D0; }
+        .status-pill.locked { background: rgba(248, 113, 113, 0.22); border: 1px solid rgba(248, 113, 113, 0.5); color: #FECACA; }
+
+        /* ====== INLOGGNINGSKORT ====== */
+        .login-wrap {
+            max-width: 470px;
+            margin: 36px auto;
+        }
+        .login-header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .login-icon {
+            width: 58px;
+            height: 58px;
+            border-radius: 16px;
+            background: linear-gradient(135deg, #E8F5E9, #C8E6C9);
+            color: #1B5E20;
+            font-size: 1.8rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 10px;
+            box-shadow: 0 6px 16px rgba(46, 125, 50, 0.12);
+        }
+
+        /* ====== FORMULÄR ====== */
+        .form-grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; }
+        .form-grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; }
+        .form-group { margin-bottom: 14px; }
+        .form-group label {
+            display: block;
+            font-weight: 700;
+            font-size: 0.83rem;
+            color: #334155;
+            margin-bottom: 5px;
+        }
+        input[type="text"],
+        input[type="email"],
+        input[type="password"],
+        input[type="tel"],
+        select,
+        textarea {
+            width: 100%;
+            padding: 10px 13px;
+            border: 1.5px solid #CBD5E1;
+            border-radius: 10px;
+            font-size: 0.92rem;
+            outline: none;
+            background: white;
+            color: #0F172A;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        input:focus, select:focus, textarea:focus {
+            border-color: #2E7D32;
+            box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.14);
+        }
+        input:disabled, select:disabled, textarea:disabled {
+            background: #F1F5F9;
+            color: #64748B;
+            cursor: not-allowed;
+        }
+
+        /* ====== KPI / SUMMERINGSKORT ====== */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(175px, 1fr));
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        .kpi-tile {
+            background: white;
+            border-radius: 14px;
+            padding: 14px 16px;
+            border: 1px solid #E2ECE5;
+            box-shadow: 0 4px 12px rgba(15, 41, 30, 0.04);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .kpi-icon {
+            width: 42px;
+            height: 42px;
+            border-radius: 11px;
+            background: #E8F5E9;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.3rem;
+            flex-shrink: 0;
+        }
+        .kpi-num { font-size: 1.4rem; font-weight: 900; color: #143321; line-height: 1.1; }
+        .kpi-lbl { font-size: 0.76rem; color: #64748B; font-weight: 600; }
+
+        /* ====== RUMSKORT ====== */
+        .rooms-list { display: flex; flex-direction: column; gap: 16px; margin-bottom: 20px; }
+        .room-card {
+            background: #FFFFFF;
+            border-radius: 16px;
+            border: 1.5px solid #DCE7DF;
+            box-shadow: 0 6px 18px rgba(15, 41, 30, 0.05);
+            overflow: hidden;
+            transition: border-color 0.2s;
+        }
+        .room-card:hover { border-color: #81C784; }
+        .room-card-header {
+            background: #F1F8E9;
+            padding: 12px 18px;
+            border-bottom: 1px solid #DCEDC8;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .room-badge-title {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 800;
+            font-size: 1rem;
+            color: #143321;
+        }
+        .room-num-pill {
+            background: #2E7D32;
+            color: white;
+            font-size: 0.75rem;
+            font-weight: 800;
+            padding: 2px 10px;
+            border-radius: 99px;
+        }
+        .room-card-body { padding: 18px; }
+        .guests-box {
+            background: #F8FAFC;
+            border: 1px solid #E2E8F0;
+            border-radius: 12px;
+            padding: 14px;
+            margin-top: 8px;
+        }
+        .guest-row {
+            display: grid;
+            grid-template-columns: 32px 1.15fr 1fr;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .guest-row:last-child { margin-bottom: 0; }
+        .guest-idx {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: #E8F5E9;
+            color: #1B5E20;
+            font-weight: 800;
+            font-size: 0.78rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid #C8E6C9;
+        }
+
+        /* ====== SPARA-LIST (STICKY BOTTOM BAR) ====== */
+        .save-bar {
+            background: white;
+            border: 1.5px solid #C8E6C9;
+            border-radius: 16px;
+            padding: 14px 20px;
+            box-shadow: 0 10px 30px rgba(15, 41, 30, 0.12);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 14px;
+            flex-wrap: wrap;
+            position: sticky;
+            bottom: 14px;
+            z-index: 800;
+        }
+        .unsaved-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            background: #FEF3C7;
+            color: #92400E;
+            border: 1px solid #FCD34D;
+            padding: 3px 10px;
+            border-radius: 99px;
+            font-size: 0.76rem;
+            font-weight: 800;
+        }
+
+        /* ====== ADMIN TABELLER & FLIKAR ====== */
+        .admin-tabs {
+            display: inline-flex;
+            background: #E2ECE5;
+            padding: 4px;
+            border-radius: 12px;
+            gap: 4px;
+            margin-bottom: 18px;
+            flex-wrap: wrap;
+        }
+        .admin-tab-btn {
+            border: none;
+            background: transparent;
+            padding: 8px 16px;
+            border-radius: 9px;
+            font-weight: 700;
+            font-size: 0.85rem;
+            color: #334155;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .admin-tab-btn.active {
+            background: white;
+            color: #143321;
+            box-shadow: 0 2px 8px rgba(15, 41, 30, 0.1);
+        }
+
+        .data-table-wrap { overflow-x: auto; }
+        table.data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.86rem;
+        }
+        table.data-table th {
+            background: #F1F8E9;
+            color: #143321;
+            font-weight: 800;
+            text-align: left;
+            padding: 10px 12px;
+            border-bottom: 2px solid #C8E6C9;
+            white-space: nowrap;
+        }
+        table.data-table td {
+            padding: 10px 12px;
+            border-bottom: 1px solid #E2E8F0;
+            vertical-align: top;
+        }
+        table.data-table tr:hover td { background: #F8FAFC; }
+
+        .district-tag {
+            display: inline-block;
+            padding: 2px 9px;
+            border-radius: 99px;
+            font-size: 0.74rem;
+            font-weight: 800;
+        }
+        .district-tag.jamtland { background: #E0F2FE; color: #075985; border: 1px solid #BAE6FD; }
+        .district-tag.medelpad { background: #DCFCE7; color: #166534; border: 1px solid #BBF7D0; }
+        .district-tag.angermanland { background: #FEF3C7; color: #92400E; border: 1px solid #FDE68A; }
+
+        .allergy-badge {
+            display: inline-block;
+            background: #FEF2F2;
+            color: #B91C1C;
+            border: 1px solid #FECACA;
+            font-weight: 700;
+            font-size: 0.76rem;
+            padding: 2px 8px;
+            border-radius: 6px;
+        }
+
+        /* ====== MODAL ====== */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.56);
+            backdrop-filter: blur(4px);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1200;
+            padding: 16px;
+        }
+        .modal-overlay.open { display: flex; }
+        .modal-box {
+            background: white;
+            width: 100%;
+            max-width: 540px;
+            border-radius: 20px;
+            padding: 24px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.28);
+            max-height: 92vh;
+            overflow-y: auto;
+            position: relative;
+        }
+        .modal-close {
+            position: absolute;
+            top: 14px;
+            right: 16px;
+            background: #F1F5F9;
+            border: none;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            font-weight: 800;
+            cursor: pointer;
+            color: #475569;
+        }
+
+        /* ====== TOAST ====== */
+        #toastContainer {
+            position: fixed;
+            bottom: 22px;
+            right: 22px;
+            z-index: 2000;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            max-width: 360px;
+        }
+        .toast-item {
+            background: #143321;
+            color: white;
+            padding: 12px 16px;
+            border-radius: 12px;
+            font-size: 0.86rem;
+            font-weight: 600;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.22);
+            border-left: 4px solid #4ADE80;
+            animation: slideInToast 0.2s ease;
+        }
+        .toast-item.warning { border-left-color: #F59E0B; background: #78350F; }
+        .toast-item.error { border-left-color: #EF4444; background: #7F1D1D; }
+        @keyframes slideInToast {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ====== UTSKRIFT ====== */
+        @media print {
+            body { background: white !important; padding: 0; }
+            nav, .no-print, .admin-tabs, .save-bar, #toastContainer { display: none !important; }
+            .container { max-width: 100%; margin: 0; padding: 0; }
+            .card { box-shadow: none; border: 1px solid #CBD5E1; page-break-inside: avoid; }
+            .hero-banner { background: none !important; color: #0F172A !important; border-bottom: 2px solid #143321; border-radius: 0; padding: 0 0 12px 0; box-shadow: none; }
+            .hero-banner p { color: #334155 !important; }
+        }
+
+        @media (max-width: 680px) {
+            .guest-row { grid-template-columns: 1fr; gap: 6px; padding-bottom: 10px; border-bottom: 1px dashed #CBD5E1; }
+            .guest-idx { width: auto; border-radius: 6px; padding: 2px 8px; justify-content: flex-start; }
+        }
+    </style>
+</head>
+<body>
+
+<nav>
+    <a href="anmalan.html" class="logo">
+        <span class="logo-badge">🏨</span>
+        Skol-IF Distriktsanmälan
+    </a>
+    <div class="nav-right">
+        <span id="navUserBadge" style="display:none; color:rgba(255,255,255,0.88); font-size:0.82rem; font-weight:600; padding:4px 10px; background:rgba(255,255,255,0.08); border-radius:8px;"></span>
+        <button type="button" id="navLogoutBtn" class="nav-btn danger" style="display:none;" onclick="loggaUt()">Logga ut</button>
+        <a href="index.html" class="nav-btn">← Till skolifwebben.se</a>
+    </div>
+</nav>
+
+<div id="toastContainer"></div>
+
+<div class="container">
+
+    <!-- ========================================== -->
+    <!-- VY 1: INLOGGNING (DISTRIKT ELLER ADMIN)    -->
+    <!-- ========================================== -->
+    <div id="loginView" class="login-wrap">
+        <div class="card card-top-accent">
+            <div class="login-header">
+                <div class="login-icon">🔐</div>
+                <h1 style="font-size:1.45rem; font-weight:800; color:#143321;">Distriktsanmälan &amp; Hotellbokning</h1>
+                <p style="font-size:0.86rem; color:#64748B; margin-top:4px;">
+                    Låst anmälningsportal för Jämtland/Härjedalen, Medelpad och Ångermanland.
+                </p>
+            </div>
+
+            <form onsubmit="loggaInMedLosenord(event)">
+                <div class="form-group">
+                    <label for="loginDistrictSelect">Välj ditt distrikt</label>
+                    <select id="loginDistrictSelect" onchange="onLoginDistrictChange()">
+                        <option value="jamtland@skolifwebben.se">🏔️ Jämtland / Härjedalen</option>
+                        <option value="medelpad@skolifwebben.se">🌲 Medelpad</option>
+                        <option value="angermanland@skolifwebben.se">🌊 Ångermanland</option>
+                        <option value="__custom__">✏️ Annan e-postadress (skriv manuellt)</option>
+                    </select>
+                </div>
+
+                <div class="form-group" id="customEmailGroup" style="display:none;">
+                    <label for="loginEmailInput">E-postadress</label>
+                    <input type="email" id="loginEmailInput" placeholder="namn@skolifwebben.se" autocomplete="username">
+                </div>
+
+                <div class="form-group">
+                    <label for="loginPasswordInput">Lösenord för distriktet</label>
+                    <div style="display:flex; gap:6px;">
+                        <input type="password" id="loginPasswordInput" placeholder="Ange lösenord..." autocomplete="current-password" required>
+                        <button type="button" class="btn btn-outline btn-sm" onclick="togglePasswordVisibility()" title="Visa/dölj lösenord" style="flex-shrink:0;">👁️</button>
+                    </div>
+                </div>
+
+                <div id="loginErrorBox" style="display:none; background:#FEF2F2; border:1px solid #FECACA; color:#B91C1C; padding:10px 12px; border-radius:10px; font-size:0.83rem; font-weight:600; margin-bottom:14px;"></div>
+
+                <button type="submit" id="loginSubmitBtn" class="btn btn-green" style="width:100%; justify-content:center; padding:12px;">
+                    🔓 Logga in till distriktets anmälan
+                </button>
+            </form>
+
+            <div style="margin-top:20px; padding-top:16px; border-top:1px dashed #E2E8F0; text-align:center;">
+                <div style="font-size:0.78rem; color:#64748B; margin-bottom:8px; font-weight:600;">Administratör för utbildningen?</div>
+                <button type="button" class="btn btn-outline btn-sm" onclick="loggaInSomAdminGoogle()" style="width:100%; justify-content:center;">
+                    🔑 Logga in som Admin med Google
+                </button>
+            </div>
+        </div>
+
+        <div style="text-align:center; font-size:0.78rem; color:#64748B; padding:0 10px;">
+            🔒 Alla uppgifter krypteras och sparas isolerat per distrikt i enlighet med GDPR.
+        </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- VY 2: DISTRIKTSVY (FORMULÄR & RUMSLISTA)   -->
+    <!-- ========================================== -->
+    <div id="districtView" style="display:none;">
+
+        <div id="adminEditingDistrictBanner" class="card no-print" style="display:none; background:#EFF6FF; border:1.5px solid #93C5FD; padding:14px 18px; margin-bottom:16px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;">
+                <div>
+                    <strong style="color:#1E3A8A; font-size:0.95rem;">👑 Adminläge: Du redigerar just nu <span id="adminEditingDistrictName"></span></strong>
+                    <div style="font-size:0.82rem; color:#1E40AF;">Som administratör kan du lägga till eller ändra rum åt distriktet även om anmälan är låst.</div>
+                </div>
+                <button type="button" class="btn btn-blue btn-sm" onclick="tillbakaTillAdminVy()">← Tillbaka till Adminöversikten</button>
+            </div>
+        </div>
+
+        <section class="hero-banner">
+            <div>
+                <div id="districtStatusPill" class="status-pill open">🟢 Anmälan är öppen</div>
+                <h1 id="districtEventTitle">Gemensam Utbildning – Skol-IF Distrikten</h1>
+                <p id="districtEventSub">Hotell- &amp; deltagaranmälan</p>
+            </div>
+            <div style="text-align:right;">
+                <div style="font-size:0.78rem; text-transform:uppercase; letter-spacing:0.6px; color:#86EFAC; font-weight:800;">Inloggat distrikt</div>
+                <div id="districtNameHeading" style="font-size:1.35rem; font-weight:900; color:white;">---</div>
+                <div id="districtLastSavedText" style="font-size:0.76rem; color:rgba(255,255,255,0.78); margin-top:2px;">Ej sparad ännu</div>
+            </div>
+        </section>
+
+        <div id="lockedWarningBanner" class="card" style="display:none; background:#FEF2F2; border:1.5px solid #FCA5A5; color:#991B1B; padding:16px 20px;">
+            <strong>🔒 Anmälan är låst</strong>
+            <p style="font-size:0.86rem; margin-top:3px;">Sista anmälningsdag har passerat och rumslistan är skickad till hotellet. Kontakta utbildningsansvarig administratör om ni behöver göra en sen ändring.</p>
+        </div>
+
+        <!-- Snabbsummering för distriktet -->
+        <div class="kpi-grid">
+            <div class="kpi-tile">
+                <div class="kpi-icon">👥</div>
+                <div>
+                    <div class="kpi-num" id="distKpiGuests">0</div>
+                    <div class="kpi-lbl">Anmälda deltagare</div>
+                </div>
+            </div>
+            <div class="kpi-tile">
+                <div class="kpi-icon">🛏️</div>
+                <div>
+                    <div class="kpi-num" id="distKpiRooms">0</div>
+                    <div class="kpi-lbl">Bokade rum totalt</div>
+                </div>
+            </div>
+            <div class="kpi-tile">
+                <div class="kpi-icon">🔑</div>
+                <div>
+                    <div class="kpi-num" id="distKpiBreakdown">0 / 0 / 0</div>
+                    <div class="kpi-lbl">Enkel / Dubbel / Trebädd</div>
+                </div>
+            </div>
+            <div class="kpi-tile">
+                <div class="kpi-icon">🍽️</div>
+                <div>
+                    <div class="kpi-num" id="distKpiAllergies">0</div>
+                    <div class="kpi-lbl">Med specialkost/allergi</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Kontaktuppgifter -->
+        <div class="card card-top-accent">
+            <h2 style="font-size:1.15rem; font-weight:800; color:#143321; margin-bottom:4px;">📋 Kontaktperson för distriktet</h2>
+            <p style="font-size:0.84rem; color:#64748B; margin-bottom:14px;">Vem ansvarar för distriktets grupp på plats om hotellet eller arrangören behöver nå er?</p>
+
+            <div class="form-grid-3">
+                <div class="form-group">
+                    <label for="distContactName">Ansvarig ledare (Namn)</label>
+                    <input type="text" id="distContactName" placeholder="Förnamn Efternamn" oninput="markDistrictDirty()">
+                </div>
+                <div class="form-group">
+                    <label for="distContactPhone">Mobilnummer</label>
+                    <input type="tel" id="distContactPhone" placeholder="070-123 45 67" oninput="markDistrictDirty()">
+                </div>
+                <div class="form-group">
+                    <label for="distComment">Övrig notering / Ankomsttid (valfritt)</label>
+                    <input type="text" id="distComment" placeholder="T.ex. Anländer med tåg fredag kl 17:30" oninput="markDistrictDirty()">
+                </div>
+            </div>
+        </div>
+
+        <!-- Rumsbokning -->
+        <div class="card">
+            <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:16px;">
+                <div>
+                    <h2 style="font-size:1.18rem; font-weight:800; color:#143321;">🏨 Hotellrum &amp; Deltagare</h2>
+                    <p style="font-size:0.84rem; color:#64748B;">Lägg till de rum ni behöver och fyll i namn samt eventuell allergi/specialkost för varje person i rummet.</p>
+                </div>
+                <button type="button" id="addRoomBtnTop" class="btn btn-green no-print" onclick="laggTillRum()">
+                    ➕ Lägg till rum
+                </button>
+            </div>
+
+            <div id="districtRoomsContainer" class="rooms-list"></div>
+
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; padding-top:8px;">
+                <button type="button" id="addRoomBtnBottom" class="btn btn-outline no-print" onclick="laggTillRum()">
+                    ➕ Lägg till ett rum till
+                </button>
+                <div style="font-size:0.8rem; color:#64748B;">
+                    🔒 <strong>GDPR:</strong> Namn och specialkost används enbart för hotell- och måltidsbokning och raderas efter utbildningen.
+                </div>
+            </div>
+        </div>
+
+        <!-- Sticky spara-rad -->
+        <div class="save-bar no-print" id="districtSaveBar">
+            <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+                <span id="unsavedIndicator" class="unsaved-pill" style="display:none;">⚠️ Du har osparade ändringar</span>
+                <span id="savedIndicatorText" style="font-size:0.84rem; color:#475569; font-weight:600;">Kom ihåg att spara när du är klar med rumslistan.</span>
+            </div>
+            <div style="display:flex; gap:10px; align-items:center;">
+                <button type="button" class="btn btn-outline btn-sm" onclick="window.print()">🖨️ Skriv ut vår lista</button>
+                <button type="button" id="saveDistrictBtn" class="btn btn-green" onclick="sparaDistriktsAnmalan()">
+                    💾 Spara anmälan
+                </button>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- ========================================== -->
+    <!-- VY 3: ADMINVY (ÖVERSIKT FÖR ALLA DISTRIKT) -->
+    <!-- ========================================== -->
+    <div id="adminView" style="display:none;">
+
+        <section class="hero-banner">
+            <div>
+                <div id="adminLockStatusPill" class="status-pill open">🟢 Anmälan är ÖPPEN för distrikten</div>
+                <h1 id="adminEventTitle">Gemensam Utbildning – Adminöversikt</h1>
+                <p id="adminEventSub">Samlad rumsfördelning och specialkost för Jämtland/Härjedalen, Medelpad &amp; Ångermanland.</p>
+            </div>
+            <div class="no-print" style="display:flex; gap:8px; flex-wrap:wrap;">
+                <button type="button" class="btn btn-sm" style="background:rgba(255,255,255,0.16); color:white; border:1px solid rgba(255,255,255,0.3);" onclick="oppnaConfigModal()">
+                    ⚙️ Utbildningsinställningar
+                </button>
+                <button type="button" id="toggleLockBtn" class="btn btn-gold btn-sm" onclick="togglaAnmalanLas()">
+                    🔒 Lås anmälan
+                </button>
+            </div>
+        </section>
+
+        <!-- Admin KPI -->
+        <div class="kpi-grid">
+            <div class="kpi-tile">
+                <div class="kpi-icon">👥</div>
+                <div>
+                    <div class="kpi-num" id="admKpiTotalGuests">0</div>
+                    <div class="kpi-lbl">Deltagare totalt</div>
+                </div>
+            </div>
+            <div class="kpi-tile">
+                <div class="kpi-icon">🏨</div>
+                <div>
+                    <div class="kpi-num" id="admKpiTotalRooms">0</div>
+                    <div class="kpi-lbl">Rum totalt</div>
+                </div>
+            </div>
+            <div class="kpi-tile">
+                <div class="kpi-icon">🛏️</div>
+                <div>
+                    <div class="kpi-num" id="admKpiSingle">0</div>
+                    <div class="kpi-lbl">Enkelrum (1p)</div>
+                </div>
+            </div>
+            <div class="kpi-tile">
+                <div class="kpi-icon">🛏️</div>
+                <div>
+                    <div class="kpi-num" id="admKpiDouble">0</div>
+                    <div class="kpi-lbl">Dubbelrum (2p)</div>
+                </div>
+            </div>
+            <div class="kpi-tile">
+                <div class="kpi-icon">🛏️</div>
+                <div>
+                    <div class="kpi-num" id="admKpiTriple">0</div>
+                    <div class="kpi-lbl">Trebäddsrum (3p)</div>
+                </div>
+            </div>
+            <div class="kpi-tile">
+                <div class="kpi-icon">🍽️</div>
+                <div>
+                    <div class="kpi-num" id="admKpiAllergies">0</div>
+                    <div class="kpi-lbl">Specialkost / Allergi</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Snabbåtgärder & Export -->
+        <div class="card no-print" style="padding:16px 20px; display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;">
+            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                <button type="button" class="btn btn-green btn-sm" onclick="exporteraHotellCSV()">
+                    🏨 Exportera Rumslista (Excel/CSV)
+                </button>
+                <button type="button" class="btn btn-blue btn-sm" onclick="exporteraAllergiCSV()">
+                    🍽️ Exportera Specialkost/Allergier (Excel/CSV)
+                </button>
+                <button type="button" class="btn btn-outline btn-sm" onclick="window.print()">
+                    🖨️ Skriv ut / Spara PDF
+                </button>
+            </div>
+            <button type="button" class="btn btn-danger-soft btn-sm" onclick="rensaAllaPersonuppgifterGDPR()">
+                🗑️ Rensa alla personuppgifter (GDPR)
+            </button>
+        </div>
+
+        <!-- Status per distrikt (3 kort med direktredigering) -->
+        <div class="form-grid-3" id="adminDistrictCardsGrid" style="margin-bottom:20px;"></div>
+
+        <!-- Summeringstabell: Rum per rumsstorlek & vistelse/nätter -->
+        <div class="card">
+            <h2 style="font-size:1.12rem; font-weight:800; color:#143321; margin-bottom:10px;">📊 Summering till hotellet: Antal rum per rumsstorlek &amp; nätter</h2>
+            <div class="data-table-wrap" id="adminNightMatrixWrap"></div>
+        </div>
+
+        <!-- Flikar för detaljlistor -->
+        <div class="admin-tabs no-print">
+            <button type="button" class="admin-tab-btn active" id="admTabBtn-rooms" onclick="bytAdminFlik('rooms')">🏨 Komplett Rumsfördelningslista</button>
+            <button type="button" class="admin-tab-btn" id="admTabBtn-allergies" onclick="bytAdminFlik('allergies')">🍽️ Samlad Allergi- &amp; Specialkostlista</button>
+            <button type="button" class="admin-tab-btn" id="admTabBtn-setup" onclick="bytAdminFlik('setup')">🔐 Firebase-konton &amp; Security Rules</button>
+        </div>
+
+        <!-- FLIK 1: ALLA RUM -->
+        <div id="admTab-rooms" class="card">
+            <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:14px;">
+                <h2 style="font-size:1.15rem; font-weight:800; color:#143321;">🏨 Alla bokade hotellrum (vem som bor med vem)</h2>
+                <select id="adminDistrictFilter" class="no-print" onchange="renderAdminTables()" style="width:auto; min-width:210px; padding:7px 12px; font-size:0.84rem; font-weight:700;">
+                    <option value="ALL">Visa alla 3 distrikt</option>
+                    <option value="jamtland">Endast Jämtland / Härjedalen</option>
+                    <option value="medelpad">Endast Medelpad</option>
+                    <option value="angermanland">Endast Ångermanland</option>
+                </select>
+            </div>
+            <div class="data-table-wrap" id="adminRoomsTableWrap"></div>
+        </div>
+
+        <!-- FLIK 2: ALLERGIER -->
+        <div id="admTab-allergies" class="card" style="display:none;">
+            <h2 style="font-size:1.15rem; font-weight:800; color:#143321; margin-bottom:4px;">🍽️ Samlad lista över allergier &amp; specialkost</h2>
+            <p style="font-size:0.84rem; color:#64748B; margin-bottom:14px;">Visar samtliga anmälda deltagare som har fyllt i allergi eller specialkost.</p>
+            <div class="data-table-wrap" id="adminAllergiesTableWrap"></div>
+        </div>
+
+        <!-- FLIK 3: FIREBASE GUIDE FÖR ADMIN -->
+        <div id="admTab-setup" class="card no-print" style="display:none;">
+            <h2 style="font-size:1.15rem; font-weight:800; color:#143321; margin-bottom:6px;">🔐 Snabbguide: Konton &amp; Firestore Security Rules</h2>
+            <p style="font-size:0.85rem; color:#475569; margin-bottom:14px;">
+                Lägg upp dessa 3 användare i <strong>Firebase Console &rarr; Authentication &rarr; Users</strong> (med valfria lösenord som du skickar till respektive distriktsledare):
+            </p>
+            <ul style="font-size:0.85rem; color:#1E293B; margin:0 0 16px 20px; line-height:1.7;">
+                <li><strong>Jämtland / Härjedalen:</strong> <code>jamtland@skolifwebben.se</code></li>
+                <li><strong>Medelpad:</strong> <code>medelpad@skolifwebben.se</code></li>
+                <li><strong>Ångermanland:</strong> <code>angermanland@skolifwebben.se</code></li>
+                <li><strong>Admin (Du):</strong> <code>tobias.sellin@gmail.com</code> (via Google-inloggning)</li>
+            </ul>
+            <p style="font-size:0.85rem; color:#475569; margin-bottom:8px;">
+                Lägg till följande block inuti <code>match /databases/{database}/documents { ... }</code> under <strong>Firestore Database &rarr; Rules</strong>:
+            </p>
+            <pre style="background:#0F172A; color:#E2E8F0; padding:14px; border-radius:12px; font-size:0.78rem; overflow-x:auto; line-height:1.5;">function isAnmalanAdmin() {
+  return request.auth != null &amp;&amp; request.auth.token.email == 'tobias.sellin@gmail.com';
+}
+function isDistrictOwner(districtId) {
+  return request.auth != null &amp;&amp; (
+    (districtId == 'jamtland' &amp;&amp; request.auth.token.email == 'jamtland@skolifwebben.se') ||
+    (districtId == 'medelpad' &amp;&amp; request.auth.token.email == 'medelpad@skolifwebben.se') ||
+    (districtId == 'angermanland' &amp;&amp; request.auth.token.email == 'angermanland@skolifwebben.se')
+  );
+}
+function isAnmalanOpen() {
+  return !exists(/databases/$(database)/documents/utbildning_anmalan/_config) ||
+         get(/databases/$(database)/documents/utbildning_anmalan/_config).data.isLocked != true;
+}
+match /utbildning_anmalan/_config {
+  allow read: if isAnmalanAdmin() || isDistrictOwner('jamtland') || isDistrictOwner('medelpad') || isDistrictOwner('angermanland');
+  allow write: if isAnmalanAdmin();
+}
+match /utbildning_anmalan/{districtId} {
+  allow read: if isAnmalanAdmin() || isDistrictOwner(districtId);
+  allow create, update: if isAnmalanAdmin() || (isDistrictOwner(districtId) &amp;&amp; isAnmalanOpen());
+  allow delete: if isAnmalanAdmin();
+}</pre>
+        </div>
+
+    </div>
+
+</div>
+
+<!-- ========================================== -->
+<!-- MODAL: UTBILDNINGSINSTÄLLNINGAR (ADMIN)    -->
+<!-- ========================================== -->
+<div class="modal-overlay" id="configModal" onclick="if(event.target===this) stangConfigModal()">
+    <div class="modal-box">
+        <button type="button" class="modal-close" onclick="stangConfigModal()">✕</button>
+        <h3 style="font-size:1.2rem; font-weight:800; color:#143321; margin-bottom:14px;">⚙️ Inställningar för utbildningen</h3>
+
+        <div class="form-group">
+            <label for="cfgTitleInput">Rubrik på utbildningen / träffen</label>
+            <input type="text" id="cfgTitleInput" placeholder="T.ex. Gemensam Utbildning – Skol-IF Distrikten">
+        </div>
+        <div class="form-group">
+            <label for="cfgSubInput">Underrubrik / Datum &amp; Plats</label>
+            <input type="text" id="cfgSubInput" placeholder="T.ex. Hotell Sundsvall • 24–26 januari • Sista anmälningsdag 15 dec">
+        </div>
+        <div class="form-group">
+            <label for="cfgNightsInput">Valbara alternativ för nätter / vistelse (ett val per rad)</label>
+            <textarea id="cfgNightsInput" rows="4" placeholder="Fredag–Söndag (2 nätter)&#10;Fredag–Lördag (1 natt)&#10;Lördag–Söndag (1 natt)&#10;Endast dagdeltagare (Ingen logi)"></textarea>
+            <div style="font-size:0.75rem; color:#64748B; margin-top:4px;">Dessa alternativ visas i rullgardinsmenyn för varje rum.</div>
+        </div>
+
+        <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:16px;">
+            <button type="button" class="btn btn-outline" onclick="stangConfigModal()">Avbryt</button>
+            <button type="button" class="btn btn-green" onclick="sparaConfigFranModal()">💾 Spara inställningar</button>
+        </div>
+    </div>
+</div>
+
+<!-- FIREBASE SDK v8 (Fristående utan klasser.js eller AdSense) -->
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+
+<script>
+const firebaseConfig = {
+    apiKey: "AIzaSyCmHoypbgqWYxgAVI98_gCwTJqXVUdG3hg",
+    authDomain: "skol-if.firebaseapp.com",
+    projectId: "skol-if",
+    storageBucket: "skol-if.firebasestorage.app",
+    messagingSenderId: "593631856247",
+    appId: "1:593631856247:web:874d4a87142b44bc336872",
+    measurementId: "G-6JP01V6CYC"
+};
+
+if (!firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
+}
+
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+const COLLECTION_NAME = 'utbildning_anmalan';
+const ADMIN_EMAILS = ['tobias.sellin@gmail.com', 'admin@skolifwebben.se'];
+
+const DISTRICTS = {
+    jamtland: {
+        id: 'jamtland',
+        name: 'Jämtland / Härjedalen',
+        shortName: 'Jämtland/Härjedalen',
+        email: 'jamtland@skolifwebben.se',
+        icon: '🏔️'
+    },
+    medelpad: {
+        id: 'medelpad',
+        name: 'Medelpad',
+        shortName: 'Medelpad',
+        email: 'medelpad@skolifwebben.se',
+        icon: '🌲'
+    },
+    angermanland: {
+        id: 'angermanland',
+        name: 'Ångermanland',
+        shortName: 'Ångermanland',
+        email: 'angermanland@skolifwebben.se',
+        icon: '🌊'
+    }
+};
+
+const ROOM_TYPES = {
+    single: { label: 'Enkelrum (1 person)', shortLabel: 'Enkelrum', capacity: 1 },
+    double: { label: 'Dubbelrum (2 personer)', shortLabel: 'Dubbelrum', capacity: 2 },
+    triple: { label: 'Trebäddsrum (3 personer)', shortLabel: 'Trebäddsrum', capacity: 3 }
+};
+
+const DEFAULT_NIGHT_OPTIONS = [
+    'Fredag–Söndag (2 nätter)',
+    'Fredag–Lördag (1 natt)',
+    'Lördag–Söndag (1 natt)',
+    'Endast dagdeltagare (Ingen logi)'
+];
+
+let eventConfig = {
+    titel: 'Gemensam Utbildning – Skol-IF Distrikten',
+    subtitle: 'Hotell- & deltagaranmälan för Jämtland/Härjedalen, Medelpad och Ångermanland',
+    isLocked: false,
+    nightOptions: [...DEFAULT_NIGHT_OPTIONS]
+};
+
+let currentUserRole = null; // 'admin' | 'district'
+let activeDistrictId = null;
+let isAdminEditingDistrict = false;
+let hasUnsavedChanges = false;
+
+let districtState = {
+    districtId: '',
+    districtName: '',
+    contactName: '',
+    contactPhone: '',
+    comment: '',
+    updatedAt: 0,
+    rooms: []
+};
+
+let allDistrictsData = {
+    jamtland: null,
+    medelpad: null,
+    angermanland: null
+};
+
+let configUnsubscribe = null;
+let adminUnsubscribes = [];
+
+// ==========================================
+//  HJÄLPFUNKTIONER & TOAST
+// ==========================================
+function escapeHtml(str) {
+    return String(str || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
+function showToast(msg, type = 'success') {
+    const container = document.getElementById('toastContainer');
+    if (!container) return;
+    const el = document.createElement('div');
+    el.className = `toast-item ${type}`;
+    el.textContent = msg;
+    container.appendChild(el);
+    setTimeout(() => {
+        if (el.parentNode) el.parentNode.removeChild(el);
+    }, 3800);
+}
+
+function formatTimestamp(ts) {
+    if (!ts) return 'Ingen sparad anmälan än';
+    const d = new Date(Number(ts));
+    if (isNaN(d.getTime())) return 'Okänt datum';
+    return d.toLocaleDateString('sv-SE', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+}
+
+function detectRoleFromEmail(email) {
+    const clean = String(email || '').trim().toLowerCase();
+    if (!clean) return null;
+    if (ADMIN_EMAILS.includes(clean)) {
+        return { role: 'admin', districtId: null };
+    }
+    for (const key of Object.keys(DISTRICTS)) {
+        if (DISTRICTS[key].email.toLowerCase() === clean) {
+            return { role: 'district', districtId: key };
+        }
+    }
+    return null;
+}
+
+// ==========================================
+//  INLOGGNING & AUTH-LYSSNARE
+// ==========================================
+function onLoginDistrictChange() {
+    const sel = document.getElementById('loginDistrictSelect');
+    const customGroup = document.getElementById('customEmailGroup');
+    if (!sel || !customGroup) return;
+    customGroup.style.display = sel.value === '__custom__' ? 'block' : 'none';
+}
+
+function togglePasswordVisibility() {
+    const inp = document.getElementById('loginPasswordInput');
+    if (!inp) return;
+    inp.type = inp.type === 'password' ? 'text' : 'password';
+}
+
+function visaLoginFel(msg) {
+    const box = document.getElementById('loginErrorBox');
+    if (!box) return;
+    if (!msg) {
+        box.style.display = 'none';
+        box.textContent = '';
+    } else {
+        box.style.display = 'block';
+        box.textContent = msg;
+    }
+}
+
+async function loggaInMedLosenord(e) {
+    e.preventDefault();
+    visaLoginFel('');
+    const sel = document.getElementById('loginDistrictSelect').value;
+    const email = (sel === '__custom__'
+        ? document.getElementById('loginEmailInput').value
+        : sel).trim().toLowerCase();
+    const password = document.getElementById('loginPasswordInput').value;
+
+    if (!email || !password) {
+        visaLoginFel('Fyll i både e-postadress/distrikt och lösenord.');
+        return;
+    }
+
+    const btn = document.getElementById('loginSubmitBtn');
+    btn.disabled = true;
+    btn.textContent = '⏳ Loggar in...';
+
+    try {
+        await auth.signInWithEmailAndPassword(email, password);
+    } catch (err) {
+        let svMsg = 'Fel lösenord eller konto. Kontrollera uppgifterna och försök igen.';
+        if (err.code === 'auth/user-not-found') {
+            svMsg = `Kontot (${email}) är inte skapat i Firebase Authentication ännu.`;
+        } else if (err.code === 'auth/too-many-requests') {
+            svMsg = 'För många misslyckade försök. Vänta en liten stund och försök igen.';
+        }
+        visaLoginFel(svMsg);
+    } finally {
+        btn.disabled = false;
+        btn.textContent = '🔓 Logga in till distriktets anmälan';
+    }
+}
+
+async function loggaInSomAdminGoogle() {
+    visaLoginFel('');
+    try {
+        const provider = new firebase.auth.GoogleAuthProvider();
+        await auth.signInWithPopup(provider);
+    } catch (err) {
+        if (err.code !== 'auth/cancelled-popup-request') {
+            visaLoginFel('Kunde inte logga in med Google. Kontrollera att popup-fönster tillåts.');
+        }
+    }
+}
+
+async function loggaUt() {
+    if (hasUnsavedChanges && !confirm('Du har osparade ändringar! Vill du verkligen logga ut utan att spara?')) {
+        return;
+    }
+    hasUnsavedChanges = false;
+    cleanupListeners();
+    await auth.signOut();
+    showToast('Du har loggats ut.', 'info');
+}
+
+function cleanupListeners() {
+    if (configUnsubscribe) { configUnsubscribe(); configUnsubscribe = null; }
+    adminUnsubscribes.forEach(unsub => { try { unsub(); } catch (e) {} });
+    adminUnsubscribes = [];
+}
+
+auth.onAuthStateChanged(async (user) => {
+    cleanupListeners();
+    const loginView = document.getElementById('loginView');
+    const districtView = document.getElementById('districtView');
+    const adminView = document.getElementById('adminView');
+    const badge = document.getElementById('navUserBadge');
+    const logoutBtn = document.getElementById('navLogoutBtn');
+
+    if (!user) {
+        currentUserRole = null;
+        activeDistrictId = null;
+        isAdminEditingDistrict = false;
+        loginView.style.display = 'block';
+        districtView.style.display = 'none';
+        adminView.style.display = 'none';
+        badge.style.display = 'none';
+        logoutBtn.style.display = 'none';
+        return;
+    }
+
+    const match = detectRoleFromEmail(user.email);
+    if (!match) {
+        await auth.signOut();
+        visaLoginFel(`Kontot (${user.email}) har inte behörighet till distriktsanmälan.`);
+        return;
+    }
+
+    currentUserRole = match.role;
+    activeDistrictId = match.districtId;
+    isAdminEditingDistrict = false;
+
+    loginView.style.display = 'none';
+    logoutBtn.style.display = 'inline-flex';
+    badge.style.display = 'inline-block';
+
+    startConfigListener();
+
+    if (currentUserRole === 'admin') {
+        badge.textContent = `👑 Admin (${user.email})`;
+        districtView.style.display = 'none';
+        adminView.style.display = 'block';
+        startAdminListeners();
+    } else {
+        const dMeta = DISTRICTS[activeDistrictId];
+        badge.textContent = `${dMeta.icon} ${dMeta.name}`;
+        adminView.style.display = 'none';
+        districtView.style.display = 'block';
+        await laddaDistriktsAnmalan(activeDistrictId);
+    }
+});
+
+// ==========================================
+//  KONFIGURATION (_config)
+// ==========================================
+function startConfigListener() {
+    configUnsubscribe = db.collection(COLLECTION_NAME).doc('_config').onSnapshot((doc) => {
+        if (doc.exists) {
+            const d = doc.data() || {};
+            eventConfig.titel = d.titel || 'Gemensam Utbildning – Skol-IF Distrikten';
+            eventConfig.subtitle = d.subtitle || 'Hotell- & deltagaranmälan för Jämtland/Härjedalen, Medelpad och Ångermanland';
+            eventConfig.isLocked = Boolean(d.isLocked);
+            if (Array.isArray(d.nightOptions) && d.nightOptions.length > 0) {
+                eventConfig.nightOptions = d.nightOptions;
+            } else {
+                eventConfig.nightOptions = [...DEFAULT_NIGHT_OPTIONS];
+            }
+        }
+        uppdateraConfigUI();
+    }, () => {
+        uppdateraConfigUI();
+    });
+}
+
+function uppdateraConfigUI() {
+    document.getElementById('districtEventTitle').textContent = eventConfig.titel;
+    document.getElementById('districtEventSub').textContent = eventConfig.subtitle;
+    document.getElementById('adminEventTitle').textContent = eventConfig.titel + ' – Adminöversikt';
+    document.getElementById('adminEventSub').textContent = eventConfig.subtitle;
+
+    const distPill = document.getElementById('districtStatusPill');
+    const lockedBanner = document.getElementById('lockedWarningBanner');
+    const admPill = document.getElementById('adminLockStatusPill');
+    const lockBtn = document.getElementById('toggleLockBtn');
+
+    if (eventConfig.isLocked) {
+        distPill.className = 'status-pill locked';
+        distPill.textContent = '🔒 Anmälan är låst';
+        lockedBanner.style.display = isAdminEditingDistrict ? 'none' : 'block';
+        admPill.className = 'status-pill locked';
+        admPill.textContent = '🔒 Anmälan är LÅST för distrikten';
+        if (lockBtn) lockBtn.textContent = '🔓 Lås upp anmälan';
+    } else {
+        distPill.className = 'status-pill open';
+        distPill.textContent = '🟢 Anmälan är öppen';
+        lockedBanner.style.display = 'none';
+        admPill.className = 'status-pill open';
+        admPill.textContent = '🟢 Anmälan är ÖPPEN för distrikten';
+        if (lockBtn) lockBtn.textContent = '🔒 Lås anmälan';
+    }
+
+    if (activeDistrictId) {
+        renderDistrictRooms();
+    }
+    if (currentUserRole === 'admin') {
+        renderAdminAll();
+    }
+}
+
+// ==========================================
+//  DISTRIKTSVY – LOGIK & FORMULÄR
+// ==========================================
+function isDistrictReadOnly() {
+    return eventConfig.isLocked && currentUserRole !== 'admin';
+}
+
+function normalizeRoomForEdit(rawRoom) {
+    const type = ROOM_TYPES[rawRoom.type] ? rawRoom.type : 'double';
+    const cap = ROOM_TYPES[type].capacity;
+    const savedGuests = Array.isArray(rawRoom.guests) ? rawRoom.guests : [];
+    const guestsDraft = [0, 1, 2].map(idx => ({
+        name: (savedGuests[idx] && savedGuests[idx].name) ? String(savedGuests[idx].name) : '',
+        allergy: (savedGuests[idx] && savedGuests[idx].allergy) ? String(savedGuests[idx].allergy) : ''
+    }));
+    return {
+        roomId: rawRoom.roomId || ('r_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6)),
+        type: type,
+        capacity: cap,
+        stay: rawRoom.stay || eventConfig.nightOptions[0] || DEFAULT_NIGHT_OPTIONS[0],
+        guestsDraft: guestsDraft
+    };
+}
+
+async function laddaDistriktsAnmalan(distId) {
+    const meta = DISTRICTS[distId];
+    if (!meta) return;
+
+    document.getElementById('districtNameHeading').textContent = `${meta.icon} ${meta.name}`;
+    document.getElementById('adminEditingDistrictBanner').style.display = isAdminEditingDistrict ? 'block' : 'none';
+    if (isAdminEditingDistrict) {
+        document.getElementById('adminEditingDistrictName').textContent = meta.name;
+    }
+
+    try {
+        const doc = await db.collection(COLLECTION_NAME).doc(distId).get();
+        if (doc.exists) {
+            const d = doc.data() || {};
+            districtState = {
+                districtId: distId,
+                districtName: meta.name,
+                contactName: d.contactName || '',
+                contactPhone: d.contactPhone || '',
+                comment: d.comment || '',
+                updatedAt: d.updatedAt || 0,
+                rooms: Array.isArray(d.rooms) ? d.rooms.map(normalizeRoomForEdit) : []
+            };
+        } else {
+            districtState = {
+                districtId: distId,
+                districtName: meta.name,
+                contactName: '',
+                contactPhone: '',
+                comment: '',
+                updatedAt: 0,
+                rooms: [normalizeRoomForEdit({ type: 'double' })]
+            };
+        }
+    } catch (err) {
+        console.error('Kunde inte hämta distriktsanmälan:', err);
+        showToast('Kunde inte läsa in anmälan från molnet. Kontrollera Firestore Rules.', 'error');
+        districtState = {
+            districtId: distId,
+            districtName: meta.name,
+            contactName: '',
+            contactPhone: '',
+            comment: '',
+            updatedAt: 0,
+            rooms: []
+        };
+    }
+
+    document.getElementById('distContactName').value = districtState.contactName;
+    document.getElementById('distContactPhone').value = districtState.contactPhone;
+    document.getElementById('distComment').value = districtState.comment;
+    document.getElementById('districtLastSavedText').textContent = districtState.updatedAt
+        ? `Senast sparad: ${formatTimestamp(districtState.updatedAt)}`
+        : 'Ännu inte sparad';
+
+    setDistrictDirty(false);
+    renderDistrictRooms();
+}
+
+function markDistrictDirty() {
+    districtState.contactName = document.getElementById('distContactName').value;
+    districtState.contactPhone = document.getElementById('distContactPhone').value;
+    districtState.comment = document.getElementById('distComment').value;
+    setDistrictDirty(true);
+    updateDistrictKpis();
+}
+
+function setDistrictDirty(dirty) {
+    hasUnsavedChanges = Boolean(dirty);
+    const pill = document.getElementById('unsavedIndicator');
+    if (pill) pill.style.display = hasUnsavedChanges ? 'inline-flex' : 'none';
+}
+
+function laggTillRum() {
+    if (isDistrictReadOnly()) return;
+    districtState.rooms.push(normalizeRoomForEdit({
+        type: 'double',
+        stay: eventConfig.nightOptions[0] || DEFAULT_NIGHT_OPTIONS[0]
+    }));
+    setDistrictDirty(true);
+    renderDistrictRooms();
+}
+
+function taBortRum(index) {
+    if (isDistrictReadOnly()) return;
+    const room = districtState.rooms[index];
+    if (!room) return;
+    const hasNames = room.guestsDraft.slice(0, room.capacity).some(g => g.name.trim() !== '');
+    if (hasNames && !confirm(`Vill du ta bort Rum ${index + 1} och deltagarna i rummet?`)) {
+        return;
+    }
+    districtState.rooms.splice(index, 1);
+    setDistrictDirty(true);
+    renderDistrictRooms();
+}
+
+function onRoomTypeChange(index, newType) {
+    if (isDistrictReadOnly()) return;
+    const room = districtState.rooms[index];
+    if (!room || !ROOM_TYPES[newType]) return;
+    room.type = newType;
+    room.capacity = ROOM_TYPES[newType].capacity;
+    setDistrictDirty(true);
+    renderDistrictRooms();
+}
+
+function onRoomStayChange(index, newStay) {
+    if (isDistrictReadOnly()) return;
+    const room = districtState.rooms[index];
+    if (!room) return;
+    room.stay = newStay;
+    setDistrictDirty(true);
+}
+
+function onGuestFieldInput(roomIdx, guestIdx, field, val) {
+    const room = districtState.rooms[roomIdx];
+    if (!room || !room.guestsDraft[guestIdx]) return;
+    room.guestsDraft[guestIdx][field] = val;
+    setDistrictDirty(true);
+    updateDistrictKpis();
+}
+
+function updateDistrictKpis() {
+    let guestsCount = 0;
+    let singleCount = 0;
+    let doubleCount = 0;
+    let tripleCount = 0;
+    let allergyCount = 0;
+
+    districtState.rooms.forEach(r => {
+        if (r.type === 'single') singleCount++;
+        else if (r.type === 'double') doubleCount++;
+        else if (r.type === 'triple') tripleCount++;
+
+        const activeGuests = r.guestsDraft.slice(0, r.capacity);
+        activeGuests.forEach(g => {
+            if (g.name.trim() !== '') {
+                guestsCount++;
+                if (g.allergy.trim() !== '') allergyCount++;
+            }
+        });
+    });
+
+    document.getElementById('distKpiGuests').textContent = String(guestsCount);
+    document.getElementById('distKpiRooms').textContent = String(districtState.rooms.length);
+    document.getElementById('distKpiBreakdown').textContent = `${singleCount} / ${doubleCount} / ${tripleCount}`;
+    document.getElementById('distKpiAllergies').textContent = String(allergyCount);
+}
+
+function renderDistrictRooms() {
+    const container = document.getElementById('districtRoomsContainer');
+    if (!container) return;
+
+    const readOnly = isDistrictReadOnly();
+    const disAttr = readOnly ? 'disabled' : '';
+
+    document.getElementById('distContactName').disabled = readOnly;
+    document.getElementById('distContactPhone').disabled = readOnly;
+    document.getElementById('distComment').disabled = readOnly;
+    document.getElementById('addRoomBtnTop').disabled = readOnly;
+    document.getElementById('addRoomBtnBottom').disabled = readOnly;
+    document.getElementById('saveDistrictBtn').disabled = readOnly;
+
+    if (districtState.rooms.length === 0) {
+        container.innerHTML = `
+            <div style="text-align:center; padding:32px 18px; background:#F8FAFC; border:1.5px dashed #CBD5E1; border-radius:14px; color:#64748B;">
+                <div style="font-size:2.2rem; margin-bottom:6px;">🛏️</div>
+                <strong style="color:#1E293B; display:block; margin-bottom:4px;">Inga rum tillagda ännu</strong>
+                <p style="font-size:0.85rem; margin-bottom:14px;">Klicka på "+ Lägg till rum" för att börja fylla i distriktets deltagare och rumsönskemål.</p>
+                ${!readOnly ? '<button type="button" class="btn btn-green btn-sm" onclick="laggTillRum()">➕ Lägg till första rummet</button>' : ''}
+            </div>
+        `;
+        updateDistrictKpis();
+        return;
+    }
+
+    container.innerHTML = districtState.rooms.map((room, rIdx) => {
+        const nightChoices = [...eventConfig.nightOptions];
+        if (room.stay && !nightChoices.includes(room.stay)) {
+            nightChoices.push(room.stay);
+        }
+
+        const typeOptionsHtml = Object.keys(ROOM_TYPES).map(tKey => `
+            <option value="${tKey}" ${room.type === tKey ? 'selected' : ''}>${escapeHtml(ROOM_TYPES[tKey].label)}</option>
+        `).join('');
+
+        const stayOptionsHtml = nightChoices.map(nOpt => `
+            <option value="${escapeHtml(nOpt)}" ${room.stay === nOpt ? 'selected' : ''}>${escapeHtml(nOpt)}</option>
+        `).join('');
+
+        const guestRowsHtml = room.guestsDraft.slice(0, room.capacity).map((g, gIdx) => `
+            <div class="guest-row">
+                <span class="guest-idx">P${gIdx + 1}</span>
+                <div>
+                    <input type="text" value="${escapeHtml(g.name)}" placeholder="Deltagare ${gIdx + 1}: För- och efternamn"
+                        oninput="onGuestFieldInput(${rIdx}, ${gIdx}, 'name', this.value)" ${disAttr}>
+                </div>
+                <div>
+                    <input type="text" value="${escapeHtml(g.allergy)}" placeholder="Allergi / specialkost (lämna tomt om ingen)"
+                        oninput="onGuestFieldInput(${rIdx}, ${gIdx}, 'allergy', this.value)" ${disAttr}>
+                </div>
+            </div>
+        `).join('');
+
+        return `
+            <div class="room-card">
+                <div class="room-card-header">
+                    <div class="room-badge-title">
+                        <span class="room-num-pill">Rum ${rIdx + 1}</span>
+                        <span>${escapeHtml(ROOM_TYPES[room.type].label)}</span>
+                    </div>
+                    ${!readOnly ? `<button type="button" class="btn btn-danger-soft btn-sm no-print" onclick="taBortRum(${rIdx})">🗑️ Ta bort rum</button>` : ''}
+                </div>
+                <div class="room-card-body">
+                    <div class="form-grid-2">
+                        <div class="form-group" style="margin-bottom:8px;">
+                            <label>Rumsstorlek</label>
+                            <select onchange="onRoomTypeChange(${rIdx}, this.value)" ${disAttr}>
+                                ${typeOptionsHtml}
+                            </select>
+                        </div>
+                        <div class="form-group" style="margin-bottom:8px;">
+                            <label>Vistelse / Nätter</label>
+                            <select onchange="onRoomStayChange(${rIdx}, this.value)" ${disAttr}>
+                                ${stayOptionsHtml}
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="guests-box">
+                        <div style="font-size:0.78rem; font-weight:800; color:#475569; margin-bottom:8px; text-transform:uppercase; letter-spacing:0.4px;">
+                            👥 Personer som bor i Rum ${rIdx + 1} (${room.capacity} ${room.capacity === 1 ? 'bädd' : 'bäddar'})
+                        </div>
+                        ${guestRowsHtml}
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
+
+    updateDistrictKpis();
+}
+
+async function sparaDistriktsAnmalan() {
+    if (isDistrictReadOnly()) {
+        showToast('Anmälan är låst och kan inte längre ändras.', 'warning');
+        return;
+    }
+
+    const meta = DISTRICTS[activeDistrictId];
+    if (!meta) return;
+
+    const cleanRooms = districtState.rooms.map(r => {
+        const cap = ROOM_TYPES[r.type] ? ROOM_TYPES[r.type].capacity : 2;
+        const activeGuests = r.guestsDraft.slice(0, cap).map(g => ({
+            name: String(g.name || '').trim(),
+            allergy: String(g.allergy || '').trim()
+        }));
+        return {
+            roomId: r.roomId,
+            type: r.type,
+            typeLabel: ROOM_TYPES[r.type].shortLabel,
+            capacity: cap,
+            stay: String(r.stay || '').trim(),
+            guests: activeGuests
+        };
+    });
+
+    const emptyRooms = cleanRooms.filter(r => r.guests.every(g => !g.name));
+    if (emptyRooms.length > 0 && !confirm(`Obs! ${emptyRooms.length} av dina rum saknar helt deltagarnamn. Vill du spara ändå?`)) {
+        return;
+    }
+
+    const btn = document.getElementById('saveDistrictBtn');
+    btn.disabled = true;
+    btn.textContent = '⏳ Sparar...';
+
+    const now = Date.now();
+    const payload = {
+        districtId: activeDistrictId,
+        districtName: meta.name,
+        contactName: document.getElementById('distContactName').value.trim(),
+        contactPhone: document.getElementById('distContactPhone').value.trim(),
+        comment: document.getElementById('distComment').value.trim(),
+        updatedAt: now,
+        rooms: cleanRooms
+    };
+
+    try {
+        await db.collection(COLLECTION_NAME).doc(activeDistrictId).set(payload, { merge: true });
+        districtState.updatedAt = now;
+        document.getElementById('districtLastSavedText').textContent = `Senast sparad: ${formatTimestamp(now)}`;
+        setDistrictDirty(false);
+        showToast(`✅ Anmälan för ${meta.name} är sparad!`, 'success');
+    } catch (err) {
+        console.error('Fel vid sparning:', err);
+        showToast('Kunde inte spara anmälan. Kontrollera din uppkoppling eller om anmälan har låsts.', 'error');
+    } finally {
+        btn.disabled = isDistrictReadOnly();
+        btn.textContent = '💾 Spara anmälan';
+    }
+}
+
+// ==========================================
+//  ADMINVY – LOGIK, TABELLER & EXPORT
+// ==========================================
+function startAdminListeners() {
+    Object.keys(DISTRICTS).forEach(distId => {
+        const unsub = db.collection(COLLECTION_NAME).doc(distId).onSnapshot((doc) => {
+            if (doc.exists) {
+                allDistrictsData[distId] = doc.data();
+            } else {
+                allDistrictsData[distId] = null;
+            }
+            renderAdminAll();
+        }, (err) => {
+            console.warn(`Kunde inte lyssna på ${distId}:`, err);
+        });
+        adminUnsubscribes.push(unsub);
+    });
+}
+
+function getFlattenedRooms(filterDistId = 'ALL') {
+    const rows = [];
+    let globalRoomNr = 1;
+    Object.keys(DISTRICTS).forEach(distId => {
+        const meta = DISTRICTS[distId];
+        const doc = allDistrictsData[distId];
+        const rooms = (doc && Array.isArray(doc.rooms)) ? doc.rooms : [];
+        rooms.forEach((r, idxInDist) => {
+            const cap = ROOM_TYPES[r.type] ? ROOM_TYPES[r.type].capacity : (Number(r.capacity) || 1);
+            const guests = Array.isArray(r.guests) ? r.guests.slice(0, cap) : [];
+            const item = {
+                globalNr: globalRoomNr++,
+                distNr: idxInDist + 1,
+                districtId: distId,
+                districtName: meta.name,
+                districtShort: meta.shortName,
+                contactName: (doc && doc.contactName) || '',
+                contactPhone: (doc && doc.contactPhone) || '',
+                type: r.type || 'double',
+                typeLabel: (ROOM_TYPES[r.type] && ROOM_TYPES[r.type].shortLabel) || r.typeLabel || 'Dubbelrum',
+                capacity: cap,
+                stay: r.stay || DEFAULT_NIGHT_OPTIONS[0],
+                guests: guests
+            };
+            if (filterDistId === 'ALL' || filterDistId === distId) {
+                rows.push(item);
+            }
+        });
+    });
+    return rows;
+}
+
+function renderAdminAll() {
+    if (currentUserRole !== 'admin') return;
+
+    const allRooms = getFlattenedRooms('ALL');
+    let totalGuests = 0;
+    let singleRooms = 0;
+    let doubleRooms = 0;
+    let tripleRooms = 0;
+    let totalAllergies = 0;
+
+    allRooms.forEach(r => {
+        if (r.type === 'single') singleRooms++;
+        else if (r.type === 'double') doubleRooms++;
+        else if (r.type === 'triple') tripleRooms++;
+
+        r.guests.forEach(g => {
+            if (g && String(g.name || '').trim()) {
+                totalGuests++;
+                if (String(g.allergy || '').trim()) totalAllergies++;
+            }
+        });
+    });
+
+    document.getElementById('admKpiTotalGuests').textContent = String(totalGuests);
+    document.getElementById('admKpiTotalRooms').textContent = String(allRooms.length);
+    document.getElementById('admKpiSingle').textContent = String(singleRooms);
+    document.getElementById('admKpiDouble').textContent = String(doubleRooms);
+    document.getElementById('admKpiTriple').textContent = String(tripleRooms);
+    document.getElementById('admKpiAllergies').textContent = String(totalAllergies);
+
+    renderAdminDistrictCards();
+    renderAdminNightMatrix(allRooms);
+    renderAdminTables();
+}
+
+function renderAdminDistrictCards() {
+    const grid = document.getElementById('adminDistrictCardsGrid');
+    if (!grid) return;
+
+    grid.innerHTML = Object.keys(DISTRICTS).map(distId => {
+        const meta = DISTRICTS[distId];
+        const d = allDistrictsData[distId];
+        const rooms = (d && Array.isArray(d.rooms)) ? d.rooms : [];
+        let guestsCount = 0;
+        rooms.forEach(r => {
+            (r.guests || []).forEach(g => {
+                if (g && String(g.name || '').trim()) guestsCount++;
+            });
+        });
+
+        return `
+            <div class="card" style="margin-bottom:0; padding:18px;">
+                <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px; margin-bottom:8px;">
+                    <div>
+                        <span class="district-tag ${distId}">${meta.icon} ${escapeHtml(meta.name)}</span>
+                        <div style="font-size:0.75rem; color:#64748B; margin-top:4px;">${formatTimestamp(d && d.updatedAt)}</div>
+                    </div>
+                    <button type="button" class="btn btn-outline btn-sm no-print" onclick="adminRedigeraDistrikt('${distId}')">✏️ Redigera</button>
+                </div>
+                <div style="font-weight:800; font-size:1.05rem; color:#143321; margin-bottom:6px;">
+                    ${guestsCount} deltagare &bull; ${rooms.length} rum
+                </div>
+                <div style="font-size:0.8rem; color:#475569; line-height:1.45;">
+                    <strong>Kontakt:</strong> ${d && d.contactName ? escapeHtml(d.contactName) : '<em>Ej angiven</em>'}
+                    ${d && d.contactPhone ? ` (${escapeHtml(d.contactPhone)})` : ''}<br>
+                    ${d && d.comment ? `<strong>Notering:</strong> ${escapeHtml(d.comment)}` : ''}
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+function renderAdminNightMatrix(allRooms) {
+    const wrap = document.getElementById('adminNightMatrixWrap');
+    if (!wrap) return;
+
+    const staysSet = new Set(eventConfig.nightOptions);
+    allRooms.forEach(r => { if (r.stay) staysSet.add(r.stay); });
+    const stays = Array.from(staysSet);
+
+    let html = `
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Vistelse / Nätter</th>
+                    <th>Enkelrum (1p)</th>
+                    <th>Dubbelrum (2p)</th>
+                    <th>Trebäddsrum (3p)</th>
+                    <th>Totalt antal rum</th>
+                    <th>Antal personer</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
+
+    stays.forEach(stayLabel => {
+        const subset = allRooms.filter(r => r.stay === stayLabel);
+        const sCount = subset.filter(r => r.type === 'single').length;
+        const dCount = subset.filter(r => r.type === 'double').length;
+        const tCount = subset.filter(r => r.type === 'triple').length;
+        let pCount = 0;
+        subset.forEach(r => {
+            r.guests.forEach(g => { if (g && String(g.name || '').trim()) pCount++; });
+        });
+
+        if (subset.length > 0 || eventConfig.nightOptions.includes(stayLabel)) {
+            html += `
+                <tr>
+                    <td><strong>${escapeHtml(stayLabel)}</strong></td>
+                    <td>${sCount} st</td>
+                    <td>${dCount} st</td>
+                    <td>${tCount} st</td>
+                    <td><strong>${subset.length} rum</strong></td>
+                    <td>${pCount} pers</td>
+                </tr>
+            `;
+        }
+    });
+
+    html += `</tbody></table>`;
+    wrap.innerHTML = html;
+}
+
+function renderAdminTables() {
+    const filter = document.getElementById('adminDistrictFilter') ? document.getElementById('adminDistrictFilter').value : 'ALL';
+    const rooms = getFlattenedRooms(filter);
+
+    const roomsWrap = document.getElementById('adminRoomsTableWrap');
+    if (rooms.length === 0) {
+        roomsWrap.innerHTML = `<div style="padding:20px; text-align:center; color:#64748B;">Inga rum inlagda ännu för valt filter.</div>`;
+    } else {
+        roomsWrap.innerHTML = `
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Rum #</th>
+                        <th>Distrikt</th>
+                        <th>Rumstyp</th>
+                        <th>Vistelse / Nätter</th>
+                        <th>Deltagare i rummet</th>
+                        <th>Allergier / Specialkost</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${rooms.map(r => {
+                        const namesHtml = r.guests.map((g, i) => {
+                            const n = String(g.name || '').trim();
+                            return `<div><strong>${i + 1}.</strong> ${n ? escapeHtml(n) : '<em style="color:#94A3B8;">Tom bädd</em>'}</div>`;
+                        }).join('');
+                        const allergyHtml = r.guests.map((g, i) => {
+                            const a = String(g.allergy || '').trim();
+                            const n = String(g.name || '').trim();
+                            if (!a) return '';
+                            return `<div style="margin-bottom:3px;"><span class="allergy-badge">${escapeHtml(n || ('Person ' + (i + 1)))}: ${escapeHtml(a)}</span></div>`;
+                        }).filter(Boolean).join('') || '<span style="color:#94A3B8;">—</span>';
+
+                        return `
+                            <tr>
+                                <td><strong>#${r.globalNr}</strong> <span style="color:#64748B; font-size:0.76rem;">(${r.districtShort} #${r.distNr})</span></td>
+                                <td><span class="district-tag ${r.districtId}">${escapeHtml(r.districtShort)}</span></td>
+                                <td><strong>${escapeHtml(r.typeLabel)}</strong></td>
+                                <td>${escapeHtml(r.stay)}</td>
+                                <td>${namesHtml}</td>
+                                <td>${allergyHtml}</td>
+                            </tr>
+                        `;
+                    }).join('')}
+                </tbody>
+            </table>
+        `;
+    }
+
+    // Allergitabellen (visar alltid alla med allergi)
+    const allergyWrap = document.getElementById('adminAllergiesTableWrap');
+    const allRooms = getFlattenedRooms('ALL');
+    const allergyRows = [];
+    allRooms.forEach(r => {
+        r.guests.forEach(g => {
+            const name = String(g.name || '').trim();
+            const allergy = String(g.allergy || '').trim();
+            if (allergy) {
+                allergyRows.push({
+                    name: name || '(Namn saknas)',
+                    allergy,
+                    districtId: r.districtId,
+                    districtShort: r.districtShort,
+                    roomNr: r.globalNr,
+                    typeLabel: r.typeLabel,
+                    stay: r.stay
+                });
+            }
+        });
+    });
+
+    if (allergyRows.length === 0) {
+        allergyWrap.innerHTML = `<div style="padding:20px; text-align:center; color:#64748B;">Inga allergier eller specialkost har anmälts ännu.</div>`;
+    } else {
+        allergyWrap.innerHTML = `
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Deltagare</th>
+                        <th>Allergi / Specialkost</th>
+                        <th>Distrikt</th>
+                        <th>Rum</th>
+                        <th>Vistelse / Nätter</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${allergyRows.map(a => `
+                        <tr>
+                            <td><strong>${escapeHtml(a.name)}</strong></td>
+                            <td><span class="allergy-badge">${escapeHtml(a.allergy)}</span></td>
+                            <td><span class="district-tag ${a.districtId}">${escapeHtml(a.districtShort)}</span></td>
+                            <td>Rum #${a.roomNr} (${escapeHtml(a.typeLabel)})</td>
+                            <td>${escapeHtml(a.stay)}</td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        `;
+    }
+}
+
+function bytAdminFlik(tab) {
+    ['rooms', 'allergies', 'setup'].forEach(t => {
+        const el = document.getElementById('admTab-' + t);
+        const btn = document.getElementById('admTabBtn-' + t);
+        if (el) el.style.display = (t === tab) ? 'block' : 'none';
+        if (btn) btn.classList.toggle('active', t === tab);
+    });
+}
+
+async function adminRedigeraDistrikt(distId) {
+    if (currentUserRole !== 'admin') return;
+    activeDistrictId = distId;
+    isAdminEditingDistrict = true;
+    document.getElementById('adminView').style.display = 'none';
+    document.getElementById('districtView').style.display = 'block';
+    await laddaDistriktsAnmalan(distId);
+}
+
+function tillbakaTillAdminVy() {
+    if (hasUnsavedChanges && !confirm('Du har osparade ändringar för distriktet. Vill du lämna utan att spara?')) {
+        return;
+    }
+    hasUnsavedChanges = false;
+    isAdminEditingDistrict = false;
+    activeDistrictId = null;
+    document.getElementById('districtView').style.display = 'none';
+    document.getElementById('adminView').style.display = 'block';
+    renderAdminAll();
+}
+
+async function togglaAnmalanLas() {
+    if (currentUserRole !== 'admin') return;
+    const nextLocked = !eventConfig.isLocked;
+    const msg = nextLocked
+        ? 'Vill du LÅSA anmälan? Då kan distrikten inte längre göra ändringar.'
+        : 'Vill du LÅSA UPP anmälan så att distrikten kan redigera igen?';
+    if (!confirm(msg)) return;
+
+    try {
+        await db.collection(COLLECTION_NAME).doc('_config').set({
+            titel: eventConfig.titel,
+            subtitle: eventConfig.subtitle,
+            nightOptions: eventConfig.nightOptions,
+            isLocked: nextLocked,
+            updatedAt: Date.now()
+        }, { merge: true });
+        showToast(nextLocked ? '🔒 Anmälan är nu låst!' : '🔓 Anmälan är nu öppen!', 'success');
+    } catch (err) {
+        showToast('Kunde inte ändra låsstatus i Firestore.', 'error');
+    }
+}
+
+function oppnaConfigModal() {
+    document.getElementById('cfgTitleInput').value = eventConfig.titel;
+    document.getElementById('cfgSubInput').value = eventConfig.subtitle;
+    document.getElementById('cfgNightsInput').value = eventConfig.nightOptions.join('\n');
+    document.getElementById('configModal').classList.add('open');
+}
+
+function stangConfigModal() {
+    document.getElementById('configModal').classList.remove('open');
+}
+
+async function sparaConfigFranModal() {
+    const titel = document.getElementById('cfgTitleInput').value.trim() || 'Gemensam Utbildning – Skol-IF Distrikten';
+    const subtitle = document.getElementById('cfgSubInput').value.trim();
+    const nights = document.getElementById('cfgNightsInput').value
+        .split('\n')
+        .map(s => s.trim())
+        .filter(Boolean);
+
+    try {
+        await db.collection(COLLECTION_NAME).doc('_config').set({
+            titel,
+            subtitle,
+            nightOptions: nights.length > 0 ? nights : [...DEFAULT_NIGHT_OPTIONS],
+            isLocked: eventConfig.isLocked,
+            updatedAt: Date.now()
+        }, { merge: true });
+        stangConfigModal();
+        showToast('✅ Utbildningsinställningarna är sparade!', 'success');
+    } catch (err) {
+        showToast('Kunde inte spara inställningarna.', 'error');
+    }
+}
+
+// ==========================================
+//  CSV-EXPORTER (MED UTF-8 BOM FÖR SVENSKT EXCEL)
+// ==========================================
+function csvCell(val) {
+    return `"${String(val || '').replace(/"/g, '""')}"`;
+}
+
+function downloadCsvFile(filename, csvContent) {
+    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+
+function exporteraHotellCSV() {
+    const rooms = getFlattenedRooms('ALL');
+    if (rooms.length === 0) {
+        showToast('Det finns inga bokade rum att exportera ännu.', 'warning');
+        return;
+    }
+
+    let csv = 'Rum nr;Distrikt;Rumstyp;Antal bäddar;Vistelse / Nätter;Deltagare 1;Allergi 1;Deltagare 2;Allergi 2;Deltagare 3;Allergi 3;Kontaktperson;Kontakttelefon\r\n';
+    rooms.forEach(r => {
+        const g1 = r.guests[0] || {};
+        const g2 = r.guests[1] || {};
+        const g3 = r.guests[2] || {};
+        csv += [
+            csvCell('Rum ' + r.globalNr),
+            csvCell(r.districtName),
+            csvCell(r.typeLabel),
+            r.capacity,
+            csvCell(r.stay),
+            csvCell(g1.name),
+            csvCell(g1.allergy),
+            csvCell(g2.name),
+            csvCell(g2.allergy),
+            csvCell(g3.name),
+            csvCell(g3.allergy),
+            csvCell(r.contactName),
+            csvCell(r.contactPhone)
+        ].join(';') + '\r\n';
+    });
+
+    const today = new Date().toISOString().slice(0, 10);
+    downloadCsvFile(`SkolIF_Hotell_Rumslista_${today}.csv`, csv);
+    showToast('🏨 Rumslistan har laddats ner till Excel/CSV!', 'success');
+}
+
+function exporteraAllergiCSV() {
+    const rooms = getFlattenedRooms('ALL');
+    const rows = [];
+    rooms.forEach(r => {
+        r.guests.forEach(g => {
+            if (g && String(g.allergy || '').trim()) {
+                rows.push({
+                    name: g.name || '(Namn saknas)',
+                    allergy: g.allergy,
+                    district: r.districtName,
+                    room: `Rum ${r.globalNr} (${r.typeLabel})`,
+                    stay: r.stay
+                });
+            }
+        });
+    });
+
+    if (rows.length === 0) {
+        showToast('Inga allergier eller specialkost inlagda att exportera.', 'warning');
+        return;
+    }
+
+    let csv = 'Deltagare;Allergi / Specialkost;Distrikt;Rum;Vistelse / Nätter\r\n';
+    rows.forEach(row => {
+        csv += [
+            csvCell(row.name),
+            csvCell(row.allergy),
+            csvCell(row.district),
+            csvCell(row.room),
+            csvCell(row.stay)
+        ].join(';') + '\r\n';
+    });
+
+    const today = new Date().toISOString().slice(0, 10);
+    downloadCsvFile(`SkolIF_Specialkost_Allergier_${today}.csv`, csv);
+    showToast('🍽️ Allergi- och specialkostlistan har laddats ner!', 'success');
+}
+
+async function rensaAllaPersonuppgifterGDPR() {
+    if (currentUserRole !== 'admin') return;
+    if (!confirm('⚠️ GDPR-rensning: Vill du radera ALLA anmälda rum, deltagarnamn och allergier för samtliga 3 distrikt? Detta går inte att ångra.')) {
+        return;
+    }
+    const check = prompt('Skriv RADERA med stora bokstäver för att bekräfta att utbildningen är avslutad och alla personuppgifter ska tas bort:');
+    if (check !== 'RADERA') {
+        showToast('Rensningen avbröts.', 'info');
+        return;
+    }
+
+    try {
+        await Promise.all(
+            Object.keys(DISTRICTS).map(distId => db.collection(COLLECTION_NAME).doc(distId).delete())
+        );
+        showToast('🗑️ Alla personuppgifter och rumsbokningar har raderats!', 'success');
+    } catch (err) {
+        console.error('Fel vid GDPR-rensning:', err);
+        showToast('Kunde inte radera dokumenten i Firestore.', 'error');
+    }
+}
+
+window.addEventListener('beforeunload', (e) => {
+    if (hasUnsavedChanges) {
+        e.preventDefault();
+        e.returnValue = '';
+    }
+});
+</script>
+</body>
+</html>
