@@ -818,6 +818,9 @@
             <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
                 <span id="unsavedIndicator" class="unsaved-pill" style="display:none;">⚠️ Du har osparade ändringar</span>
                 <span id="savedIndicatorText" style="font-size:0.84rem; color:#475569; font-weight:600;">Klicka på "Skicka in anmälan" när du är klar med rumslistan.</span>
+                <span id="saveBarDeadlinePill" style="display:none; background:#FFFBEB; color:#92400E; border:1px solid #F59E0B; padding:4px 11px; border-radius:99px; font-size:0.78rem; font-weight:800;">
+                    ⏰ Sista anmälan: <span id="saveBarDeadlineText"></span>
+                </span>
             </div>
             <div style="display:flex; gap:10px; align-items:center;">
                 <button type="button" class="btn btn-outline btn-sm" onclick="window.print()">🖨️ Skriv ut vår lista</button>
@@ -1441,6 +1444,8 @@ function uppdateraConfigUI() {
     const distBanner = document.getElementById('districtDeadlineBanner');
     const distMainText = document.getElementById('districtDeadlineMainText');
     const distCountdown = document.getElementById('districtDeadlineCountdown');
+    const saveBarPill = document.getElementById('saveBarDeadlinePill');
+    const saveBarText = document.getElementById('saveBarDeadlineText');
     const admHeroText = document.getElementById('adminHeroDeadlineText');
 
     if (displayDeadline) {
@@ -1451,6 +1456,10 @@ function uppdateraConfigUI() {
         if (distBanner && distMainText) {
             distBanner.style.display = 'block';
             distMainText.textContent = displayDeadline;
+        }
+        if (saveBarPill && saveBarText) {
+            saveBarPill.style.display = 'inline-flex';
+            saveBarText.textContent = displayDeadline;
         }
         if (distCountdown) {
             const cd = getDeadlineCountdownText(eventConfig.deadlineIso);
@@ -1467,6 +1476,7 @@ function uppdateraConfigUI() {
     } else {
         if (distHeroPill) distHeroPill.style.display = 'none';
         if (distBanner) distBanner.style.display = 'none';
+        if (saveBarPill) saveBarPill.style.display = 'none';
         if (admHeroText) admHeroText.textContent = 'Ej angiven (klicka för att välja)';
     }
 
