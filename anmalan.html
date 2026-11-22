@@ -1170,6 +1170,8 @@ let districtState = {
     contactPhone: '',
     comment: '',
     updatedAt: 0,
+    isSubmitted: false,
+    submittedAt: 0,
     rooms: []
 };
 
@@ -1553,6 +1555,8 @@ async function laddaDistriktsAnmalan(distId) {
                 contactPhone: d.contactPhone || '',
                 comment: d.comment || '',
                 updatedAt: d.updatedAt || 0,
+                isSubmitted: Boolean(d.isSubmitted),
+                submittedAt: d.submittedAt || 0,
                 // När en sparad anmälan laddas visas rummen direkt i tydligt överblicksläge (isEditing: false)
                 rooms: Array.isArray(d.rooms) ? d.rooms.map(r => normalizeRoomForEdit({ ...r, isEditing: false }, false)) : []
             };
@@ -1564,6 +1568,8 @@ async function laddaDistriktsAnmalan(distId) {
                 contactPhone: '',
                 comment: '',
                 updatedAt: 0,
+                isSubmitted: false,
+                submittedAt: 0,
                 rooms: [normalizeRoomForEdit({ type: 'double', isEditing: true }, true)]
             };
         }
@@ -1577,6 +1583,8 @@ async function laddaDistriktsAnmalan(distId) {
             contactPhone: '',
             comment: '',
             updatedAt: 0,
+            isSubmitted: false,
+            submittedAt: 0,
             rooms: []
         };
     }
@@ -1584,9 +1592,9 @@ async function laddaDistriktsAnmalan(distId) {
     document.getElementById('distContactName').value = districtState.contactName;
     document.getElementById('distContactPhone').value = districtState.contactPhone;
     document.getElementById('distComment').value = districtState.comment;
-    document.getElementById('districtLastSavedText').textContent = districtState.updatedAt
-        ? `Senast sparad: ${formatTimestamp(districtState.updatedAt)}`
-        : 'Ännu inte sparad';
+    document.getElementById('districtLastSavedText').textContent = (districtState.isSubmitted && districtState.submittedAt)
+        ? `✅ Inskickad: ${formatTimestamp(districtState.submittedAt)}`
+        : (districtState.updatedAt ? `Utkast sparat (ej inskickad än)` : 'Ej inskickad ännu');
 
     setDistrictDirty(false);
     renderDistrictRooms();
@@ -1602,12 +1610,15 @@ function markDistrictDirty() {
 
 function setDistrictDirty(dirty) {
     hasUnsavedChanges = Boolean(dirty);
+    if (hasUnsavedChanges) {
+        districtState.isSubmitted = false;
+    }
     const pill = document.getElementById('unsavedIndicator');
     if (pill) pill.style.display = hasUnsavedChanges ? 'inline-flex' : 'none';
     const savedTxt = document.getElementById('savedIndicatorText');
     if (savedTxt) {
-        if (!hasUnsavedChanges && districtState.updatedAt) {
-            savedTxt.innerHTML = `<span style="color:#15803D; font-weight:800;">✅ Anmälan är inskickad!</span> <span style="color:#64748B;">(Senast inskickad: ${formatTimestamp(districtState.updatedAt)})</span>`;
+        if (!hasUnsavedChanges && districtState.isSubmitted) {
+            savedTxt.innerHTML = `<span style="color:#15803D; font-weight:800;">✅ Anmälan är inskickad!</span> <span style="color:#64748B;">(Senast inskickad: ${formatTimestamp(districtState.submittedAt || districtState.updatedAt)})</span>`;
         } else {
             savedTxt.textContent = 'Klicka på "Skicka in anmälan" när du är klar med rumslistan.';
         }
@@ -1746,7 +1757,7 @@ function updateDistrictKpis() {
                         <div style="font-size:0.84rem; font-weight:800; color:#143321;">
                             📊 Sammanställning av inlagda rum (${districtState.rooms.length} ${districtState.rooms.length === 1 ? 'rum' : 'rum totalt'}, ${guestsCount} ${guestsCount === 1 ? 'deltagare' : 'deltagare'})
                         </div>
-                        ${!hasUnsavedChanges && districtState.updatedAt ? `<span style="font-size:0.76rem; font-weight:700; color:#15803D; background:#DCFCE7; padding:2px 10px; border-radius:99px;">✅ Sparad överblick</span>` : ''}
+                        ${!hasUnsavedChanges && districtState.isSubmitted ? `<span style="font-size:0.76rem; font-weight:700; color:#15803D; background:#DCFCE7; padding:2px 10px; border-radius:99px;">✅ Anmälan är inskickad</span>` : ''}
                     </div>
                     <div class="overview-pill-row" style="margin-bottom:8px;">
                         <span class="room-type-badge single">🛏️ ${singleCount} st Enkelrum (1 pers)</span>
@@ -1868,9 +1879,6 @@ function renderDistrictRooms() {
                         ${getRoomTypeBadgeHtml(room.type)}
                     </div>
                     <div class="no-print" style="display:flex; gap:6px; align-items:center;">
-                        <button type="button" class="btn btn-green btn-sm" onclick="sparaDistriktsAnmalan(false)">
-                            💾 Spara
-                        </button>
                         <button type="button" class="btn btn-danger-soft btn-sm" onclick="taBortRum(${rIdx})">
                             🗑️ Ta bort rum
                         </button>
@@ -1958,6 +1966,8 @@ async function sparaDistriktsAnmalan(isFinalSubmit = false) {
     renderDistrictRooms();
 
     const now = Date.now();
+    const nextIsSubmitted = Boolean(isFinalSubmit);
+    const nextSubmittedAt = nextIsSubmitted ? now : (districtState.submittedAt || 0);
     const payload = {
         districtId: activeDistrictId,
         districtName: meta.name,
@@ -1965,15 +1975,19 @@ async function sparaDistriktsAnmalan(isFinalSubmit = false) {
         contactPhone: document.getElementById('distContactPhone').value.trim(),
         comment: document.getElementById('distComment').value.trim(),
         updatedAt: now,
+        isSubmitted: nextIsSubmitted,
+        submittedAt: nextSubmittedAt,
         rooms: cleanRooms
     };
 
     try {
         await db.collection(COLLECTION_NAME).doc(activeDistrictId).set(payload, { merge: true });
         districtState.updatedAt = now;
-        document.getElementById('districtLastSavedText').textContent = isFinalSubmit
-            ? `Senast inskickad: ${formatTimestamp(now)}`
-            : `Senast sparad: ${formatTimestamp(now)}`;
+        districtState.isSubmitted = nextIsSubmitted;
+        districtState.submittedAt = nextSubmittedAt;
+        document.getElementById('districtLastSavedText').textContent = nextIsSubmitted
+            ? `✅ Inskickad: ${formatTimestamp(now)}`
+            : `Utkast sparat: ${formatTimestamp(now)}`;
         setDistrictDirty(false);
         renderDistrictRooms();
         if (isFinalSubmit) {
