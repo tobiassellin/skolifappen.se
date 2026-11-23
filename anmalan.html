@@ -977,28 +977,34 @@
             <p style="font-size:0.85rem; color:#475569; margin-bottom:8px;">
                 Lägg till följande block inuti <code>match /databases/{database}/documents { ... }</code> under <strong>Firestore Database &rarr; Rules</strong>:
             </p>
-            <pre style="background:#0F172A; color:#E2E8F0; padding:14px; border-radius:12px; font-size:0.78rem; overflow-x:auto; line-height:1.5;">function isAnmalanAdmin() {
-  return request.auth != null &amp;&amp; request.auth.token.email == 'tobias.sellin@gmail.com';
-}
-function isDistrictOwner(districtId) {
-  return request.auth != null &amp;&amp; (
-    (districtId == 'jamtland' &amp;&amp; request.auth.token.email == 'jamtland@skolifwebben.se') ||
-    (districtId == 'medelpad' &amp;&amp; request.auth.token.email == 'medelpad@skolifwebben.se') ||
-    (districtId == 'angermanland' &amp;&amp; request.auth.token.email == 'angermanland@skolifwebben.se')
-  );
-}
-function isAnmalanOpen() {
-  return !exists(/databases/$(database)/documents/utbildning_anmalan/_config) ||
-         get(/databases/$(database)/documents/utbildning_anmalan/_config).data.isLocked != true;
-}
-match /utbildning_anmalan/_config {
-  allow read: if isAnmalanAdmin() || isDistrictOwner('jamtland') || isDistrictOwner('medelpad') || isDistrictOwner('angermanland');
-  allow write: if isAnmalanAdmin();
-}
-match /utbildning_anmalan/{districtId} {
-  allow read: if isAnmalanAdmin() || isDistrictOwner(districtId);
-  allow create, update: if isAnmalanAdmin() || (isDistrictOwner(districtId) &amp;&amp; isAnmalanOpen());
-  allow delete: if isAnmalanAdmin();
+            <pre style="background:#0F172A; color:#E2E8F0; padding:14px; border-radius:12px; font-size:0.78rem; overflow-x:auto; line-height:1.5;">// UTBILDNINGSANMÄLAN &amp; HOTELLBOKNING (3 DISTRIKT + ADMIN + AUTOMATISKT LÅS)
+match /utbildning_anmalan/{docId} {
+  function isAdmin() {
+    return request.auth != null &amp;&amp; (
+      request.auth.token.email.lower() == 'tobias.sellin@gmail.com' ||
+      request.auth.token.email.lower() == 'admin@skolifwebben.se'
+    );
+  }
+  function isOwnDistrict() {
+    return request.auth != null &amp;&amp; (
+      (docId == 'jamtland' &amp;&amp; request.auth.token.email.lower() == 'jamtland@skolifwebben.se') ||
+      (docId == 'medelpad' &amp;&amp; request.auth.token.email.lower() == 'medelpad@skolifwebben.se') ||
+      (docId == 'angermanland' &amp;&amp; request.auth.token.email.lower() == 'angermanland@skolifwebben.se')
+    );
+  }
+  function isLocked() {
+    let cfgPath = /databases/$(database)/documents/utbildning_anmalan/_config;
+    return exists(cfgPath) &amp;&amp; (
+      get(cfgPath).data.isLocked == true ||
+      (
+        get(cfgPath).data.overrideOpenAfterDeadline != true &amp;&amp;
+        get(cfgPath).data.deadlineTs != null &amp;&amp;
+        request.time &gt;= get(cfgPath).data.deadlineTs
+      )
+    );
+  }
+  allow read: if isAdmin() || isOwnDistrict() || (request.auth != null &amp;&amp; docId == '_config');
+  allow write: if isAdmin() || (isOwnDistrict() &amp;&amp; !isLocked());
 }</pre>
         </div>
 
@@ -1159,6 +1165,7 @@ let eventConfig = {
     deadlineIso: '',
     deadlineText: '',
     isLocked: false,
+    overrideOpenAfterDeadline: false,
     nightOptions: [...DEFAULT_NIGHT_OPTIONS]
 };
 
@@ -1408,6 +1415,20 @@ function getDeadlineCountdownText(isoStr) {
     return `⚠️ Endast ${diffMins} min kvar!`;
 }
 
+function isDeadlineExpired() {
+    if (!eventConfig.deadlineIso) return false;
+    const target = new Date(eventConfig.deadlineIso).getTime();
+    return !isNaN(target) && Date.now() >= target;
+}
+
+function isAutoLockedByDeadline() {
+    return isDeadlineExpired() && !eventConfig.overrideOpenAfterDeadline;
+}
+
+function isEffectiveLocked() {
+    return Boolean(eventConfig.isLocked || isAutoLockedByDeadline());
+}
+
 function startConfigListener() {
     configUnsubscribe = db.collection(COLLECTION_NAME).doc('_config').onSnapshot((doc) => {
         if (doc.exists) {
@@ -1417,6 +1438,7 @@ function startConfigListener() {
             eventConfig.deadlineIso = d.deadlineIso || '';
             eventConfig.deadlineText = d.deadlineText || '';
             eventConfig.isLocked = Boolean(d.isLocked);
+            eventConfig.overrideOpenAfterDeadline = Boolean(d.overrideOpenAfterDeadline);
             if (Array.isArray(d.nightOptions) && d.nightOptions.length > 0) {
                 const cleaned = d.nightOptions
                     .map(opt => LEGACY_NIGHT_MAP[opt] || opt)
@@ -1466,7 +1488,9 @@ function uppdateraConfigUI() {
             const cd = getDeadlineCountdownText(eventConfig.deadlineIso);
             if (cd) {
                 distCountdown.style.display = 'inline-block';
-                distCountdown.textContent = cd;
+                distCountdown.textContent = (isDeadlineExpired() && eventConfig.overrideOpenAfterDeadline)
+                    ? '🔓 Tillfälligt upplåst av admin'
+                    : cd;
             } else {
                 distCountdown.style.display = 'none';
             }
@@ -1486,19 +1510,26 @@ function uppdateraConfigUI() {
     const admPill = document.getElementById('adminLockStatusPill');
     const lockBtn = document.getElementById('toggleLockBtn');
 
-    if (eventConfig.isLocked) {
+    const locked = isEffectiveLocked();
+    const autoLocked = !eventConfig.isLocked && isAutoLockedByDeadline();
+
+    if (locked) {
         distPill.className = 'status-pill locked';
-        distPill.textContent = '🔒 Anmälan är låst';
+        distPill.textContent = autoLocked ? '🔒 Anmälan är låst (tiden har gått ut)' : '🔒 Anmälan är låst';
         lockedBanner.style.display = isAdminEditingDistrict ? 'none' : 'block';
         admPill.className = 'status-pill locked';
-        admPill.textContent = '🔒 Anmälan är LÅST för distrikten';
+        admPill.textContent = autoLocked
+            ? '🔒 Automatiskt LÅST för distrikten (tiden har gått ut)'
+            : '🔒 Anmälan är LÅST för distrikten';
         if (lockBtn) lockBtn.textContent = '🔓 Lås upp anmälan';
     } else {
         distPill.className = 'status-pill open';
         distPill.textContent = '🟢 Anmälan är öppen';
         lockedBanner.style.display = 'none';
         admPill.className = 'status-pill open';
-        admPill.textContent = '🟢 Anmälan är ÖPPEN för distrikten';
+        admPill.textContent = (isDeadlineExpired() && eventConfig.overrideOpenAfterDeadline)
+            ? '🟢 Upplåst av admin (trots passerad sista tid)'
+            : '🟢 Anmälan är ÖPPEN för distrikten';
         if (lockBtn) lockBtn.textContent = '🔒 Lås anmälan';
     }
 
@@ -1510,11 +1541,19 @@ function uppdateraConfigUI() {
     }
 }
 
+// Kontrollera automatiskt var 30:e sekund om sista anmälningsdag/tid har passerat
+setInterval(() => {
+    if (currentUserRole && eventConfig.deadlineIso) {
+        uppdateraConfigUI();
+    }
+}, 30000);
+
 // ==========================================
 //  DISTRIKTSVY – LOGIK & FORMULÄR
 // ==========================================
 function isDistrictReadOnly() {
-    return eventConfig.isLocked && currentUserRole !== 'admin';
+    // Admin kan ALLTID redigera även i låst läge!
+    return isEffectiveLocked() && currentUserRole !== 'admin';
 }
 
 function getRoomTypeBadgeHtml(type, countPrefix = '') {
@@ -2391,11 +2430,14 @@ function tillbakaTillAdminVy() {
 
 async function togglaAnmalanLas() {
     if (currentUserRole !== 'admin') return;
-    const nextLocked = !eventConfig.isLocked;
+    const currentlyLocked = isEffectiveLocked();
+    const nextLocked = !currentlyLocked;
     const msg = nextLocked
-        ? 'Vill du LÅSA anmälan? Då kan distrikten inte längre göra ändringar.'
+        ? 'Vill du LÅSA anmälan? Då kan distrikten inte längre göra ändringar (men du som admin kan fortfarande redigera alla rum).'
         : 'Vill du LÅSA UPP anmälan så att distrikten kan redigera igen?';
     if (!confirm(msg)) return;
+
+    const nextOverrideOpen = nextLocked ? false : isDeadlineExpired();
 
     try {
         await db.collection(COLLECTION_NAME).doc('_config').set({
@@ -2405,9 +2447,10 @@ async function togglaAnmalanLas() {
             deadlineText: eventConfig.deadlineText || '',
             nightOptions: eventConfig.nightOptions,
             isLocked: nextLocked,
+            overrideOpenAfterDeadline: nextOverrideOpen,
             updatedAt: Date.now()
         }, { merge: true });
-        showToast(nextLocked ? '🔒 Anmälan är nu låst!' : '🔓 Anmälan är nu öppen!', 'success');
+        showToast(nextLocked ? '🔒 Anmälan är nu låst för distrikten!' : '🔓 Anmälan är nu upplåst för distrikten!', 'success');
     } catch (err) {
         showToast('Kunde inte ändra låsstatus i Firestore.', 'error');
     }
@@ -2450,18 +2493,26 @@ async function sparaConfigFranModal() {
         .map(s => s.trim())
         .filter(Boolean);
 
+    const parsedDate = deadlineIso ? new Date(deadlineIso) : null;
+    const deadlineTs = (parsedDate && !isNaN(parsedDate.getTime()))
+        ? firebase.firestore.Timestamp.fromDate(parsedDate)
+        : null;
+    const deadlineChanged = (deadlineIso !== (eventConfig.deadlineIso || ''));
+
     try {
         await db.collection(COLLECTION_NAME).doc('_config').set({
             titel,
             subtitle,
             deadlineIso,
             deadlineText,
+            deadlineTs,
             nightOptions: nights.length > 0 ? nights : [...DEFAULT_NIGHT_OPTIONS],
             isLocked: eventConfig.isLocked,
+            overrideOpenAfterDeadline: deadlineChanged ? false : Boolean(eventConfig.overrideOpenAfterDeadline),
             updatedAt: Date.now()
         }, { merge: true });
         stangConfigModal();
-        showToast('✅ Utbildningsinställningarna och sista anmälningsdag är sparade!', 'success');
+        showToast('✅ Utbildningsinställningarna och automatiskt lås efter sista tid är sparade!', 'success');
     } catch (err) {
         showToast('Kunde inte spara inställningarna.', 'error');
     }
