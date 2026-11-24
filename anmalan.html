@@ -2909,7 +2909,7 @@ async function exporteraHotellExcel() {
         ws.getRow(2).height = 18;
         ws.getRow(3).height = 8;
 
-        // 1. RUMSFÖRDELNING (1 RAD PER RUM, NAMN SEPARERADE MED KOMMATECKEN)
+        // 1. RUMSFÖRDELNING UPPDELAD PER DISTRIKT (JÄMTLAND -> MEDELPAD -> ÅNGERMANLAND)
         const hdrRow = ws.addRow(['Rum', 'Rumstyp', 'Vistelse / Nätter', 'Distrikt', 'Namn (Deltagare i rummet)', 'Allergi / Specialkost']);
         hdrRow.height = 26;
         hdrRow.eachCell(cell => {
@@ -2922,65 +2922,146 @@ async function exporteraHotellExcel() {
             };
         });
 
-        rooms.forEach((r, rIdx) => {
-            const roomBg = rIdx % 2 === 0 ? 'FFFFFFFF' : 'FFF2F7F4';
-            const typeFull = (ROOM_TYPES[r.type] && ROOM_TYPES[r.type].label) || r.typeLabel;
-            const typeColor = r.type === 'single' ? 'FF1D4ED8' : (r.type === 'triple' ? 'FFB45309' : 'FF047857');
+        const distBannerStyles = {
+            jamtland: { fill: 'FFE0F2FE', font: 'FF075985', border: 'FF38BDF8' },
+            medelpad: { fill: 'FFDCFCE7', font: 'FF166534', border: 'FF4ADE80' },
+            angermanland: { fill: 'FFFEF3C7', font: 'FF92400E', border: 'FFFBBF24' }
+        };
 
-            const namesArr = r.guests
-                .slice(0, Math.max(1, r.capacity))
-                .map(g => String((g && g.name) || '').trim())
-                .filter(Boolean);
-            const allergiesArr = r.guests
-                .slice(0, Math.max(1, r.capacity))
-                .map(g => String((g && g.allergy) || '').trim())
-                .filter(Boolean);
+        Object.keys(DISTRICTS).forEach(distId => {
+            const meta = DISTRICTS[distId];
+            const distRooms = rooms.filter(r => r.districtId === distId);
+            if (distRooms.length === 0) return;
 
-            const namesText = namesArr.length > 0 ? namesArr.join(', ') : '(Namn saknas)';
-            const allergyText = allergiesArr.length > 0 ? allergiesArr.join(', ') : '—';
+            const dS = distRooms.filter(r => r.type === 'single').length;
+            const dD = distRooms.filter(r => r.type === 'double').length;
+            const dT = distRooms.filter(r => r.type === 'triple').length;
+            let dGuests = 0;
+            distRooms.forEach(r => r.guests.forEach(g => { if (g && String(g.name || '').trim()) dGuests++; }));
 
-            const row = ws.addRow([
-                `Rum ${r.globalNr}`,
-                typeFull,
-                r.stay,
-                r.districtName,
-                namesText,
-                allergyText
+            const breakdownParts = [];
+            if (dS > 0) breakdownParts.push(`${dS} Enkelrum`);
+            if (dD > 0) breakdownParts.push(`${dD} Dubbelrum`);
+            if (dT > 0) breakdownParts.push(`${dT} Trebäddsrum`);
+
+            const dDoc = allDistrictsData[distId] || {};
+            const contactStr = dDoc.contactName
+                ? ` • Kontakt: ${dDoc.contactName}${dDoc.contactPhone ? ' (' + dDoc.contactPhone + ')' : ''}`
+                : '';
+
+            const style = distBannerStyles[distId] || { fill: 'FFE2E8F0', font: 'FF1E293B', border: 'FF94A3B8' };
+            const distHeaderRow = ws.addRow([
+                `${meta.name.toUpperCase()} — ${distRooms.length} rum (${breakdownParts.join(', ')}) • ${dGuests} deltagare${contactStr}`
             ]);
-            row.height = 24;
+            ws.mergeCells(distHeaderRow.number, 1, distHeaderRow.number, 6);
+            distHeaderRow.height = 24;
+            const dCell = distHeaderRow.getCell(1);
+            dCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: style.fill } };
+            dCell.font = { name: 'Calibri', size: 11, bold: true, color: { argb: style.font } };
+            dCell.alignment = { vertical: 'middle', horizontal: 'left' };
+            dCell.border = {
+                top: { style: 'medium', color: { argb: style.border } },
+                bottom: { style: 'thin', color: { argb: style.border } }
+            };
 
+            distRooms.forEach((r, rIdx) => {
+                const roomBg = rIdx % 2 === 0 ? 'FFFFFFFF' : 'FFF8FAFC';
+                const typeFull = (ROOM_TYPES[r.type] && ROOM_TYPES[r.type].label) || r.typeLabel;
+                const typeColor = r.type === 'single' ? 'FF1D4ED8' : (r.type === 'triple' ? 'FFB45309' : 'FF047857');
+
+                const namesArr = r.guests
+                    .slice(0, Math.max(1, r.capacity))
+                    .map(g => String((g && g.name) || '').trim())
+                    .filter(Boolean);
+                const allergiesArr = r.guests
+                    .slice(0, Math.max(1, r.capacity))
+                    .map(g => String((g && g.allergy) || '').trim())
+                    .filter(Boolean);
+
+                const namesText = namesArr.length > 0 ? namesArr.join(', ') : '(Namn saknas)';
+                const allergyText = allergiesArr.length > 0 ? allergiesArr.join(', ') : '—';
+
+                const row = ws.addRow([
+                    `Rum ${r.globalNr}`,
+                    typeFull,
+                    r.stay,
+                    r.districtName,
+                    namesText,
+                    allergyText
+                ]);
+                row.height = 24;
+
+                row.eachCell((cell, colNum) => {
+                    cell.alignment = { vertical: 'middle', horizontal: 'left', wrapText: true };
+                    cell.border = {
+                        top: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+                        bottom: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+                        left: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+                        right: { style: 'thin', color: { argb: 'FFE2E8F0' } }
+                    };
+
+                    if (colNum === 6 && allergiesArr.length > 0) {
+                        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFEF2F2' } };
+                        cell.font = { name: 'Calibri', size: 11, bold: true, color: { argb: 'FFB91C1C' } };
+                    } else {
+                        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: roomBg } };
+                        if (colNum === 1) {
+                            cell.font = { name: 'Calibri', size: 11, bold: true, color: { argb: 'FF143321' } };
+                        } else if (colNum === 2) {
+                            cell.font = { name: 'Calibri', size: 11, bold: true, color: { argb: typeColor } };
+                        } else if (colNum === 5) {
+                            cell.font = namesArr.length > 0
+                                ? { name: 'Calibri', size: 11, bold: true, color: { argb: 'FF0F172A' } }
+                                : { name: 'Calibri', size: 10, italic: true, color: { argb: 'FF94A3B8' } };
+                        } else if (colNum === 6) {
+                            cell.font = { name: 'Calibri', size: 10, color: { argb: 'FF94A3B8' } };
+                        } else {
+                            cell.font = { name: 'Calibri', size: 10, color: { argb: 'FF334155' } };
+                        }
+                    }
+                });
+            });
+        });
+
+        // 2A. FAKTURASUMMERING PER DISTRIKT (PÅ SAMMA FLIK)
+        ws.addRow([]);
+        ws.addRow([]);
+        const invTitleRow = ws.addRow(['FAKTURAUNDERLAG PER DISTRIKT (ANTAL RUM & DELTAGARE)']);
+        ws.mergeCells(invTitleRow.number, 1, invTitleRow.number, 6);
+        invTitleRow.getCell(1).font = { name: 'Calibri', size: 12, bold: true, color: { argb: 'FF143321' } };
+        invTitleRow.height = 22;
+
+        const invHdr = ws.addRow(['Enkelrum (1p)', 'Dubbelrum (2p)', 'Distrikt (Fakturamottagare)', 'Trebäddsrum (3p)', 'Totalt antal rum', 'Antal deltagare']);
+        invHdr.height = 24;
+        invHdr.eachCell(cell => {
+            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1B4332' } };
+            cell.font = { name: 'Calibri', size: 11, bold: true, color: { argb: 'FFFFFFFF' } };
+            cell.alignment = { vertical: 'middle', horizontal: 'left' };
+        });
+
+        Object.keys(DISTRICTS).forEach(distId => {
+            const meta = DISTRICTS[distId];
+            const distRooms = rooms.filter(r => r.districtId === distId);
+            const sC = distRooms.filter(r => r.type === 'single').length;
+            const dC = distRooms.filter(r => r.type === 'double').length;
+            const tC = distRooms.filter(r => r.type === 'triple').length;
+            let pC = 0;
+            distRooms.forEach(r => r.guests.forEach(g => { if (g && String(g.name || '').trim()) pC++; }));
+
+            const row = ws.addRow([`${sC} st`, `${dC} st`, meta.name, `${tC} st`, `${distRooms.length} rum`, `${pC} pers`]);
+            row.height = 22;
             row.eachCell((cell, colNum) => {
-                cell.alignment = { vertical: 'middle', horizontal: 'left', wrapText: true };
+                cell.font = { name: 'Calibri', size: 11, bold: colNum === 3 || colNum === 5 };
+                cell.alignment = { vertical: 'middle', horizontal: colNum === 3 ? 'left' : 'center' };
                 cell.border = {
-                    top: { style: 'thin', color: { argb: 'FFCBD5E1' } },
                     bottom: { style: 'thin', color: { argb: 'FFCBD5E1' } },
                     left: { style: 'thin', color: { argb: 'FFE2E8F0' } },
                     right: { style: 'thin', color: { argb: 'FFE2E8F0' } }
                 };
-
-                if (colNum === 6 && allergiesArr.length > 0) {
-                    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFEF2F2' } };
-                    cell.font = { name: 'Calibri', size: 11, bold: true, color: { argb: 'FFB91C1C' } };
-                } else {
-                    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: roomBg } };
-                    if (colNum === 1) {
-                        cell.font = { name: 'Calibri', size: 11, bold: true, color: { argb: 'FF143321' } };
-                    } else if (colNum === 2) {
-                        cell.font = { name: 'Calibri', size: 11, bold: true, color: { argb: typeColor } };
-                    } else if (colNum === 5) {
-                        cell.font = namesArr.length > 0
-                            ? { name: 'Calibri', size: 11, bold: true, color: { argb: 'FF0F172A' } }
-                            : { name: 'Calibri', size: 10, italic: true, color: { argb: 'FF94A3B8' } };
-                    } else if (colNum === 6) {
-                        cell.font = { name: 'Calibri', size: 10, color: { argb: 'FF94A3B8' } };
-                    } else {
-                        cell.font = { name: 'Calibri', size: 10, color: { argb: 'FF334155' } };
-                    }
-                }
             });
         });
 
-        // 2. SUMMERING AV ANTAL RUM & NÄTTER (PÅ SAMMA FLIK)
+        // 2B. SUMMERING AV ANTAL RUM & NÄTTER (PÅ SAMMA FLIK)
         ws.addRow([]);
         ws.addRow([]);
         const sumTitleRow = ws.addRow(['SUMMERING TILL HOTELLET (ANTAL RUM PER NATT)']);
@@ -3139,35 +3220,61 @@ async function kopieraHotellistaTillMejl() {
     });
     html += `</table>`;
 
-    // Rumsfördelning (1 rad per rum, namn med kommatecken mellan)
-    plain += `\nRUMSFÖRDELNING & ALLERGI / SPECIALKOST:\n`;
-    html += `<h3 style="color:#143321; margin:12px 0 6px;">Rumsfördelning &amp; Allergi / Specialkost</h3>`;
+    // Rumsfördelning grupperad per distrikt (1 rad per rum, namn med kommatecken mellan)
+    plain += `\nRUMSFÖRDELNING PER DISTRIKT (FAKTURAUPPDELNING):\n`;
+    html += `<h3 style="color:#143321; margin:12px 0 6px;">Rumsfördelning per distrikt (Fakturauppdelning)</h3>`;
     html += `<table style="border-collapse:collapse; width:100%; max-width:940px; font-size:13px;">`;
     html += `<tr style="background:#1B4332; color:white;"><th style="padding:7px 10px; border:1px solid #CBD5E1; text-align:left;">Rum</th><th style="padding:7px 10px; border:1px solid #CBD5E1; text-align:left;">Rumstyp</th><th style="padding:7px 10px; border:1px solid #CBD5E1; text-align:left;">Vistelse / Nätter</th><th style="padding:7px 10px; border:1px solid #CBD5E1; text-align:left;">Distrikt</th><th style="padding:7px 10px; border:1px solid #CBD5E1; text-align:left;">Namn (Deltagare)</th><th style="padding:7px 10px; border:1px solid #CBD5E1; text-align:left;">Allergi / Specialkost</th></tr>`;
 
-    rooms.forEach((r, rIdx) => {
-        const bg = rIdx % 2 === 0 ? '#FFFFFF' : '#F4F9F5';
-        const typeFull = (ROOM_TYPES[r.type] && ROOM_TYPES[r.type].label) || r.typeLabel;
-        const namesArr = r.guests
-            .slice(0, Math.max(1, r.capacity))
-            .map(g => String((g && g.name) || '').trim())
-            .filter(Boolean);
-        const allergiesArr = r.guests
-            .slice(0, Math.max(1, r.capacity))
-            .map(g => String((g && g.allergy) || '').trim())
-            .filter(Boolean);
-        const namesText = namesArr.length > 0 ? namesArr.join(', ') : '(Namn saknas)';
-        const allergyText = allergiesArr.length > 0 ? allergiesArr.join(', ') : '';
+    const mailDistColors = {
+        jamtland: { bg: '#E0F2FE', color: '#075985' },
+        medelpad: { bg: '#DCFCE7', color: '#166534' },
+        angermanland: { bg: '#FEF3C7', color: '#92400E' }
+    };
 
-        plain += `- Rum ${r.globalNr} (${typeFull}, ${r.stay}, ${r.districtName}): ${namesText}${allergyText ? ' | Allergi/specialkost: ' + allergyText : ''}\n`;
-        html += `<tr style="background:${bg};">`;
-        html += `<td style="padding:6px 10px; border:1px solid #CBD5E1; font-weight:bold;">Rum ${r.globalNr}</td>`;
-        html += `<td style="padding:6px 10px; border:1px solid #CBD5E1; font-weight:bold;">${escapeHtml(typeFull)}</td>`;
-        html += `<td style="padding:6px 10px; border:1px solid #CBD5E1;">${escapeHtml(r.stay)}</td>`;
-        html += `<td style="padding:6px 10px; border:1px solid #CBD5E1;">${escapeHtml(r.districtName)}</td>`;
-        html += `<td style="padding:6px 10px; border:1px solid #CBD5E1; font-weight:bold;">${escapeHtml(namesText)}</td>`;
-        html += `<td style="padding:6px 10px; border:1px solid #CBD5E1; ${allergyText ? 'background:#FEF2F2; color:#B91C1C; font-weight:bold;' : 'color:#94A3B8;'}">${allergyText ? escapeHtml(allergyText) : '—'}</td>`;
-        html += `</tr>`;
+    Object.keys(DISTRICTS).forEach(distId => {
+        const meta = DISTRICTS[distId];
+        const distRooms = rooms.filter(r => r.districtId === distId);
+        if (distRooms.length === 0) return;
+
+        const dS = distRooms.filter(r => r.type === 'single').length;
+        const dD = distRooms.filter(r => r.type === 'double').length;
+        const dT = distRooms.filter(r => r.type === 'triple').length;
+        let dGuests = 0;
+        distRooms.forEach(r => r.guests.forEach(g => { if (g && String(g.name || '').trim()) dGuests++; }));
+        const parts = [];
+        if (dS > 0) parts.push(`${dS} Enkelrum`);
+        if (dD > 0) parts.push(`${dD} Dubbelrum`);
+        if (dT > 0) parts.push(`${dT} Trebäddsrum`);
+
+        const cStyle = mailDistColors[distId] || { bg: '#E2E8F0', color: '#1E293B' };
+        plain += `\n=== ${meta.name.toUpperCase()} (${distRooms.length} rum: ${parts.join(', ')}, ${dGuests} deltagare) ===\n`;
+        html += `<tr style="background:${cStyle.bg}; color:${cStyle.color};"><td colspan="6" style="padding:7px 10px; border:1px solid #CBD5E1; font-weight:bold;">${escapeHtml(meta.name.toUpperCase())} — ${distRooms.length} rum (${escapeHtml(parts.join(', '))}) &bull; ${dGuests} deltagare</td></tr>`;
+
+        distRooms.forEach((r, rIdx) => {
+            const bg = rIdx % 2 === 0 ? '#FFFFFF' : '#F8FAFC';
+            const typeFull = (ROOM_TYPES[r.type] && ROOM_TYPES[r.type].label) || r.typeLabel;
+            const namesArr = r.guests
+                .slice(0, Math.max(1, r.capacity))
+                .map(g => String((g && g.name) || '').trim())
+                .filter(Boolean);
+            const allergiesArr = r.guests
+                .slice(0, Math.max(1, r.capacity))
+                .map(g => String((g && g.allergy) || '').trim())
+                .filter(Boolean);
+            const namesText = namesArr.length > 0 ? namesArr.join(', ') : '(Namn saknas)';
+            const allergyText = allergiesArr.length > 0 ? allergiesArr.join(', ') : '';
+
+            plain += `- Rum ${r.globalNr} (${typeFull}, ${r.stay}): ${namesText}${allergyText ? ' | Allergi/specialkost: ' + allergyText : ''}\n`;
+            html += `<tr style="background:${bg};">`;
+            html += `<td style="padding:6px 10px; border:1px solid #CBD5E1; font-weight:bold;">Rum ${r.globalNr}</td>`;
+            html += `<td style="padding:6px 10px; border:1px solid #CBD5E1; font-weight:bold;">${escapeHtml(typeFull)}</td>`;
+            html += `<td style="padding:6px 10px; border:1px solid #CBD5E1;">${escapeHtml(r.stay)}</td>`;
+            html += `<td style="padding:6px 10px; border:1px solid #CBD5E1;">${escapeHtml(r.districtName)}</td>`;
+            html += `<td style="padding:6px 10px; border:1px solid #CBD5E1; font-weight:bold;">${escapeHtml(namesText)}</td>`;
+            html += `<td style="padding:6px 10px; border:1px solid #CBD5E1; ${allergyText ? 'background:#FEF2F2; color:#B91C1C; font-weight:bold;' : 'color:#94A3B8;'}">${allergyText ? escapeHtml(allergyText) : '—'}</td>`;
+            html += `</tr>`;
+        });
     });
     html += `</table></div>`;
 
