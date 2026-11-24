@@ -3031,12 +3031,13 @@ async function exporteraHotellExcel() {
         invTitleRow.getCell(1).font = { name: 'Calibri', size: 12, bold: true, color: { argb: 'FF143321' } };
         invTitleRow.height = 22;
 
-        const invHdr = ws.addRow(['Enkelrum (1p)', 'Dubbelrum (2p)', 'Distrikt (Fakturamottagare)', 'Trebäddsrum (3p)', 'Totalt antal rum', 'Antal deltagare']);
+        const invHdr = ws.addRow(['Distrikt (Fakturamottagare)', '', 'Enkelrum (1p)', 'Dubbelrum (2p)', 'Trebäddsrum (3p)', 'Totalt (Rum & Deltagare)']);
+        ws.mergeCells(invHdr.number, 1, invHdr.number, 2);
         invHdr.height = 24;
-        invHdr.eachCell(cell => {
+        invHdr.eachCell((cell, colNum) => {
             cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1B4332' } };
             cell.font = { name: 'Calibri', size: 11, bold: true, color: { argb: 'FFFFFFFF' } };
-            cell.alignment = { vertical: 'middle', horizontal: 'left' };
+            cell.alignment = { vertical: 'middle', horizontal: colNum <= 2 ? 'left' : 'center' };
         });
 
         Object.keys(DISTRICTS).forEach(distId => {
@@ -3048,11 +3049,12 @@ async function exporteraHotellExcel() {
             let pC = 0;
             distRooms.forEach(r => r.guests.forEach(g => { if (g && String(g.name || '').trim()) pC++; }));
 
-            const row = ws.addRow([`${sC} st`, `${dC} st`, meta.name, `${tC} st`, `${distRooms.length} rum`, `${pC} pers`]);
+            const row = ws.addRow([meta.name, '', `${sC} st`, `${dC} st`, `${tC} st`, `${distRooms.length} rum (${pC} pers)`]);
+            ws.mergeCells(row.number, 1, row.number, 2);
             row.height = 22;
             row.eachCell((cell, colNum) => {
-                cell.font = { name: 'Calibri', size: 11, bold: colNum === 3 || colNum === 5 };
-                cell.alignment = { vertical: 'middle', horizontal: colNum === 3 ? 'left' : 'center' };
+                cell.font = { name: 'Calibri', size: 11, bold: colNum <= 2 || colNum === 6 };
+                cell.alignment = { vertical: 'middle', horizontal: colNum <= 2 ? 'left' : 'center' };
                 cell.border = {
                     bottom: { style: 'thin', color: { argb: 'FFCBD5E1' } },
                     left: { style: 'thin', color: { argb: 'FFE2E8F0' } },
@@ -3069,12 +3071,13 @@ async function exporteraHotellExcel() {
         sumTitleRow.getCell(1).font = { name: 'Calibri', size: 12, bold: true, color: { argb: 'FF143321' } };
         sumTitleRow.height = 22;
 
-        const sumHdr = ws.addRow(['Enkelrum (1p)', 'Dubbelrum (2p)', 'Vistelse / Nätter', 'Trebäddsrum (3p)', 'Totalt antal rum', 'Antal deltagare']);
+        const sumHdr = ws.addRow(['Vistelse / Nätter', '', 'Enkelrum (1p)', 'Dubbelrum (2p)', 'Trebäddsrum (3p)', 'Totalt (Rum & Deltagare)']);
+        ws.mergeCells(sumHdr.number, 1, sumHdr.number, 2);
         sumHdr.height = 24;
-        sumHdr.eachCell(cell => {
+        sumHdr.eachCell((cell, colNum) => {
             cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1B4332' } };
             cell.font = { name: 'Calibri', size: 11, bold: true, color: { argb: 'FFFFFFFF' } };
-            cell.alignment = { vertical: 'middle', horizontal: 'left' };
+            cell.alignment = { vertical: 'middle', horizontal: colNum <= 2 ? 'left' : 'center' };
         });
 
         const staysSet = new Set(eventConfig.nightOptions);
@@ -3090,11 +3093,12 @@ async function exporteraHotellExcel() {
             subset.forEach(r => r.guests.forEach(g => { if (g && String(g.name || '').trim()) pC++; }));
             totS += sC; totD += dC; totT += tC; totR += subset.length; totP += pC;
 
-            const row = ws.addRow([`${sC} st`, `${dC} st`, stayLabel, `${tC} st`, `${subset.length} rum`, `${pC} pers`]);
+            const row = ws.addRow([stayLabel, '', `${sC} st`, `${dC} st`, `${tC} st`, `${subset.length} rum (${pC} pers)`]);
+            ws.mergeCells(row.number, 1, row.number, 2);
             row.height = 22;
             row.eachCell((cell, colNum) => {
-                cell.font = { name: 'Calibri', size: 11, bold: colNum === 3 || colNum === 5 };
-                cell.alignment = { vertical: 'middle', horizontal: colNum === 3 ? 'left' : 'center' };
+                cell.font = { name: 'Calibri', size: 11, bold: colNum <= 2 || colNum === 6 };
+                cell.alignment = { vertical: 'middle', horizontal: colNum <= 2 ? 'left' : 'center' };
                 cell.border = {
                     bottom: { style: 'thin', color: { argb: 'FFCBD5E1' } },
                     left: { style: 'thin', color: { argb: 'FFE2E8F0' } },
@@ -3103,12 +3107,13 @@ async function exporteraHotellExcel() {
             });
         });
 
-        const totRow = ws.addRow([`${totS} st`, `${totD} st`, 'TOTALT ALLA NÄTTER', `${totT} st`, `${totR} rum`, `${totP} pers`]);
+        const totRow = ws.addRow(['TOTALT ALLA NÄTTER', '', `${totS} st`, `${totD} st`, `${totT} st`, `${totR} rum (${totP} pers)`]);
+        ws.mergeCells(totRow.number, 1, totRow.number, 2);
         totRow.height = 24;
         totRow.eachCell((cell, colNum) => {
             cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE8F5E9' } };
             cell.font = { name: 'Calibri', size: 11, bold: true, color: { argb: 'FF143321' } };
-            cell.alignment = { vertical: 'middle', horizontal: colNum === 3 ? 'left' : 'center' };
+            cell.alignment = { vertical: 'middle', horizontal: colNum <= 2 ? 'left' : 'center' };
             cell.border = {
                 top: { style: 'medium', color: { argb: 'FF2E7D32' } },
                 bottom: { style: 'medium', color: { argb: 'FF2E7D32' } }
