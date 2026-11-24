@@ -1701,7 +1701,58 @@ function togglaAllaRumRedigering() {
     renderDistrictRooms();
 }
 
-function taBortRum(index) {
+async function sparaUtkastTystTillFirestore() {
+    if (isDistrictReadOnly()) return;
+    const meta = DISTRICTS[activeDistrictId];
+    if (!meta) return;
+
+    const cleanRooms = districtState.rooms.map(r => {
+        const cap = ROOM_TYPES[r.type] ? ROOM_TYPES[r.type].capacity : 2;
+        const activeGuests = r.guestsDraft.slice(0, cap).map(g => ({
+            name: String(g.name || '').trim(),
+            allergy: String(g.allergy || '').trim()
+        }));
+        return {
+            roomId: r.roomId,
+            type: r.type,
+            typeLabel: ROOM_TYPES[r.type].shortLabel,
+            capacity: cap,
+            stay: String(r.stay || '').trim(),
+            guests: activeGuests
+        };
+    });
+
+    const now = Date.now();
+    const payload = {
+        districtId: activeDistrictId,
+        districtName: meta.name,
+        contactName: document.getElementById('distContactName').value.trim(),
+        contactPhone: document.getElementById('distContactPhone').value.trim(),
+        comment: document.getElementById('distComment').value.trim(),
+        updatedAt: now,
+        isSubmitted: false,
+        submittedAt: districtState.submittedAt || 0,
+        rooms: cleanRooms
+    };
+
+    try {
+        await db.collection(COLLECTION_NAME).doc(activeDistrictId).set(payload, { merge: true });
+        districtState.updatedAt = now;
+        districtState.isSubmitted = false;
+        const lastEl = document.getElementById('districtLastSavedText');
+        if (lastEl) lastEl.textContent = `Utkast sparat: ${formatTimestamp(now)}`;
+        // Om inga rum ligger öppna i redigeringsläge längre kan osparad-varningen släckas
+        const anyEditing = districtState.rooms.some(r => r.isEditing);
+        if (!anyEditing) {
+            setDistrictDirty(false);
+        }
+    } catch (err) {
+        console.error('Kunde inte spara borttagningen till Firestore:', err);
+        showToast('Kunde inte synka borttagningen till molnet. Kontrollera din uppkoppling.', 'error');
+    }
+}
+
+async function taBortRum(index) {
     if (isDistrictReadOnly()) return;
     const room = districtState.rooms[index];
     if (!room) return;
@@ -1712,6 +1763,7 @@ function taBortRum(index) {
     districtState.rooms.splice(index, 1);
     setDistrictDirty(true);
     renderDistrictRooms();
+    await sparaUtkastTystTillFirestore();
 }
 
 function onRoomTypeChange(index, newType) {
