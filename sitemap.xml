@@ -61,8 +61,14 @@
     <priority>0.8</priority>
   </url>
   <url>
+    <loc>https://skolifwebben.se/om.html</loc>
+    <lastmod>2026-11-24</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
     <loc>https://skolifwebben.se/integritet.html</loc>
-    <lastmod>2026-11-20</lastmod>
+    <lastmod>2026-11-24</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.5</priority>
   </url>

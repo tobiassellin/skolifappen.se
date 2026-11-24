@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Om oss &amp; Kontakt – Skol-IF Webben</title>
+    <meta name="description" content="Läs om Skol-IF Webben och kontakta oss på kontakt@skolifwebben.se vid frågor, förslag på nya funktioner eller support för skolor och föreningar.">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://skolifwebben.se/om.html">
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/svg+xml" href="icon.svg">
+    <link rel="apple-touch-icon" href="icon.svg">
+    <meta name="theme-color" content="#143625">
+    <meta property="og:title" content="Om oss &amp; Kontakt – Skol-IF Webben">
+    <meta property="og:description" content="Kostnadsfri digital plattform för svenska Skol-IF-föreningar och idrottslärare. Kontakta oss på kontakt@skolifwebben.se.">
+    <meta property="og:url" content="https://skolifwebben.se/om.html">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="seo-shared.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif; }
+        html { font-size: 14px; scroll-behavior: smooth; }
+        body {
+            background-color: #F3F7F4;
+            background-image: radial-gradient(at 15% 15%, rgba(76, 175, 80, 0.07) 0px, transparent 50%),
+                              radial-gradient(at 85% 80%, rgba(46, 125, 50, 0.06) 0px, transparent 50%);
+            color: #1E293B;
+            line-height: 1.65;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        nav {
+            background: rgba(15, 41, 30, 0.94);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            padding: 0.75rem 5%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+            position: sticky;
+            top: 0;
+            z-index: 900;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .logo {
+            color: white;
+            font-size: 1.25rem;
+            font-weight: 800;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 9px;
+        }
+        .logo-badge {
+            background: linear-gradient(135deg, #4CAF50, #2E7D32);
+            width: 30px;
+            height: 30px;
+            border-radius: 8px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.95rem;
+        }
+        .nav-back {
+            color: white;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.88rem;
+            background: rgba(255,255,255,0.12);
+            border: 1px solid rgba(255,255,255,0.2);
+            padding: 7px 14px;
+            border-radius: 10px;
+            transition: background 0.2s;
+        }
+        .nav-back:hover { background: rgba(255,255,255,0.22); }
+        main {
+            max-width: 860px;
+            width: 100%;
+            margin: 28px auto 48px auto;
+            padding: 0 20px;
+            flex: 1;
+        }
+        .about-card {
+            background: white;
+            border-radius: 18px;
+            padding: 32px 30px;
+            box-shadow: 0 10px 28px rgba(15, 41, 30, 0.06);
+            border: 1px solid rgba(46, 125, 50, 0.14);
+            border-top: 4px solid #2E7D32;
+            margin-bottom: 22px;
+        }
+        .badge {
+            display: inline-block;
+            background: #E8F5E9;
+            color: #1B5E20;
+            border: 1px solid #A5D6A7;
+            font-size: 0.75rem;
+            font-weight: 700;
+            padding: 4px 12px;
+            border-radius: 20px;
+            margin-bottom: 10px;
+        }
+        h1 {
+            font-size: 1.85rem;
+            font-weight: 800;
+            color: #143321;
+            margin-bottom: 10px;
+            line-height: 1.25;
+        }
+        h2 {
+            font-size: 1.22rem;
+            font-weight: 800;
+            color: #143321;
+            margin-top: 22px;
+            margin-bottom: 8px;
+        }
+        p {
+            font-size: 0.95rem;
+            color: #334155;
+            margin-bottom: 12px;
+        }
+        ul {
+            margin: 8px 0 16px 20px;
+            color: #334155;
+            font-size: 0.94rem;
+        }
+        li { margin-bottom: 7px; }
+        .contact-box {
+            background: linear-gradient(135deg, #F1F8E9 0%, #E8F5E9 100%);
+            border: 1.5px solid #A5D6A7;
+            border-radius: 14px;
+            padding: 20px 22px;
+            margin-top: 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 14px;
+            flex-wrap: wrap;
+        }
+        .contact-email {
+            font-size: 1.15rem;
+            font-weight: 800;
+            color: #143321;
+            text-decoration: none;
+        }
+        .contact-email:hover { text-decoration: underline; }
+        .btn-row {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .btn {
+            padding: 9px 16px;
+            border-radius: 10px;
+            font-weight: 700;
+            font-size: 0.86rem;
+            text-decoration: none;
+            cursor: pointer;
+            border: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s;
+        }
+        .btn-green {
+            background: linear-gradient(135deg, #4CAF50, #2E7D32);
+            color: white;
+        }
+        .btn-green:hover { filter: brightness(1.06); }
+        .btn-outline {
+            background: white;
+            color: #143321;
+            border: 1.5px solid #81C784;
+        }
+        .btn-outline:hover { background: #F8FBF8; }
+        a { color: #2E7D32; font-weight: 600; }
+        @media (max-width: 600px) {
+            .about-card { padding: 22px 18px; }
+            h1 { font-size: 1.5rem; }
+        }
+    </style>
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3461073406787574"
+     crossorigin="anonymous"></script>
+</head>
+<body>
+
+<nav>
+    <a href="index.html" class="logo">
+        <span class="logo-badge">🏆</span>
+        <span>Skol-IF Webben</span>
+    </a>
+    <a href="index.html" class="nav-back">← Tillbaka till startsidan</a>
+</nav>
+
+<main>
+    <article class="about-card">
+        <span class="badge">🏫 Byggd för svenska skolor &amp; Skol-IF</span>
+        <h1>Om Skol-IF Webben</h1>
+        <p>
+            <strong>Skol-IF Webben</strong> är en kostnadsfri digital plattform utvecklad av <strong>Tobias</strong>,
+            idrotts- och matematiklärare, med målet att göra vardagen enklare och roligare för både
+            <strong>Skol-IF-föreningar</strong> och <strong>lärare i idrott och hälsa</strong>.
+        </p>
+        <p>
+            Idén föddes direkt ur verkligheten i skolan och idrottshallen: rastturneringar på lösa lappar,
+            utlåning av bollar som försvinner, kontant- och mobilfria skolkiosker samt lektionsverktyg som
+            ofta ligger utspridda i olika appar. På <strong>skolifwebben.se</strong> samlas allt på ett ställe –
+            direkt i webbläsaren, på iPad, Chromebook och i mobilen.
+        </p>
+
+        <h2>Vad du hittar på plattformen</h2>
+        <ul>
+            <li><strong>För Skol-IF &amp; rastverksamhet:</strong> Kioskkassa för mobilfria skolor, Redskapsboden för utlåning av idrottsmaterial, Skapa Turnering med live-tabeller samt Aktivitetskalender för korridorsskärmar.</li>
+            <li><strong>För idrottslektionen:</strong> Beep-test (20m med röst och pip), Tabatatimer &amp; intervallklocka, Löprundan (tidtagning), Lagdelaren och Uppvärmningshjulet.</li>
+            <li><strong>Synkat med Mina Klasser:</strong> Lägg in dina klasslistor en gång och använd dem direkt i samtliga verktyg, med valfri molnsynk via Google-inloggning.</li>
+        </ul>
+    </article>
+
+    <section class="about-card" id="kontakt">
+        <span class="badge">✉️ Hör gärna av dig</span>
+        <h2 style="margin-top: 4px; font-size: 1.55rem;">Kontakt &amp; Support</h2>
+        <p>
+            Har du frågor om hur något verktyg fungerar, upptäckt en bugg, vill tipsa om en ny funktion för
+            din Skol-IF-förening eller har frågor kring integritet och lagrad data? Skicka gärna ett mejl!
+        </p>
+
+        <div class="contact-box">
+            <div>
+                <div style="font-size:0.78rem; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; color:#2E7D32;">E-postadress</div>
+                <a href="mailto:kontakt@skolifwebben.se" class="contact-email">kontakt@skolifwebben.se</a>
+            </div>
+            <div class="btn-row">
+                <a href="mailto:kontakt@skolifwebben.se" class="btn btn-green">✉️ Skicka mejl</a>
+                <button type="button" class="btn btn-outline" id="copyEmailBtn" onclick="kopieraKontaktMejl()">📋 Kopiera adress</button>
+            </div>
+        </div>
+
+        <p style="margin-top: 16px; font-size: 0.86rem; color: #64748B;">
+            Vill du läsa mer om hur vi hanterar lokal lagring, Google-inloggning, cookies och integritet?
+            Se vår <a href="integritet.html">Integritetspolicy</a>.
+        </p>
+    </section>
+</main>
+
+<footer class="skolif-site-footer">
+    <div class="skolif-footer-inner">
+        <div class="skolif-footer-brand">
+            <strong>🏆 Skol-IF Webben</strong>
+            <p>Kostnadsfri digital plattform för svenska Skol-IF-föreningar och lärare i idrott och hälsa – byggd för att fungera direkt i webbläsaren, på iPad och i mobilen.</p>
+        </div>
+        <div class="skolif-footer-col">
+            <h4>För Skol-IF &amp; Förening</h4>
+            <ul>
+                <li><a href="kiosk.html">☕ Skol-IF Kassa (Kiosk)</a></li>
+                <li><a href="redskapsboden.html">⚽ Redskapsboden</a></li>
+                <li><a href="turnering.html">🏆 Skapa Turnering &amp; Spelschema</a></li>
+                <li><a href="kalender.html">📅 Aktivitetskalender &amp; Tavla</a></li>
+            </ul>
+        </div>
+        <div class="skolif-footer-col">
+            <h4>För Idrottsläraren</h4>
+            <ul>
+                <li><a href="lagdelaren.html">🎲 Lagdelaren (Slumpa lag)</a></li>
+                <li><a href="beeptest.html">📢 Beep-test (20m med ljud)</a></li>
+                <li><a href="tabata.html">🔔 Tabatatimer &amp; Intervallklocka</a></li>
+                <li><a href="lopning.html">⏱️ Löprundan (Tidtagning)</a></li>
+                <li><a href="hjulet.html">🎡 Uppvärmningshjulet</a></li>
+            </ul>
+        </div>
+        <div class="skolif-footer-col">
+            <h4>Om tjänsten</h4>
+            <ul>
+                <li><a href="index.html">🏠 Startsidan</a></li>
+                <li><a href="om.html">ℹ️ Om oss</a></li>
+                <li><a href="om.html#kontakt">✉️ Kontakt (kontakt@skolifwebben.se)</a></li>
+                <li><a href="integritet.html">🔒 Integritetspolicy</a></li>
+                <li><a href="https://play.google.com/store/apps/details?id=com.sellin.tabatatimer" target="_blank" rel="noopener noreferrer">📱 Android-app (Google Play)</a></li>
+                <li><a href="https://forening.idrottsarenan.se" target="_blank" rel="noopener noreferrer">🏟️ Idrottsarenan (LOK-stöd)</a></li>
+            </ul>
+        </div>
+    </div>
+    <div class="skolif-footer-bottom">
+        &copy; 2026 Skol-IF Webben &amp; Skol-IF Appen &bull; Utvecklad av Tobias, idrotts- och matematiklärare &bull; <a href="om.html">Om oss</a> &bull; <a href="om.html#kontakt">Kontakt</a> &bull; <a href="integritet.html">Integritetspolicy</a>
+    </div>
+</footer>
+
+<script>
+function kopieraKontaktMejl() {
+    const btn = document.getElementById('copyEmailBtn');
+    navigator.clipboard.writeText('kontakt@skolifwebben.se').then(() => {
+        if (btn) {
+            btn.textContent = '✅ Kopierad!';
+            setTimeout(() => { btn.textContent = '📋 Kopiera adress'; }, 2200);
+        }
+    }).catch(() => {
+        window.location.href = 'mailto:kontakt@skolifwebben.se';
+    });
+}
+</script>
+</body>
+</html>
