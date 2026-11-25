@@ -10,7 +10,7 @@
     <link rel="canonical" href="https://skolifwebben.se/kiosk.html">
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/svg+xml" href="icon.svg">
-    <link rel="apple-touch-icon" href="icon.svg">
+    <link rel="apple-touch-icon" href="apple-touch-icon.png">
     <meta property="og:title" content="Skol-IF Kassa – Digital Kiosk & Elevsaldon för Mobilfria Skolor">
     <meta property="og:description" content="Digital kioskkassa med elevsaldon och molnsynk för Skol-IF-föreningar och skolor.">
     <meta property="og:url" content="https://skolifwebben.se/kiosk.html">
@@ -1112,7 +1112,7 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-    <script src="klasser.js?v=3"></script>
+    <script src="klasser.js?v=5"></script>
 
     <script>
         const firebaseConfig = {
@@ -1683,6 +1683,31 @@
             });
         }
 
+        function nastaUniktElevIdBase() {
+            let maxVal = 0;
+            try {
+                maxVal = Math.max(0, Number(localStorage.getItem("skolif_highest_elev_id")) || 0);
+            } catch (e) {}
+            (allaEleverCache || []).forEach(e => {
+                const n = Number(e && e.id) || 0;
+                if (n > maxVal) maxVal = n;
+            });
+            (allaTransaktionerCache || []).forEach(t => {
+                const n = Number(t && t.elevId) || 0;
+                if (n > maxVal) maxVal = n;
+            });
+            return maxVal;
+        }
+
+        function sparaHogstaElevId(idVal) {
+            const n = Number(idVal) || 0;
+            if (n <= 0) return;
+            try {
+                const prev = Number(localStorage.getItem("skolif_highest_elev_id")) || 0;
+                if (n > prev) localStorage.setItem("skolif_highest_elev_id", String(n));
+            } catch (e) {}
+        }
+
         function laggTillEnskildElevWebb() {
             const namn = document.getElementById("nyElevNamn").value.trim();
             const klass = document.getElementById("nyElevKlass").value.trim().toUpperCase();
@@ -1692,7 +1717,8 @@
             const finnsRedan = allaEleverCache.some(e => e.namn.toLowerCase() === namn.toLowerCase() && e.klass.toUpperCase() === klass);
             if (finnsRedan) { alert(`${namn} finns redan i ${klass}.`); return; }
 
-            const nyttId = allaEleverCache.length > 0 ? Math.max(...allaEleverCache.map(e => e.id)) + 1 : 1;
+            const nyttId = nastaUniktElevIdBase() + 1;
+            sparaHogstaElevId(nyttId);
 
             allaEleverCache.push({ id: nyttId, namn: namn, klass: klass, saldo: 0 });
 
@@ -1715,7 +1741,7 @@
             let tillagdaStycken = 0;
             let senasteNamn = "";
             let senasteKlass = "";
-            let aktuelltId = allaEleverCache.length > 0 ? Math.max(...allaEleverCache.map(e => e.id)) : 0;
+            let aktuelltId = nastaUniktElevIdBase();
 
             for (let rad of rader) {
                 const renRad = rad.trim();
@@ -1749,6 +1775,7 @@
             }
 
             if (tillagdaStycken > 0) {
+                sparaHogstaElevId(aktuelltId);
                 sparaKassaData({
                     elever: JSON.stringify(allaEleverCache)
                 }).then(() => {
@@ -2974,11 +3001,12 @@
                 { namn: "Hugo Holm", klass: "8B", saldo: 60, arDemo: true },
                 { namn: "Astrid Alm", klass: "8B", saldo: 25, arDemo: true }
             ];
-            let maxId = allaEleverCache.length > 0 ? Math.max(0, ...allaEleverCache.map(e => Number(e.id) || 0)) : 0;
+            let maxId = nastaUniktElevIdBase();
             demoLista.forEach(d => {
                 maxId++;
                 allaEleverCache.push({ id: maxId, namn: d.namn, klass: d.klass, saldo: d.saldo, arDemo: true });
             });
+            sparaHogstaElevId(maxId);
             seTillAttBasutbudFinns();
             sparaKassaData({
                 elever: JSON.stringify(allaEleverCache),
@@ -3148,6 +3176,10 @@
 
         // Klick på "📡 Koppla blipp" inne på elevens modal
         window.klickaKopplaBlippPaAktivElev = function() {
+            if (window.SkolIFKlasser && window.SkolIFKlasser.isElevlage && window.SkolIFKlasser.isElevlage()) {
+                if (window.visaNotis) window.visaNotis("🔒 Låst i Elevläge – lås upp med PIN för att ändra blipp-kopplingar.", "warning");
+                return;
+            }
             const e = allaEleverCache.find(x => x.id === aktivElevId);
             if (!e) return;
 
@@ -3196,6 +3228,7 @@
         };
 
         window.taBortBlippFranAktivElev = function() {
+            if (window.SkolIFKlasser && window.SkolIFKlasser.isElevlage && window.SkolIFKlasser.isElevlage()) return;
             const e = allaEleverCache.find(x => x.id === (vantarPaBlippForElevId || aktivElevId));
             if (!e || !e.tagg) return;
             delete e.tagg;
@@ -3209,6 +3242,10 @@
         };
 
         window.kopplaTaggTillElev = function(elevId, taggKod) {
+            if (window.SkolIFKlasser && window.SkolIFKlasser.isElevlage && window.SkolIFKlasser.isElevlage()) {
+                if (window.visaNotis) window.visaNotis("🔒 Låst i Elevläge – lås upp med PIN först.", "warning");
+                return;
+            }
             const renKod = String(taggKod || "").trim();
             if (!renKod) return;
 
@@ -3238,6 +3275,10 @@
 
         // Hantera okänd blipp-modal
         window.oppnaOkandBlippModal = function(kod) {
+            if (window.SkolIFKlasser && window.SkolIFKlasser.isElevlage && window.SkolIFKlasser.isElevlage()) {
+                if (window.visaNotis) window.visaNotis(`💳 Okänd blipp (#${kod}) – lås upp Elevläge med PIN för att koppla ny blipp.`, "warning");
+                return;
+            }
             senastSkannadOkandTagg = kod;
             const kodEl = document.getElementById("okandBlippKodVisning");
             if (kodEl) kodEl.innerText = "#" + kod;
@@ -3305,6 +3346,7 @@
         };
 
         window.skapaNyElevMedSkannadBlipp = function() {
+            if (window.SkolIFKlasser && window.SkolIFKlasser.isElevlage && window.SkolIFKlasser.isElevlage()) return;
             const namn = (document.getElementById("okandBlippNyNamn")?.value || "").trim();
             const klass = (document.getElementById("okandBlippNyKlass")?.value || "").trim().toUpperCase();
             const kod = String(senastSkannadOkandTagg || "").trim();
@@ -3319,7 +3361,8 @@
                 if (String(ann.tagg || "").trim() === kod) delete ann.tagg;
             });
 
-            const nyttId = allaEleverCache.length > 0 ? Math.max(...allaEleverCache.map(e => e.id || 0)) + 1 : 1;
+            const nyttId = nastaUniktElevIdBase() + 1;
+            sparaHogstaElevId(nyttId);
             const nyElev = { id: nyttId, namn: namn, klass: klass, saldo: 0, tagg: kod };
             allaEleverCache.push(nyElev);
 
@@ -3354,7 +3397,7 @@
                                     <span style="font-size: 0.78rem; color: #64748B; margin-left: 6px;">(${escapeHtmlKassa(e.klass)})</span>
                                     <span style="font-family: monospace; font-size: 0.76rem; background: #E8F5E9; color: #166534; padding: 2px 6px; border-radius: 4px; margin-left: 6px;">#${escapeHtmlKassa(e.tagg)}</span>
                                 </div>
-                                <button type="button" onclick="taBortBlippFranElevId(${e.id})" style="background: #FEF2F2; color: #DC2626; border: 1px solid #FECACA; padding: 3px 8px; border-radius: 6px; font-size: 0.72rem; font-weight: 700; cursor: pointer;">Ta bort blipp</button>
+                                ${!(window.SkolIFKlasser && window.SkolIFKlasser.isElevlage && window.SkolIFKlasser.isElevlage()) ? `<button type="button" onclick="taBortBlippFranElevId(${e.id})" style="background: #FEF2F2; color: #DC2626; border: 1px solid #FECACA; padding: 3px 8px; border-radius: 6px; font-size: 0.72rem; font-weight: 700; cursor: pointer;">Ta bort blipp</button>` : ''}
                             </div>
                         `).join('');
                 }
@@ -3363,6 +3406,10 @@
         };
 
         window.taBortBlippFranElevId = function(elevId) {
+            if (window.SkolIFKlasser && window.SkolIFKlasser.isElevlage && window.SkolIFKlasser.isElevlage()) {
+                if (window.visaNotis) window.visaNotis("🔒 Låst i Elevläge – lås upp med PIN först.", "warning");
+                return;
+            }
             const e = allaEleverCache.find(x => x.id === elevId);
             if (!e) return;
             delete e.tagg;
@@ -3408,8 +3455,9 @@
                     const m = document.getElementById(id);
                     if (m) m.style.display = "none";
                 });
-                const klasserModal = document.getElementById("skolifKlasserModalOverlay");
-                if (klasserModal) klasserModal.classList.remove("visas");
+                if (window.SkolIFKlasser && window.SkolIFKlasser.closeModal) {
+                    window.SkolIFKlasser.closeModal();
+                }
 
                 // Se till att vi är i kassavyn (och inte i statistikvyn)
                 bytVy("kiosk");

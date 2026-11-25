@@ -30,7 +30,45 @@
     let activeKassaDocId = null;
     let kassaUnsubscribe = null;
     let kassaEleverCache = [];
+    let kassaCloudSyncedOnce = false;
+    let lastKnownAuthEmail = '';
     let onClassSelectCallback = null;
+
+    const HIGHEST_ELEV_ID_KEY = 'skolif_highest_elev_id';
+
+    function getNextMaxElevId(eleverList, extraTxList) {
+        let maxVal = 0;
+        try {
+            maxVal = Math.max(0, Number(localStorage.getItem(HIGHEST_ELEV_ID_KEY)) || 0);
+        } catch (e) {}
+        if (Array.isArray(eleverList)) {
+            eleverList.forEach(e => {
+                const n = Number(e && e.id) || 0;
+                if (n > maxVal) maxVal = n;
+            });
+        }
+        const localTx = (getLocalKassa && typeof getLocalKassa === 'function')
+            ? (getLocalKassa().transaktioner || [])
+            : [];
+        [localTx, extraTxList].forEach(arr => {
+            if (Array.isArray(arr)) {
+                arr.forEach(t => {
+                    const n = Number(t && t.elevId) || 0;
+                    if (n > maxVal) maxVal = n;
+                });
+            }
+        });
+        return maxVal;
+    }
+
+    function commitHighestElevId(idVal) {
+        const n = Number(idVal) || 0;
+        if (n <= 0) return;
+        try {
+            const prev = Number(localStorage.getItem(HIGHEST_ELEV_ID_KEY)) || 0;
+            if (n > prev) localStorage.setItem(HIGHEST_ELEV_ID_KEY, String(n));
+        } catch (e) {}
+    }
 
     // ==========================================
     //  HJÄLPFUNKTIONER & NORMALISERING AV KLASSNAMN
@@ -266,6 +304,9 @@
         const nextTx = Array.isArray(transaktioner) ? transaktioner : current.transaktioner;
 
         kassaEleverCache = nextElever;
+        kassaCloudSyncedOnce = true;
+        const highestInCloud = getNextMaxElevId(nextElever, nextTx);
+        commitHighestElevId(highestInCloud);
         setClassesLocal(buildClassesMapFromKassaElever(nextElever));
 
         try {
@@ -286,8 +327,16 @@
         try {
             localStorage.removeItem(LOCAL_KASSA_KEY);
             localStorage.removeItem(STORAGE_KEY);
+            localStorage.removeItem('skolif_lokstod_v1');
+            localStorage.removeItem('skolif_testhistorik_v1');
+            localStorage.removeItem('skolif_kalender_v1');
+            localStorage.removeItem('skolif_elevlage_pin');
+            localStorage.removeItem('skolif_elevlage_active');
+            localStorage.removeItem(HIGHEST_ELEV_ID_KEY);
         } catch (e) {}
         kassaEleverCache = [];
+        kassaCloudSyncedOnce = false;
+        updateElevlageUI();
         notifyAllListeners();
     }
 
@@ -314,12 +363,23 @@
                     const egenRef = db.collection('skolif_kassa').doc(userEmail);
                     const egenSnap = await egenRef.get();
 
+                    let egenHarInnehall = false;
                     if (egenSnap.exists) {
+                        const ed = egenSnap.data() || {};
+                        let eEl = [];
+                        let eTx = [];
+                        try { eEl = JSON.parse(ed.elever || '[]'); } catch (e) {}
+                        try { eTx = JSON.parse(ed.transaktioner || '[]'); } catch (e) {}
+                        const behCount = Array.isArray(ed.behoriga_anvandare) ? ed.behoriga_anvandare.length : 0;
+                        egenHarInnehall = (eEl.length > 0 || eTx.length > 0 || behCount > 1 || Boolean(ed.lokstod) || Boolean(ed.testhistorik));
+                    }
+
+                    if (egenSnap.exists && egenHarInnehall) {
                         docId = userEmail;
                     } else {
-                        // Kolla ev. äldre kassa under user.uid
+                        // Kolla ev. äldre kassa under user.uid (om egenSnap inte redan fanns)
                         let migrated = false;
-                        if (user.uid) {
+                        if (!egenSnap.exists && user.uid) {
                             try {
                                 const gammalSnap = await db.collection('skolif_kassa').doc(user.uid).get();
                                 if (gammalSnap.exists) {
@@ -341,11 +401,12 @@
                         }
 
                         if (!migrated) {
-                            // Kolla om inbjuden till en kollegas kassa
+                            // Kolla om inbjuden till en kollegas kassa (även om användaren råkat få ett tomt eget dokument tidigare!)
                             const q = db.collection('skolif_kassa').where('behoriga_anvandare', 'array-contains', userEmail);
                             const deladeSnap = await q.get();
-                            if (!deladeSnap.empty) {
-                                docId = deladeSnap.docs[0].id;
+                            const kollegaDoc = deladeSnap.docs.find(d => d.id.toLowerCase() !== userEmail);
+                            if (kollegaDoc) {
+                                docId = kollegaDoc.id;
                             } else {
                                 docId = userEmail;
                             }
@@ -402,9 +463,7 @@
                     } else {
                         // Både lokal kassa och molnkassa (t.ex. från mobilen) har innehåll -> Slå ihop dem smart!
                         const sammanslagnaElever = molnElever.map(e => ({ ...e }));
-                        let maxId = sammanslagnaElever.length > 0
-                            ? Math.max(0, ...sammanslagnaElever.map(e => Number(e.id) || 0))
-                            : 0;
+                        let maxId = getNextMaxElevId(sammanslagnaElever, molnTransaktioner);
 
                         const molnTxIds = new Set(molnTransaktioner.map(t => t && t.id));
                         const nyaLokalaTx = lokalKassa.transaktioner.filter(t => t && !molnTxIds.has(t.id));
@@ -576,6 +635,22 @@
                                 : [];
                             if (cloudEvents.length === 0 && localRealEvents.length > 0 && (localKal.updatedAt || 0) > (parsedKal.updatedAt || 0)) {
                                 saveKalenderData(localKal);
+                            } else if (localRealEvents.length > 0 && (localKal.updatedAt || 0) > (parsedKal.updatedAt || 0)) {
+                                const cloudIds = new Set(cloudEvents.map(ev => ev && ev.id));
+                                const missingLocal = localRealEvents.filter(ev => ev && ev.id && !cloudIds.has(ev.id));
+                                if (missingLocal.length > 0) {
+                                    const mergedKal = {
+                                        ...parsedKal,
+                                        events: [...cloudEvents, ...missingLocal],
+                                        updatedAt: Date.now()
+                                    };
+                                    saveKalenderData(mergedKal);
+                                } else {
+                                    localStorage.setItem(KALENDER_STORAGE_KEY, JSON.stringify(parsedKal));
+                                    onKalenderCallbacks.forEach(cb => {
+                                        try { cb(parsedKal); } catch (err) {}
+                                    });
+                                }
                             } else {
                                 localStorage.setItem(KALENDER_STORAGE_KEY, JSON.stringify(parsedKal));
                                 onKalenderCallbacks.forEach(cb => {
@@ -605,7 +680,22 @@
 
     // Hjälpfunktion för att hämta aktuell elevlista (från molncache eller lokal kassa)
     function getActiveEleverArray() {
-        return currentUser ? [...kassaEleverCache] : [...(getLocalKassa().elever || [])];
+        if (currentUser) {
+            if (!kassaCloudSyncedOnce && kassaEleverCache.length === 0) {
+                return [...(getLocalKassa().elever || [])];
+            }
+            return [...kassaEleverCache];
+        }
+        return [...(getLocalKassa().elever || [])];
+    }
+
+    async function getVerifiedActiveEleverArray() {
+        if (currentUser && db && !kassaCloudSyncedOnce) {
+            try {
+                await resolveAndMergeKassa(currentUser);
+            } catch (e) {}
+        }
+        return getActiveEleverArray();
     }
 
     // Hjälpfunktion för att spara en komplett uppdaterad elevlista till både moln (om inloggad) och lokalt
@@ -648,9 +738,7 @@
 
     // Hjälpfunktion för att uppdatera en klass i en elevlista utan att röra befintliga saldon (stödjer även klassnamnsbyte t.ex. 8B -> 9B)
     function mergeKlassIntoEleverList(nuvarandeElever, klassCode, nyaNamnLista, allowRemoveStudents, oldKlassCode = null) {
-        let maxId = nuvarandeElever.length > 0
-            ? Math.max(0, ...nuvarandeElever.map(e => Number(e.id) || 0))
-            : 0;
+        let maxId = getNextMaxElevId(nuvarandeElever);
 
         const normOld = oldKlassCode ? normalizeKlassCode(oldKlassCode) : null;
         const arKlassByte = Boolean(normOld && normOld !== klassCode);
@@ -789,7 +877,7 @@
         const klassCode = normalizeKlassCode(rawKlassNamn);
         if (!klassCode) return;
 
-        const kallaElever = getActiveEleverArray();
+        const kallaElever = await getVerifiedActiveEleverArray();
         const eleverIKlass = kallaElever.filter(e => normalizeKlassCode(e.klass) === klassCode);
         const totaltSaldo = eleverIKlass.reduce((sum, e) => sum + (Number(e.saldo) || 0), 0);
         const harSaldo = eleverIKlass.some(e => (Number(e.saldo) || 0) !== 0);
@@ -814,7 +902,7 @@
             return false;
         }
 
-        const elever = getActiveEleverArray();
+        const elever = await getVerifiedActiveEleverArray();
         const finnsRedan = elever.some(
             e => String(e.namn || '').trim().toLowerCase() === namn.toLowerCase() &&
                  normalizeKlassCode(e.klass) === klassCode
@@ -824,7 +912,8 @@
             return false;
         }
 
-        const nyttId = elever.length > 0 ? Math.max(0, ...elever.map(e => Number(e.id) || 0)) + 1 : 1;
+        const nyttId = getNextMaxElevId(elever) + 1;
+        commitHighestElevId(nyttId);
         elever.push({ id: nyttId, namn: namn, klass: klassCode, saldo: 0 });
         await persistEleverArray(elever);
         showToast(`${namn} är tillagd i ${klassCode}!`, 'success');
@@ -839,8 +928,8 @@
             return false;
         }
 
-        const elever = getActiveEleverArray();
-        let aktuelltId = elever.length > 0 ? Math.max(0, ...elever.map(e => Number(e.id) || 0)) : 0;
+        const elever = await getVerifiedActiveEleverArray();
+        let aktuelltId = getNextMaxElevId(elever);
         let tillagdaStycken = 0;
         let senasteNamn = '';
         let senasteKlass = '';
@@ -879,6 +968,7 @@
         }
 
         if (tillagdaStycken > 0) {
+            commitHighestElevId(aktuelltId);
             await persistEleverArray(elever);
             if (tillagdaStycken === 1) {
                 showToast(`${senasteNamn} är tillagd i ${senasteKlass}!`, 'success');
@@ -894,7 +984,7 @@
 
     // Läsårsbyte: Flytta upp alla klasser +1 årskurs (t.ex. 7A -> 8A, 8B -> 9B)
     async function upgradeAllClassesYear() {
-        const elever = getActiveEleverArray();
+        const elever = await getVerifiedActiveEleverArray();
         if (elever.length === 0) {
             showToast('Det finns inga elever att flytta upp ännu.', 'warning');
             return;
@@ -943,7 +1033,7 @@
             return false;
         }
 
-        const elever = getActiveEleverArray();
+        const elever = await getVerifiedActiveEleverArray();
         const berorda = elever.filter(e => normalizeKlassCode(e.klass) === fromCode);
         if (berorda.length === 0) return false;
 
@@ -1068,15 +1158,24 @@
     if (auth) {
         auth.onAuthStateChanged((user) => {
             authReady = true;
-            currentUser = user || null;
-            if (user) {
-                startKassaSync(user);
+            // Ignorera eventuella anonyma publiksessioner så de inte skapar skräp-kassor
+            const validUser = (user && !user.isAnonymous && user.email) ? user : null;
+            currentUser = validUser;
+            if (validUser) {
+                const em = validUser.email.trim().toLowerCase();
+                if (lastKnownAuthEmail && lastKnownAuthEmail !== em) {
+                    kassaCloudSyncedOnce = false;
+                    kassaEleverCache = [];
+                }
+                lastKnownAuthEmail = em;
+                startKassaSync(validUser);
             } else {
                 if (kassaUnsubscribe) {
                     kassaUnsubscribe();
                     kassaUnsubscribe = null;
                 }
                 activeKassaDocId = null;
+                kassaCloudSyncedOnce = false;
                 activeResolvePromise = null;
                 activeResolveUid = null;
                 const lokalKassa = getLocalKassa();
@@ -2825,9 +2924,36 @@
 
     async function unlockWithGoogle() {
         if (!auth || typeof firebase === 'undefined') return;
+        const expectedEmail = (currentUser && currentUser.email) ? currentUser.email.trim().toLowerCase() : '';
+        const lockedDocId = activeKassaDocId;
         try {
             const provider = new firebase.auth.GoogleAuthProvider();
-            await auth.signInWithPopup(provider);
+            provider.setCustomParameters({ prompt: 'select_account' });
+            const res = await auth.signInWithPopup(provider);
+            const signedInEmail = (res && res.user && res.user.email) ? res.user.email.trim().toLowerCase() : '';
+
+            // Om en lärare var inloggad när Elevläge låstes får INTE ett godtyckligt elevkonto låsa upp!
+            if (expectedEmail && signedInEmail !== expectedEmail) {
+                let authorizedColleague = false;
+                if (db && lockedDocId && signedInEmail) {
+                    try {
+                        const snap = await db.collection('skolif_kassa').doc(lockedDocId).get();
+                        if (snap.exists) {
+                            const d = snap.data() || {};
+                            const beh = Array.isArray(d.behoriga_anvandare) ? d.behoriga_anvandare.map(x => String(x || '').toLowerCase()) : [];
+                            const skap = String(d.skapare || '').toLowerCase();
+                            if (beh.includes(signedInEmail) || skap === signedInEmail) {
+                                authorizedColleague = true;
+                            }
+                        }
+                    } catch (e) {}
+                }
+                if (!authorizedColleague) {
+                    showToast(`⛔ Endast behörig lärare (${expectedEmail}) kan låsa upp Elevläge!`, 'error');
+                    return;
+                }
+            }
+
             const cb = pendingUnlockCallback;
             setElevlageActive(false);
             closePinModal();
@@ -3503,7 +3629,7 @@
                 modal = document.createElement('div');
                 modal.id = 'skolifInstallAppModal';
                 modal.className = 'skolif-modal-overlay';
-                modal.onclick = function (e) { if (e.target === modal) modal.classList.remove('visas'); };
+                modal.onclick = function (e) { if (e.target === modal) modal.classList.remove('open'); };
                 modal.innerHTML = `
                     <div class="skolif-modal-box" style="max-width: 480px;">
                         <div class="skolif-modal-header">
@@ -3511,7 +3637,7 @@
                                 <h2>📲 Spara Skol-IF som app</h2>
                                 <p>Öppna sidan i helskärm med egen Skol-IF-ikon på hemskärmen</p>
                             </div>
-                            <button type="button" class="skolif-modal-close" onclick="document.getElementById('skolifInstallAppModal').classList.remove('visas')">✕</button>
+                            <button type="button" class="skolif-modal-close" onclick="document.getElementById('skolifInstallAppModal').classList.remove('open')">✕</button>
                         </div>
                         <div class="skolif-modal-body" style="display:flex; flex-direction:column; gap:12px;">
                             <div style="display:flex; align-items:center; gap:14px; background:#F0FDF4; border:1px solid #BBF7D0; border-radius:12px; padding:12px 14px;">
@@ -3545,7 +3671,7 @@
                 `;
                 document.body.appendChild(modal);
             }
-            modal.classList.add('visas');
+            modal.classList.add('open');
         },
         onSelect: function (cb) {
             onClassSelectCallback = cb;

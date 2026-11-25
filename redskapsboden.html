@@ -10,7 +10,7 @@
     <link rel="canonical" href="https://skolifwebben.se/redskapsboden.html">
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/svg+xml" href="icon.svg">
-    <link rel="apple-touch-icon" href="icon.svg">
+    <link rel="apple-touch-icon" href="apple-touch-icon.png">
     <meta property="og:title" content="Redskapsboden – Utlåning av Rastutrustning för Skol-IF & Skolor">
     <meta property="og:description" content="Registrera lån och returer i skolans redskapsbod på sekunder – synkat mellan dator och mobil.">
     <meta property="og:url" content="https://skolifwebben.se/redskapsboden.html">
@@ -409,6 +409,7 @@
         }
         /* ELEVLÄGE / RASTVÄRDSLÅS: Dölj admin-knappar när elever sköter redskapsboden */
         body.skolif-elevlage-locked [onclick="openNyArtikelModal()"],
+        body.skolif-elevlage-locked .artikel-edit-btn,
         body.skolif-elevlage-locked .art-edit-btn,
         body.skolif-elevlage-locked [onclick="rensaHistorik()"],
         body.skolif-elevlage-locked [onclick="SkolIFKlasser.openModal()"],
@@ -788,7 +789,7 @@
 <!-- Toast -->
 <div id="toast"></div>
 
-<script src="klasser.js?v=3"></script>
+<script src="klasser.js?v=5"></script>
 <script>
 // ==========================================
 //  FIREBASE KONFIGURATION
@@ -1006,45 +1007,51 @@ async function hanteraInloggadAnvandare(userEmail) {
     try {
         setSyncBar('cloud', '🔄 Ansluter till Redskapsboden...');
 
-        // 1. Anslut direkt med onSnapshot till /redskapsbodar/${userEmail}
         if (firestoreListener) {
             firestoreListener();
             firestoreListener = null;
         }
 
-        activeBodDocId = userEmail;
         const egetRef = db.collection('redskapsbodar').doc(userEmail);
-
-        firestoreListener = egetRef.onSnapshot(async (docSnap) => {
-            if (docSnap.exists) {
-                // Dokumentet finns!
-                isCloudMode = true;
-                const data = docSnap.data();
-                bodDocData = data;
-
-                if (data.data) {
+        let egenSnap = null;
         try {
-            artiklar = JSON.parse(data.data);
-        } catch(e) {
-            console.error('Kunde inte parsa data.data:', e);
-        }
-    } else if (Array.isArray(data.artiklar)) {
-        artiklar = data.artiklar;
-    }
+            egenSnap = await egetRef.get();
+        } catch (e) {}
 
-                saveLocal();
-                setSyncBar('cloud', `☁️ Synkad i realtid (${data.namn || userEmail})`);
-                renderAll();
-                renderBehorigaPanel();
-            } else {
-                // Om dokumentet INTE finns på /redskapsbodar/${userEmail}:
-                await sokEllerSkapaBod(userEmail, egetRef);
+        // Kolla om egen bod redan finns OCH har aktivt innehåll (utlån, fler behöriga eller egna ändrade artiklar)
+        let egenHarAktivData = false;
+        if (egenSnap && egenSnap.exists) {
+            const ed = egenSnap.data() || {};
+            let eArt = [];
+            if (ed.data) {
+                try { eArt = JSON.parse(ed.data); } catch (e) {}
+            } else if (Array.isArray(ed.artiklar)) {
+                eArt = ed.artiklar;
             }
-        }, async (err) => {
-            console.warn('Första onSnapshot gav fel, kontrollerar om bod ska skapas:', err.message);
-            // Om dokumentet inte finns eller ger behörighetsfel vid initial lyssning:
+            const harLan = Array.isArray(eArt) && eArt.some(a => Array.isArray(a.lan) && a.lan.length > 0);
+            const behCount = Array.isArray(ed.behoriga_anvandare) ? ed.behoriga_anvandare.length : 0;
+            egenHarAktivData = harLan || behCount > 1;
+        }
+
+        if (!egenSnap || !egenSnap.exists || !egenHarAktivData) {
+            // Kolla om kollegan har bjudit in användaren till en delad bod!
+            try {
+                const q = db.collection('redskapsbodar').where('behoriga_anvandare', 'array-contains', userEmail);
+                const deladeSnap = await q.get();
+                const kollegaBod = deladeSnap.docs.find(d => d.id.toLowerCase() !== userEmail);
+                if (kollegaBod) {
+                    startCloudListener(kollegaBod.id);
+                    showToast('☁️ Ansluten till delad bod från ' + (kollegaBod.data().skapare || kollegaBod.id));
+                    return;
+                }
+            } catch (e) {}
+        }
+
+        if (egenSnap && egenSnap.exists) {
+            startCloudListener(userEmail);
+        } else {
             await sokEllerSkapaBod(userEmail, egetRef);
-        });
+        }
 
     } catch(err) {
         console.error('Fel vid inloggningskontroll:', err);
@@ -1117,7 +1124,18 @@ function loginGoogle() {
 }
 
 function logoutUser() {
+    if (firestoreListener) {
+        firestoreListener();
+        firestoreListener = null;
+    }
+    try {
+        localStorage.removeItem('redskapsbod_artiklar');
+        localStorage.removeItem('redskapsbod_historik');
+    } catch (e) {}
+    artiklar = JSON.parse(JSON.stringify(STANDARD_ARTIKLAR));
+    historik = [];
     auth.signOut().then(() => {
+        renderAll();
         showToast('👋 Utloggad');
     });
 }
@@ -1236,7 +1254,12 @@ function autoMatchArtikelEmoji() {
     uppdateraEmojiChipMarkering(autoEmoji);
 }
 
+function isBodElevlageLocked() {
+    return Boolean(window.SkolIFKlasser && window.SkolIFKlasser.isElevlage && window.SkolIFKlasser.isElevlage());
+}
+
 function openNyArtikelModal() {
+    if (isBodElevlageLocked()) { showToast('🔒 Låst i Elevläge – lås upp med PIN först'); return; }
     editingArtikelId = null;
     artikelEmojiManuelltVald = false;
     document.getElementById('artikelModalTitel').textContent = 'Ny artikel';
@@ -1249,6 +1272,7 @@ function openNyArtikelModal() {
 }
 
 function openRedigeraArtikelModal(id) {
+    if (isBodElevlageLocked()) { showToast('🔒 Låst i Elevläge – lås upp med PIN först'); return; }
     const a = artiklar.find(x => x.id === id);
     if (!a) return;
     editingArtikelId = id;
@@ -1264,8 +1288,9 @@ function openRedigeraArtikelModal(id) {
 }
 
 async function sparaArtikel() {
+    if (isBodElevlageLocked()) { showToast('🔒 Låst i Elevläge – lås upp med PIN först'); return; }
     const namn = document.getElementById('artikelNamn').value.trim();
-    const antal = parseInt(document.getElementById('artikelAntal').value) || 1;
+    const antal = Math.max(1, parseInt(document.getElementById('artikelAntal').value) || 1);
     const valdEmoji = (document.getElementById('artikelEmoji')?.value || '').trim() || matchEmojiByName(namn);
     if (!namn) { showToast('Ange ett namn på artikeln'); return; }
 
@@ -1296,6 +1321,7 @@ async function sparaArtikel() {
 }
 
 async function raderaArtikel() {
+    if (isBodElevlageLocked()) { showToast('🔒 Låst i Elevläge – lås upp med PIN först'); return; }
     if (editingArtikelId === null) return;
     const a = artiklar.find(x => x.id === editingArtikelId);
     if (!confirm(`Vill du verkligen radera artikeln "${a?.namn}"?`)) return;

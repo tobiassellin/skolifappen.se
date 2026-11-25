@@ -7,7 +7,7 @@
     <title>Webbstatistik – Skol-IF Webben</title>
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/svg+xml" href="icon.svg">
-    <link rel="apple-touch-icon" href="icon.svg">
+    <link rel="apple-touch-icon" href="apple-touch-icon.png">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         html { font-size: 14px; }
@@ -411,7 +411,7 @@
             <p id="adminLockMessage" style="font-size: 0.92rem; color: #94A3B8; line-height: 1.5; margin-bottom: 22px;">
                 Den här statistiksidan är låst och kan endast visas när du är inloggad med <strong>tobias.sellin@gmail.com</strong>.
             </p>
-            <button type="button" onclick="window.loggaInMedGoogle && window.loggaInMedGoogle()" style="background: linear-gradient(135deg, #10B981, #059669); color: white; border: none; padding: 12px 24px; border-radius: 99px; font-weight: 800; font-size: 0.92rem; cursor: pointer; box-shadow: 0 8px 24px rgba(16, 185, 129, 0.3);">
+            <button type="button" onclick="window.SkolIFKlasser && window.SkolIFKlasser.login()" style="background: linear-gradient(135deg, #10B981, #059669); color: white; border: none; padding: 12px 24px; border-radius: 99px; font-weight: 800; font-size: 0.92rem; cursor: pointer; box-shadow: 0 8px 24px rgba(16, 185, 129, 0.3);">
                 🔑 Logga in med Google
             </button>
         </div>
@@ -531,7 +531,7 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-    <script src="klasser.js?v=3"></script>
+    <script src="klasser.js?v=5"></script>
 
     <script>
         const PAGE_META = {
