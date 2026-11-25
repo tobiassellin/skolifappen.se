@@ -182,7 +182,6 @@
             display: inline-block;
         }
 
-        .nav-dropdown:hover .nav-dropdown-arrow,
         .nav-dropdown.active .nav-dropdown-arrow {
             transform: rotate(180deg);
         }
@@ -211,7 +210,6 @@
             height: 10px;
         }
 
-        .nav-dropdown:hover .nav-dropdown-menu,
         .nav-dropdown.active .nav-dropdown-menu {
             display: block;
             animation: fadeInDropdown 0.2s cubic-bezier(0.16, 1, 0.3, 1);
@@ -234,10 +232,20 @@
             transition: background 0.15s, color 0.15s, padding-left 0.15s;
         }
 
-        .nav-dropdown-menu a:hover {
-            background: #E8F5E9;
-            color: #2E7D32 !important;
-            padding-left: 20px;
+        /* Hover-utfällning endast på enheter med riktig muspekare (förhindrar att menyer fastnar öppna på iPad/mobil) */
+        @media (hover: hover) and (pointer: fine) {
+            .nav-dropdown:hover .nav-dropdown-arrow {
+                transform: rotate(180deg);
+            }
+            .nav-dropdown:hover .nav-dropdown-menu {
+                display: block;
+                animation: fadeInDropdown 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+            }
+            .nav-dropdown-menu a:hover {
+                background: #E8F5E9;
+                color: #2E7D32 !important;
+                padding-left: 20px;
+            }
         }
 
         /* ====== KOMPAKT & LYXIG HERO-SEKTION ====== */
@@ -929,7 +937,7 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     <!-- LÄGG TILL FIREBASE AUTH -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-    <script src="klasser.js?v=5"></script>
+    <script src="klasser.js?v=6"></script>
 
    <script>
         const firebaseConfig = {

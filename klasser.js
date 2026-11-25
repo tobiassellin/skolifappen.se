@@ -2158,7 +2158,7 @@
                     const count = countStudents(klasser[code]);
                     const label = formatDisplayKlass(code);
                     return `
-                        <button type="button" class="skolif-class-pill" onclick="SkolIFKlasser.triggerSelect('${escapeHtml(code)}')" title="Klicka för att ladda ${escapeHtml(label)} (${count} elever)">
+                        <button type="button" class="skolif-class-pill" data-klass="${escapeHtml(code)}" onclick="SkolIFKlasser.triggerSelect(this.dataset.klass)" title="Klicka för att ladda ${escapeHtml(label)} (${count} elever)">
                             <span>📁 ${escapeHtml(label)}</span>
                             <span class="skolif-class-pill-count">(${count})</span>
                         </button>
@@ -2210,7 +2210,7 @@
             const count = countStudents(klasser[code]);
             const label = formatDisplayKlass(code);
             const useBtnHtml = typeof onClassSelectCallback === 'function'
-                ? `<button type="button" class="skolif-btn-sm primary" onclick="SkolIFKlasser.triggerSelect('${escapeHtml(code)}'); SkolIFKlasser.closeModal();">⚡ Välj klass</button>`
+                ? `<button type="button" class="skolif-btn-sm primary" data-klass="${escapeHtml(code)}" onclick="SkolIFKlasser.triggerSelect(this.dataset.klass); SkolIFKlasser.closeModal();">⚡ Välj klass</button>`
                 : '';
 
             return `
@@ -2224,8 +2224,8 @@
                     </div>
                     <div class="skolif-class-item-actions" style="display: flex; gap: 6px;">
                         ${useBtnHtml}
-                        <button type="button" class="skolif-btn-sm" onclick="SkolIFKlasser.editInModal('${escapeHtml(code)}')">✏️ Visa / Ändra</button>
-                        <button type="button" class="skolif-btn-sm danger" onclick="SkolIFKlasser.removeFromModal('${escapeHtml(code)}')">🗑️</button>
+                        <button type="button" class="skolif-btn-sm" data-klass="${escapeHtml(code)}" onclick="SkolIFKlasser.editInModal(this.dataset.klass)">✏️ Visa / Ändra</button>
+                        <button type="button" class="skolif-btn-sm danger" data-klass="${escapeHtml(code)}" onclick="SkolIFKlasser.removeFromModal(this.dataset.klass)">🗑️</button>
                     </div>
                 </div>
             `;
@@ -3162,8 +3162,8 @@
                         <span class="skolif-class-item-badge" style="margin-left: 6px;">${Number(item.antal) || (item.deltagare || []).length} deltagare</span>
                     </div>
                     <div style="display: flex; gap: 5px; align-items: center;">
-                        <button type="button" class="skolif-btn-sm ${isReported ? 'primary' : ''}" style="padding: 4px 9px; font-size: 0.74rem;" onclick="SkolIFKlasser.toggleLokReported('${escapeHtml(item.id)}')">${isReported ? '✅ Inlagd i Arenan' : '⬜ Ej inlagd i Arenan'}</button>
-                        <button type="button" class="skolif-btn-sm danger" style="padding: 4px 8px; font-size: 0.74rem;" onclick="SkolIFKlasser.deleteLokItem('${escapeHtml(item.id)}')">🗑️</button>
+                        <button type="button" class="skolif-btn-sm ${isReported ? 'primary' : ''}" style="padding: 4px 9px; font-size: 0.74rem;" data-lok-id="${escapeHtml(item.id)}" onclick="SkolIFKlasser.toggleLokReported(this.dataset.lokId)">${isReported ? '✅ Inlagd i Arenan' : '⬜ Ej inlagd i Arenan'}</button>
+                        <button type="button" class="skolif-btn-sm danger" style="padding: 4px 8px; font-size: 0.74rem;" data-lok-id="${escapeHtml(item.id)}" onclick="SkolIFKlasser.deleteLokItem(this.dataset.lokId)">🗑️</button>
                     </div>
                 </div>
                 <div style="font-size: 0.75rem; color: #475569; line-height: 1.4;">
@@ -3418,7 +3418,7 @@
                             <span style="font-weight:800;font-size:0.92rem;color:#1E3A24;">${icon} – Klass ${escapeHtml(session.klass)}</span>
                             <span style="font-size:0.78rem;color:#64748B;margin-left:8px;">📅 ${escapeHtml(session.datum)} • ${(session.resultat || []).length} elever</span>
                         </div>
-                        <button type="button" class="skolif-btn-sm danger" style="padding:4px 9px;font-size:0.74rem;" onclick="SkolIFKlasser.deleteTestSession('${escapeHtml(session.id)}')">🗑️ Radera</button>
+                        <button type="button" class="skolif-btn-sm danger" style="padding:4px 9px;font-size:0.74rem;" data-session-id="${escapeHtml(session.id)}" onclick="SkolIFKlasser.deleteTestSession(this.dataset.sessionId)">🗑️ Radera</button>
                     </div>
                     <div style="display:flex;flex-wrap:wrap;gap:5px;">${rows}</div>
                 </div>
@@ -3532,6 +3532,17 @@
             if (document.visibilityState === 'visible') {
                 requestSkolifWakeLock();
             }
+        });
+    }
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        window._skolifDeferredInstallPrompt = e;
+    });
+
+    if ('serviceWorker' in navigator && (window.location.protocol === 'https:' || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('sw.js').catch(() => {});
         });
     }
 

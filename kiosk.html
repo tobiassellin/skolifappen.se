@@ -1112,7 +1112,7 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-    <script src="klasser.js?v=5"></script>
+    <script src="klasser.js?v=6"></script>
 
     <script>
         const firebaseConfig = {
@@ -1828,7 +1828,7 @@
         function skapaKlassFilterChips(elever) {
             const klasser = ["Alla", ...new Set(elever.map(e => e.klass))].sort();
             document.getElementById("klassFilterContainer").innerHTML = klasser.map(k => 
-                `<button class="filter-chip ${aktivtKlassFilter === k ? 'active' : ''}" onclick="bytKlass('${k}')">${k}</button>`
+                `<button class="filter-chip ${aktivtKlassFilter === k ? 'active' : ''}" data-klass="${escapeHtmlKassa(k)}" onclick="bytKlass(this.dataset.klass)">${escapeHtmlKassa(k)}</button>`
             ).join('');
         }
 
@@ -1862,18 +1862,33 @@
 
             if(!endastUppd) {
                 document.getElementById("customBeloppInput").value = "";
-                document.getElementById("modalVarorGrid").innerHTML = allaVarorCache.map(v => {
+                document.getElementById("modalVarorGrid").innerHTML = allaVarorCache.map((v, vIdx) => {
                     const arSlut = v.slut === true;
                     return `
-                    <div class="modal-vara-btn ${arSlut ? 'slut' : ''}" onclick="${arSlut ? "visaSaldoVarning('" + v.namn + " är tyvärr slut i lager!')" : `kopVara(${e.id}, ${v.pris}, '${v.emoji} ${v.namn}')`}">
+                    <div class="modal-vara-btn ${arSlut ? 'slut' : ''}" onclick="klickaModalVaraIdx(${e.id}, ${vIdx})">
                         ${arSlut ? '<span class="slut-badge">Slut</span>' : ''}
-                        <div class="modal-vara-emoji">${v.emoji||'🍬'}</div>
-                        <div class="modal-vara-namn">${v.namn}</div>
+                        <div class="modal-vara-emoji">${escapeHtmlKassa(v.emoji||'🍬')}</div>
+                        <div class="modal-vara-namn">${escapeHtmlKassa(v.namn)}</div>
                         <div class="modal-vara-pris">${v.pris} kr</div>
                     </div>`;
                 }).join('');
             }
         }
+
+        window.klickaModalVaraIdx = function(elevId, vIdx) {
+            const v = allaVarorCache[vIdx];
+            if (!v) return;
+            if (v.slut === true) {
+                visaSaldoVarning((v.namn || 'Varan') + ' är tyvärr slut i lager!');
+                return;
+            }
+            kopVara(elevId, v.pris, (v.emoji || '🍬') + ' ' + v.namn);
+        };
+
+        window.oppnaModalElevId = function(elevId) {
+            const el = allaEleverCache.find(x => x.id === elevId);
+            if (el) oppnaModalObj(el);
+        };
 
         function stangModal() { aktivElevId = null; document.getElementById("elevModal").style.display = "none"; }
 
@@ -1895,7 +1910,7 @@
                 return `
                 <div class="historik-item">
                     <div class="historik-detaljer">
-                        <span class="historik-beskrivning">${t.beskrivning}</span>
+                        <span class="historik-beskrivning">${escapeHtmlKassa(t.beskrivning)}</span>
                         <span class="historik-datum">${datum}</span>
                     </div>
                     <div class="historik-hoger">
@@ -2274,7 +2289,7 @@
             const toplistaHtml = sorteradToplista.map(item => `
                 <div class="toplista-item">
                     <div class="toplista-item-info">
-                        <strong>${item[0]} (${item[1].antal} st)</strong>
+                        <strong>${escapeHtmlKassa(item[0])} (${item[1].antal} st)</strong>
                         <span>Försäljning i kr</span>
                     </div>
                     <div class="toplista-belopp">${item[1].summa} kr</div>
@@ -3137,7 +3152,7 @@
                 ? renderaTomElevListaGuide(q)
                 : (allaEleverCache.some(e => e.arDemo) ? `<div style="grid-column: 1 / -1; background: #FFFBEB; border: 1.5px solid #FDE68A; color: #92400E; padding: 10px 14px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 0.85rem;"><span>🧪 <strong>Exempelelever är inlagda!</strong> Klicka på en vara ovanför och sedan på en elev för att provköra kassan.</span><button type="button" onclick="rensaDemoEleverIKassan()" style="background: #FEF3C7; color: #B45309; border: 1px solid #F59E0B; padding: 5px 12px; border-radius: 8px; font-weight: 700; font-size: 0.8rem; cursor: pointer;">🗑️ Rensa exempelelever</button></div>` : "") + res.sort((a, b) => a.namn.localeCompare(b.namn)).map(e => `
 
-                    <div class="elev-card ${e.saldo < 0 ? 'negativ' : ''}" onclick='oppnaModalObj(${JSON.stringify(e).replace(/'/g, "&#39;")})'>
+                    <div class="elev-card ${e.saldo < 0 ? 'negativ' : ''}" onclick="oppnaModalElevId(${e.id})">
                         <div>
                             <div class="elev-namn">${escapeHtmlKassa(e.namn)} ${e.tagg ? '<span title="Har kopplad blipp (#' + escapeHtmlKassa(e.tagg) + ')" style="font-size:0.82rem; margin-left:3px;">💳</span>' : ''}</div>
                             <div class="elev-klass">Klass ${escapeHtmlKassa(e.klass)}</div>
@@ -3344,7 +3359,7 @@
                 if (aktivElev) {
                     snabbDiv.style.display = "block";
                     snabbDiv.innerHTML = `
-                        <button type="button" onclick="kopplaTaggTillElev(${aktivElev.id}, '${escapeHtmlKassa(kod)}')" style="width: 100%; background: #0284C7; color: white; border: none; padding: 10px 14px; border-radius: 10px; font-weight: 700; font-size: 0.88rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 12px rgba(2,132,199,0.2);">
+                        <button type="button" data-tagg="${escapeHtmlKassa(kod)}" onclick="kopplaTaggTillElev(${aktivElev.id}, this.dataset.tagg)" style="width: 100%; background: #0284C7; color: white; border: none; padding: 10px 14px; border-radius: 10px; font-weight: 700; font-size: 0.88rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 12px rgba(2,132,199,0.2);">
                             ⚡ Koppla direkt till öppnad elev: ${escapeHtmlKassa(aktivElev.namn)} (${escapeHtmlKassa(aktivElev.klass)})
                         </button>
                     `;
@@ -3380,7 +3395,7 @@
 
             const kodSafe = escapeHtmlKassa(senastSkannadOkandTagg || "");
             container.innerHTML = matchade.map(e => `
-                <div onclick="kopplaTaggTillElev(${e.id}, '${kodSafe}')" style="display: flex; justify-content: space-between; align-items: center; padding: 8px 10px; border-radius: 8px; cursor: pointer; border-bottom: 1px solid #F1F5F9; background: white; margin-bottom: 4px; transition: background 0.15s;" onmouseover="this.style.background='#E0F2FE'" onmouseout="this.style.background='white'">
+                <div data-tagg="${kodSafe}" onclick="kopplaTaggTillElev(${e.id}, this.dataset.tagg)" style="display: flex; justify-content: space-between; align-items: center; padding: 8px 10px; border-radius: 8px; cursor: pointer; border-bottom: 1px solid #F1F5F9; background: white; margin-bottom: 4px; transition: background 0.15s;" onmouseover="this.style.background='#E0F2FE'" onmouseout="this.style.background='white'">
                     <div>
                         <strong style="font-size: 0.88rem; color: #0F172A;">${escapeHtmlKassa(e.namn)}</strong>
                         <span style="font-size: 0.78rem; color: #64748B; margin-left: 6px;">Klass ${escapeHtmlKassa(e.klass)}</span>

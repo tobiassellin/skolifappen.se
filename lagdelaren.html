@@ -569,7 +569,7 @@
                     </div>
                 </div>
 
-                <!-- Sparade klasser (Molnsynkade via klasser.js?v=5) -->
+                <!-- Sparade klasser (Molnsynkade via klasser.js?v=6) -->
                 <div data-skolif-classbar></div>
 
                 <div class="form-group" id="inputAreaGroup">
@@ -755,7 +755,7 @@
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-<script src="klasser.js?v=5"></script>
+<script src="klasser.js?v=6"></script>
 
 <!-- ========================================== -->
 <!-- JAVASCRIPT LOGIK                           -->
@@ -1035,9 +1035,9 @@
         }
 
         container.innerHTML = namnLista.map(k => `
-            <div class="class-pill" onclick="valjSparadKlass('${escapeHtml(k)}')">
+            <div class="class-pill" data-klass="${escapeHtml(k)}" onclick="valjSparadKlass(this.dataset.klass)">
                 <span>📁 ${escapeHtml(k)}</span>
-                <span class="class-pill-del" onclick="event.stopPropagation(); raderaSparadKlass('${escapeHtml(k)}')">✕</span>
+                <span class="class-pill-del" data-klass="${escapeHtml(k)}" onclick="event.stopPropagation(); raderaSparadKlass(this.dataset.klass)">✕</span>
             </div>
         `).join('');
     }

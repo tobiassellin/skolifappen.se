@@ -2,8 +2,8 @@
   "name": "Skol-IF & Idrott Hub",
   "short_name": "Skol-IF",
   "description": "Digitala verktyg för skolidrott och Skol-IF: Kioskkassa, Redskapsbod, Lagdelaren, Uppvärmningshjulet, Beep-test, Tidtagning och Turneringar.",
-  "start_url": "/index.html",
-  "scope": "/",
+  "start_url": "./index.html",
+  "scope": "./",
   "display": "standalone",
   "orientation": "any",
   "background_color": "#0A1C13",
@@ -17,10 +17,22 @@
       "purpose": "any"
     },
     {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
       "src": "icon.svg",
       "sizes": "any",
       "type": "image/svg+xml",
-      "purpose": "any maskable"
+      "purpose": "any"
     }
   ]
 }

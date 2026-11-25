@@ -794,7 +794,7 @@
 <!-- Toast -->
 <div id="toast"></div>
 
-<script src="klasser.js?v=5"></script>
+<script src="klasser.js?v=6"></script>
 <script>
 // ==========================================
 //  FIREBASE KONFIGURATION
@@ -1381,7 +1381,7 @@ function renderaLanaKlassSnabbval() {
         const elever = String(rawText).split(/[\n,;]+/).map(s => s.trim()).filter(Boolean);
         if (elever.length > 0) {
             elevPills.style.display = 'flex';
-            elevPills.innerHTML = `<button type="button" onclick="sattLanarnamnSnabb('${escapeHtml(valdLanaKlassNamn).replace(/'/g, "\\'")}')" style="border:1px solid #93C5FD; background:#EFF6FF; color:#1D4ED8; border-radius:8px; padding:3px 9px; font-size:0.75rem; font-weight:700; cursor:pointer;">Hela ${escapeHtml(valdLanaKlassNamn)}</button>` +
+            elevPills.innerHTML = `<button type="button" onclick="valjHelaLanaKlass()" style="border:1px solid #93C5FD; background:#EFF6FF; color:#1D4ED8; border-radius:8px; padding:3px 9px; font-size:0.75rem; font-weight:700; cursor:pointer;">Hela ${escapeHtml(valdLanaKlassNamn)}</button>` +
                 elever.map((elevNamn, eIdx) =>
                     `<button type="button" data-elev-idx="${eIdx}" onclick="valjLanaElevIndex(${eIdx})" style="border:1px solid #E2E8F0; background:#FFFFFF; color:#1E293B; border-radius:8px; padding:3px 9px; font-size:0.75rem; font-weight:600; cursor:pointer;">👤 ${escapeHtml(elevNamn)}</button>`
                 ).join('');
@@ -1390,6 +1390,12 @@ function renderaLanaKlassSnabbval() {
     }
     elevPills.style.display = 'none';
     elevPills.innerHTML = '';
+}
+
+function valjHelaLanaKlass() {
+    if (valdLanaKlassNamn) {
+        sattLanarnamnSnabb(valdLanaKlassNamn);
+    }
 }
 
 function valjLanaKlassChip(idx) {

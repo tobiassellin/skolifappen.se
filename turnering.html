@@ -928,7 +928,7 @@
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-<script src="klasser.js?v=5"></script>
+<script src="klasser.js?v=6"></script>
 
 <script>
 // ==========================================
@@ -1554,7 +1554,7 @@ function uppdateraLiveDrawUI() {
             spinBtn.disabled = liveDrawState.isSpinning;
             spinBtn.style.opacity = liveDrawState.isSpinning ? '0.6' : '1';
             if (liveDrawState.remainingTeams.length === 1) {
-                spinBtn.innerHTML = `🎯 Placera sista laget (${liveDrawState.remainingTeams[0]}) →`;
+                spinBtn.innerHTML = `🎯 Placera sista laget (${escapeHtml(liveDrawState.remainingTeams[0])}) →`;
             } else {
                 spinBtn.innerHTML = `🎡 Snurra fram nästa lag! (${liveDrawState.remainingTeams.length} kvar)`;
             }
@@ -1613,7 +1613,7 @@ function uppdateraLiveDrawUI() {
                     html += `
                         <div style="background:rgba(34,197,94,0.18); border:1px solid rgba(74,222,128,0.45); color:#F8FAFC; padding:7px 10px; border-radius:8px; font-size:0.84rem; font-weight:700; display:flex; align-items:center; gap:8px;">
                             <span style="background:#22C55E; color:#052E16; width:20px; height:20px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:0.72rem; font-weight:900; flex-shrink:0;">${s + 1}</span>
-                            <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${teamName}</span>
+                            <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtml(teamName)}</span>
                         </div>
                     `;
                 } else if (isNextSlot) {

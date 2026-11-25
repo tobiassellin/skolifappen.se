@@ -390,6 +390,14 @@
             background: rgba(239, 68, 68, 0.28);
             color: #FFFFFF;
         }
+
+        @supports (-webkit-touch-callout: none) {
+            input:not([type="checkbox"]):not([type="radio"]),
+            select,
+            textarea {
+                font-size: 16px !important;
+            }
+        }
     </style>
 </head>
 <body>
@@ -531,7 +539,7 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-    <script src="klasser.js?v=5"></script>
+    <script src="klasser.js?v=6"></script>
 
     <script>
         const PAGE_META = {

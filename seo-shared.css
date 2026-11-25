@@ -316,3 +316,12 @@ body.printing-diplomas .skolif-site-footer {
         grid-template-columns: 1fr;
     }
 }
+
+/* ====== FÖRHINDRA AUTO-ZOOM PÅ IPHONE & IPAD VID INMATNING (< 16px) ====== */
+@supports (-webkit-touch-callout: none) {
+    input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not(#skolifPinModalInput),
+    select,
+    textarea {
+        font-size: 16px !important;
+    }
+}

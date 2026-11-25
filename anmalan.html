@@ -590,6 +590,14 @@
             .guest-row { grid-template-columns: 1fr; gap: 6px; padding-bottom: 10px; border-bottom: 1px dashed #CBD5E1; }
             .guest-idx { width: auto; border-radius: 6px; padding: 2px 8px; justify-content: flex-start; }
         }
+
+        @supports (-webkit-touch-callout: none) {
+            input:not([type="checkbox"]):not([type="radio"]),
+            select,
+            textarea {
+                font-size: 16px !important;
+            }
+        }
     </style>
 </head>
 <body>
@@ -1092,7 +1100,7 @@ match /utbildning_anmalan/{docId} {
     </div>
 </div>
 
-<!-- FIREBASE SDK v8 & EXCELJS (Fristående utan klasser.js?v=5 eller AdSense) -->
+<!-- FIREBASE SDK v8 & EXCELJS (Fristående utan klasser.js?v=6 eller AdSense) -->
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
