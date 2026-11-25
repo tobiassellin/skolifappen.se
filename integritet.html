@@ -182,30 +182,42 @@
         <h2>1. Lokal lagring i webbläsaren (utan inloggning)</h2>
         <p>
             Alla lektionsverktyg (Löprundan, Tabatatimer, Beep-test, Lagdelaren, Uppvärmningshjulet och Turneringar)
-            samt testläge i Kiosken och Redskapsboden kan användas utan att logga in.
+            samt testläge i Kiosken och Redskapsboden kan användas helt utan att logga in.
             Då sparas dina uppgifter enbart lokalt i din egen webbläsare (via webbläsarens <code>localStorage</code>)
-            och delas inte med tredje part.
+            på din enhet – ingenting skickas till någon server och uppgifterna delas aldrig med tredje part.
         </p>
 
-        <h2>2. Google-inloggning &amp; Molnsynkronisering (Firebase)</h2>
+        <h2>2. GDPR i skolan &amp; Inbyggd anonymisering (GDPR-verktyg)</h2>
+        <p>
+            För lärare i kommunala och fristående skolor där huvudmannen saknar personuppgiftsbiträdesavtal (PUB-avtal)
+            rekommenderar vi att aldrig lagra fullständiga elevpersonuppgifter i molnet. Därför har plattformen inbyggda
+            <strong>GDPR-verktyg</strong> direkt vid alla elevlistor samt i <em>Mina Klasser</em>:
+        </p>
+        <ul>
+            <li><strong>GDPR-tvätt lokalt i webbläsaren:</strong> Med ett klick kan en inklistrad klasslista kortas ner till <em>Förnamn + Initial</em> (t.ex. <code>Anna A</code>) eller <em>Endast initialer</em> (<code>AA</code>). Omvandlingen sker till 100 % lokalt i din egen webbläsare innan något sparas, och eventuella personnummer eller e-postadresser som råkat följa med vid kopiering rensas bort automatiskt.</li>
+            <li><strong>Anonyma startnummer:</strong> Alla lektionsverktyg kan köras helt utan namn genom att generera anonyma startnummer (t.ex. <code>Nr 1</code>–<code>Nr 30</code>) som kopplas till västar eller nummerlappar.</li>
+            <li><strong>Skolundervisning vs. ideell Skol-IF:</strong> Vid ordinarie skolundervisning följer du som lärare alltid din skolas/huvudmans riktlinjer för GDPR. För en fristående, ideell Skol-IF-förening är föreningens styrelse själv personuppgiftsansvarig för de medlemsuppgifter föreningen väljer att hantera.</li>
+        </ul>
+
+        <h2>3. Google-inloggning &amp; Molnsynkronisering (Firebase)</h2>
         <p>
             När du väljer att logga in med Google används <strong>Google Firebase (Authentication &amp; Cloud Firestore)</strong>
             för att säkert synkronisera dina verktyg mellan mobil, surfplatta och dator:
         </p>
         <ul>
             <li><strong>Kontouppgifter:</strong> Din e-postadress från Google används för att identifiera din förenings kassa, redskapsbod och sparade klasslistor samt för att du ska kunna bjuda in behöriga kollegor via e-post.</li>
-            <li><strong>Verksamhetsdata du själv lägger in:</strong> Klassnamn, elevnamn, kiosksaldo/transaktioner, utlåningshistorik i Redskapsboden, skapade turneringsscheman, kalenderaktiviteter, sparad testhistorik (från Beep-test och Löprundan) samt närvarounderlag för LOK-stöd lagras i din förenings isolerade dokument i molnet så att ni kan samarbeta i realtid.</li>
+            <li><strong>Verksamhetsdata du själv lägger in:</strong> Klassnamn, de elevnamn/initialer/startnummer du väljer att spara, kiosksaldo/transaktioner, utlåningshistorik i Redskapsboden, skapade turneringsscheman, kalenderaktiviteter, sparad testhistorik (från Beep-test och Löprundan) samt närvarounderlag för LOK-stöd lagras i din förenings isolerade dokument i molnet så att ni kan samarbeta i realtid.</li>
             <li><strong>Publika live-turneringar &amp; korridorkalendrar:</strong> Om du aktivt delar en QR-kod/live-länk för en turnering eller aktivitetskalender kan spelschemat, tabellerna respektive kalenderns händelser läsas av åskådare och elever med länken.</li>
         </ul>
 
-        <h2>3. Anonym besöksstatistik</h2>
+        <h2>4. Anonym besöksstatistik</h2>
         <p>
             Webbplatsen registrerar anonym, aggregerad besöksstatistik (antal sidvisningar, ungefärlig enhetstyp såsom mobil,
             surfplatta eller dator samt datum) för att förbättra verktygen. Vi lagrar inga IP-adresser, namn eller personliga
             spårningsprofiler i besöksstatistiken.
         </p>
 
-        <h2>4. Annonser, cookies, Google AdSense &amp; Google AdMob</h2>
+        <h2>5. Annonser, cookies, Google AdSense &amp; Google AdMob</h2>
         <p>
             För att hålla verktygen kostnadsfria för skolor och Skol-IF-föreningar kan webbplatsen
             <strong>skolifwebben.se</strong> visa annonser via <strong>Google AdSense</strong>, och våra gratis
@@ -218,17 +230,17 @@
             <li><strong>Android-appar (AdMob):</strong> På Android kan du när som helst återställa eller begränsa anpassade annonser under telefonens inställningar (<em>Inställningar &rarr; Google &rarr; Annonser</em>).</li>
         </ul>
 
-        <h2>5. Externa länkar (t.ex. LOK-stöd / Arenan)</h2>
+        <h2>6. Externa länkar (t.ex. LOK-stöd / Arenan)</h2>
         <p>
             På webbplatsen finns genvägar till Riksidrottsförbundets portal <em>Idrottsarenan</em> (Arenan) för
             LOK-stödsrapportering. När du klickar vidare dit öppnas en extern webbplats som har egna villkor och egen
             integritetspolicy. Skol-IF Webben överför inga elevuppgifter dit.
         </p>
 
-        <h2>6. Dina rättigheter &amp; Radering av data</h2>
+        <h2>7. Dina rättigheter &amp; Radering av data</h2>
         <p>Du har full kontroll över dina uppgifter och kan när som helst:</p>
         <ul>
-            <li>Ta bort enskilda klasser, elever eller varor direkt inne i Kiosken, Redskapsboden och Mina Klasser.</li>
+            <li>Ta bort enskilda klasser, elever eller varor – eller anonymisera alla sparade elevnamn med funktionen <em>GDPR-tvätta alla</em> – direkt inne i Kiosken, Redskapsboden och Mina Klasser.</li>
             <li>Rensa lokal data genom att rensa webbplatsdata i din webbläsare.</li>
             <li>Kontakta oss på <a href="mailto:kontakt@skolifwebben.se">kontakt@skolifwebben.se</a> om du behöver hjälp med att ta bort molndata eller har frågor om din integritet.</li>
         </ul>
