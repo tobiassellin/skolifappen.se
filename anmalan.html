@@ -582,6 +582,8 @@
             .card { box-shadow: none; border: 1px solid #CBD5E1; page-break-inside: avoid; }
             .hero-banner { background: none !important; color: #0F172A !important; border-bottom: 2px solid #143321; border-radius: 0; padding: 0 0 12px 0; box-shadow: none; }
             .hero-banner p { color: #334155 !important; }
+            #adminView #admTab-rooms, #adminView #admTab-allergies { display: block !important; margin-bottom: 20px; }
+            #adminView #admTab-settings { display: none !important; }
         }
 
         @media (max-width: 680px) {
@@ -1660,15 +1662,18 @@ function markDistrictDirty() {
 
 function setDistrictDirty(dirty) {
     hasUnsavedChanges = Boolean(dirty);
-    if (hasUnsavedChanges) {
-        districtState.isSubmitted = false;
-    }
     const pill = document.getElementById('unsavedIndicator');
     if (pill) pill.style.display = hasUnsavedChanges ? 'inline-flex' : 'none';
+    const saveBtn = document.getElementById('saveDistrictBtn');
+    if (saveBtn && !saveBtn.disabled) {
+        saveBtn.textContent = districtState.isSubmitted ? '📨 Uppdatera anmälan' : '📨 Skicka in anmälan';
+    }
     const savedTxt = document.getElementById('savedIndicatorText');
     if (savedTxt) {
         if (!hasUnsavedChanges && districtState.isSubmitted) {
             savedTxt.innerHTML = `<span style="color:#15803D; font-weight:800;">✅ Anmälan är inskickad!</span> <span style="color:#64748B;">(Senast inskickad: ${formatTimestamp(districtState.submittedAt || districtState.updatedAt)})</span>`;
+        } else if (hasUnsavedChanges && districtState.isSubmitted) {
+            savedTxt.innerHTML = `<span style="color:#B45309; font-weight:700;">⚠️ Klicka på "Uppdatera anmälan" för att spara dina ändringar.</span>`;
         } else {
             savedTxt.textContent = 'Klicka på "Skicka in anmälan" när du är klar med rumslistan.';
         }
@@ -1723,6 +1728,7 @@ async function sparaUtkastTystTillFirestore() {
     });
 
     const now = Date.now();
+    const keepSubmitted = Boolean(districtState.isSubmitted);
     const payload = {
         districtId: activeDistrictId,
         districtName: meta.name,
@@ -1730,7 +1736,7 @@ async function sparaUtkastTystTillFirestore() {
         contactPhone: document.getElementById('distContactPhone').value.trim(),
         comment: document.getElementById('distComment').value.trim(),
         updatedAt: now,
-        isSubmitted: false,
+        isSubmitted: keepSubmitted,
         submittedAt: districtState.submittedAt || 0,
         rooms: cleanRooms
     };
@@ -1738,9 +1744,8 @@ async function sparaUtkastTystTillFirestore() {
     try {
         await db.collection(COLLECTION_NAME).doc(activeDistrictId).set(payload, { merge: true });
         districtState.updatedAt = now;
-        districtState.isSubmitted = false;
         const lastEl = document.getElementById('districtLastSavedText');
-        if (lastEl) lastEl.textContent = `Utkast sparat: ${formatTimestamp(now)}`;
+        if (lastEl) lastEl.textContent = keepSubmitted ? `✅ Uppdaterad: ${formatTimestamp(now)}` : `Utkast sparat: ${formatTimestamp(now)}`;
         // Om inga rum ligger öppna i redigeringsläge längre kan osparad-varningen släckas
         const anyEditing = districtState.rooms.some(r => r.isEditing);
         if (!anyEditing) {
@@ -2102,7 +2107,7 @@ async function sparaDistriktsAnmalan(isFinalSubmit = false) {
         showToast('Kunde inte spara till molnet. Kontrollera din uppkoppling eller om anmälan har låsts.', 'error');
     } finally {
         btn.disabled = isDistrictReadOnly();
-        btn.textContent = '📨 Skicka in anmälan';
+        btn.textContent = districtState.isSubmitted ? '📨 Uppdatera anmälan' : '📨 Skicka in anmälan';
     }
 }
 
@@ -2247,12 +2252,21 @@ function renderAdminDistrictCards() {
                 }).join('')}
             </div>`;
 
+        const statusBadgeHtml = (d && d.isSubmitted)
+            ? `<span style="display:inline-block; font-size:0.72rem; font-weight:700; padding:2px 8px; border-radius:999px; background:#DCFCE7; color:#15803D;">✅ Inskickad</span>`
+            : ((rooms.length > 0 || (d && d.updatedAt))
+                ? `<span style="display:inline-block; font-size:0.72rem; font-weight:700; padding:2px 8px; border-radius:999px; background:#FEF3C7; color:#B45309;">📝 Utkast</span>`
+                : `<span style="display:inline-block; font-size:0.72rem; font-weight:600; padding:2px 8px; border-radius:999px; background:#F1F5F9; color:#64748B;">⏳ Ej påbörjad</span>`);
+
         return `
             <div class="card" style="margin-bottom:0; padding:18px; display:flex; flex-direction:column; justify-content:space-between;">
                 <div>
                     <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px; margin-bottom:8px;">
                         <div>
-                            <span class="district-tag ${distId}">${meta.icon} ${escapeHtml(meta.name)}</span>
+                            <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+                                <span class="district-tag ${distId}">${meta.icon} ${escapeHtml(meta.name)}</span>
+                                ${statusBadgeHtml}
+                            </div>
                             <div style="font-size:0.75rem; color:#64748B; margin-top:4px;">${formatTimestamp(d && d.updatedAt)}</div>
                         </div>
                         <button type="button" class="btn btn-outline btn-sm no-print" onclick="adminRedigeraDistrikt('${distId}')">✏️ Öppna vy</button>

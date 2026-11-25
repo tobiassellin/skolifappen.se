@@ -2207,20 +2207,66 @@
             const kop = aktivaTransaktioner.filter(t => t.typ === "KÖP");
             const insattningar = aktivaTransaktioner.filter(t => t.typ === "INSÄTTNING");
 
-            // --- 1. Uppdatera Stat-korten ---
-            document.getElementById('statSaldaVarorAntal').innerText = kop.length + " st";
+            // --- 1. Gruppera sålda varor (stödjer både enkelköp och flervaruköp i Snabbkassan, t.ex. "3x Toast, 2x Festis") ---
+            const varuKop = {};
+            let totaltSaldaStycken = 0;
+
+            kop.forEach(k => {
+                let rawBesk = String(k.beskrivning || '')
+                    .replace(/^(snabbk[öo]p|direktk[öo]p|snabbkassa)\s*:\s*/i, '')
+                    .replace(/\s*\((swish|kontant|snabbkassa|kort)\)\s*$/i, '')
+                    .trim();
+
+                const delar = rawBesk ? rawBesk.split(',').map(s => s.trim()).filter(Boolean) : ['Övrigt'];
+                const parsedItems = delar.map(del => {
+                    const m = del.match(/^(\d+)\s*[x×*]\s*(.+)$/i);
+                    const qty = m ? Math.max(1, parseInt(m[1], 10) || 1) : 1;
+                    const rawName = m ? m[2] : del;
+                    const rentNamn = rawName.replace(/[^\p{L}\p{N}\s-]/gu, '').replace(/\s+/g, ' ').trim() || "Övrigt";
+                    const matchVara = (allaVarorCache || []).find(v =>
+                        String(v.namn || '').replace(/[^\p{L}\p{N}\s-]/gu, '').replace(/\s+/g, ' ').trim().toLowerCase() === rentNamn.toLowerCase()
+                    );
+                    return {
+                        namn: rentNamn,
+                        qty: qty,
+                        unitPrice: matchVara ? (Number(matchVara.pris) || 0) : 0
+                    };
+                });
+
+                const kopAntal = parsedItems.reduce((s, it) => s + it.qty, 0) || 1;
+                totaltSaldaStycken += kopAntal;
+
+                if (parsedItems.length === 1) {
+                    const it = parsedItems[0];
+                    if (!varuKop[it.namn]) varuKop[it.namn] = { antal: 0, summa: 0 };
+                    varuKop[it.namn].antal += it.qty;
+                    varuKop[it.namn].summa += (Number(k.belopp) || 0);
+                } else {
+                    const kandSumma = parsedItems.reduce((s, it) => s + (it.unitPrice * it.qty), 0);
+                    const totalBelopp = Number(k.belopp) || 0;
+                    let utdelat = 0;
+                    parsedItems.forEach((it, idx) => {
+                        if (!varuKop[it.namn]) varuKop[it.namn] = { antal: 0, summa: 0 };
+                        varuKop[it.namn].antal += it.qty;
+                        let delSumma = 0;
+                        if (idx === parsedItems.length - 1) {
+                            delSumma = Math.max(0, totalBelopp - utdelat);
+                        } else if (kandSumma > 0) {
+                            delSumma = Math.round(totalBelopp * ((it.unitPrice * it.qty) / kandSumma));
+                            utdelat += delSumma;
+                        } else {
+                            delSumma = Math.round(totalBelopp * (it.qty / kopAntal));
+                            utdelat += delSumma;
+                        }
+                        varuKop[it.namn].summa += delSumma;
+                    });
+                }
+            });
+
+            // --- 2. Uppdatera Stat-korten ---
+            document.getElementById('statSaldaVarorAntal').innerText = totaltSaldaStycken + " st";
             document.getElementById('statSaldaVarorKr').innerText = kop.reduce((sum, k) => sum + k.belopp, 0) + " kr";
             document.getElementById('statInsattningarKr').innerText = insattningar.reduce((sum, i) => sum + i.belopp, 0) + " kr";
-
-            // --- 2. Gruppera för Topplistan (Vad säljer bäst?) ---
-            const varuKop = {};
-            kop.forEach(k => {
-                // Tvätta namnet från eventuella Emojis för en snygg lista
-                const rentNamn = k.beskrivning.replace(/[^\p{L}\p{N}\s]/gu, '').trim() || "Övrigt";
-                if(!varuKop[rentNamn]) varuKop[rentNamn] = { antal: 0, summa: 0 };
-                varuKop[rentNamn].antal += 1;
-                varuKop[rentNamn].summa += k.belopp;
-            });
 
             // Sortera på mest sålda
             const sorteradToplista = Object.entries(varuKop).sort((a, b) => b[1].antal - a[1].antal);

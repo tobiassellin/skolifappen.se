@@ -230,6 +230,12 @@
             pointer-events: none;
             opacity: 0.9;
         }
+        .wheel-center-btn:disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
+            filter: grayscale(0.5);
+            pointer-events: none;
+        }
 
         .spin-controls {
             display: flex;
@@ -879,13 +885,31 @@
         updateCountBadge();
         drawWheel();
 
-        // Mellanslag för att snurra
+        // Mellanslag för att snurra (eller stänga vinnarrutan så eliminering körs!)
         window.addEventListener('keydown', (e) => {
+            const modalEl = document.getElementById('winnerModal');
+            const modalOpen = modalEl && modalEl.classList.contains('open');
+            if (modalOpen) {
+                if (e.code === 'Escape' || e.code === 'Space' || e.code === 'Enter') {
+                    e.preventDefault();
+                    closeWinnerModal();
+                }
+                return;
+            }
             if (e.code === 'Space' && !['TEXTAREA', 'INPUT'].includes(document.activeElement.tagName)) {
                 e.preventDefault();
                 spinWheel();
             }
         });
+
+        const winnerModalEl = document.getElementById('winnerModal');
+        if (winnerModalEl) {
+            winnerModalEl.addEventListener('click', (e) => {
+                if (e.target === winnerModalEl) {
+                    closeWinnerModal();
+                }
+            });
+        }
     });
 
     function loadPreset(key) {
@@ -917,7 +941,7 @@
     function handleInputEdit() {
         if (isSpinning) return;
         const text = document.getElementById('itemsInput').value;
-        items = text.split('\n').map(s => s.trim()).filter(s => s.length > 0);
+        items = text.split(/[\n,;]+/).map(s => s.trim()).filter(s => s.length > 0);
         updateCountBadge();
         drawWheel();
     }
@@ -970,9 +994,14 @@
         ctx.restore();
 
         // Rita varje tårtbit
+        const fontSize = numSlices <= 12 ? 26 : (numSlices <= 18 ? 21 : (numSlices <= 26 ? 17 : 14));
+        const maxChars = numSlices <= 18 ? 22 : 18;
         for (let i = 0; i < numSlices; i++) {
             const angle = currentAngle + (i * arc);
-            const color = SLICE_COLORS[i % SLICE_COLORS.length];
+            let color = SLICE_COLORS[i % SLICE_COLORS.length];
+            if (numSlices > 1 && i === numSlices - 1 && (i % SLICE_COLORS.length === 0)) {
+                color = SLICE_COLORS[1];
+            }
 
             ctx.save();
             ctx.beginPath();
@@ -982,7 +1011,7 @@
             ctx.fill();
 
             // Kantlinje mellan bitar
-            ctx.lineWidth = 3;
+            ctx.lineWidth = numSlices > 22 ? 2 : 3;
             ctx.strokeStyle = "rgba(255, 255, 255, 0.4)";
             ctx.stroke();
             ctx.restore();
@@ -993,20 +1022,21 @@
             ctx.rotate(angle + (arc / 2));
             ctx.textAlign = "right";
             ctx.fillStyle = "#FFFFFF";
-            ctx.font = "bold 26px Poppins, sans-serif";
+            ctx.font = `bold ${fontSize}px Poppins, sans-serif`;
             ctx.shadowColor = "rgba(0,0,0,0.6)";
             ctx.shadowBlur = 6;
 
             // Korta av text om den är extremt lång
             let label = items[i];
-            if (label.length > 22) {
-                label = label.substring(0, 20) + "...";
+            if (label.length > maxChars) {
+                label = label.substring(0, maxChars - 2) + "...";
             }
-            ctx.fillText(label, radius - 35, 10);
+            ctx.fillText(label, radius - 35, Math.round(fontSize * 0.36));
             ctx.restore();
         }
 
         // Yttre pärlor/nitar runt hjulet
+        const dotRadius = numSlices > 20 ? 4.5 : 7;
         for (let i = 0; i < numSlices; i++) {
             const angle = currentAngle + (i * arc);
             const dotX = centerX + Math.cos(angle) * (radius - 2);
@@ -1014,7 +1044,7 @@
 
             ctx.save();
             ctx.beginPath();
-            ctx.arc(dotX, dotY, 7, 0, 2 * Math.PI);
+            ctx.arc(dotX, dotY, dotRadius, 0, 2 * Math.PI);
             ctx.fillStyle = "#FFFFFF";
             ctx.shadowColor = "#F59E0B";
             ctx.shadowBlur = 8;

@@ -1087,11 +1087,18 @@ function decodeCompactTournament(b64Str) {
     }
 }
 
-function getLivePublicUrl() {
+let hasSyncedLiveToCloud = false;
+
+function getLivePublicUrl(forceCompactHash = false) {
     ensureTournamentLiveId();
-    const base = (window.location.origin && window.location.origin !== 'null' && !window.location.origin.startsWith('file:'))
+    const isFile = !window.location.origin || window.location.origin === 'null' || window.location.origin.startsWith('file:');
+    const base = !isFile
         ? (window.location.origin + window.location.pathname)
         : 'https://skolifwebben.se/turnering.html';
+    // När turneringen är synkad till Firestore behövs bara den korta ?live=-länken (ger knivskarp QR-kod på papper!)
+    if (hasSyncedLiveToCloud && !isFile && !forceCompactHash) {
+        return `${base}?live=${encodeURIComponent(tournamentState.liveId)}`;
+    }
     const compactSnap = encodeCompactTournament();
     return `${base}?live=${encodeURIComponent(tournamentState.liveId)}${compactSnap ? '#s=' + encodeURIComponent(compactSnap) : ''}`;
 }
@@ -1105,7 +1112,12 @@ function syncTournamentToCloud() {
             db.collection('skolif_kassa').doc('turnering_' + tournamentState.liveId).set({
                 liveTournamentData: JSON.stringify(tournamentState),
                 senastUppdaterad: Date.now()
-            }, { merge: true }).catch(() => {});
+            }, { merge: true }).then(() => {
+                if (!hasSyncedLiveToCloud) {
+                    hasSyncedLiveToCloud = true;
+                    uppdateraQrKoder();
+                }
+            }).catch(() => {});
         } catch (e) {}
     }
 }
@@ -1906,23 +1918,28 @@ function genereraTurnering(customGroupLists) {
         }
     });
 
-    // 3. Tidsberäkning och schemaläggning
+    // 3. Tidsberäkning och schemaläggning (accepterar både 09:00 och 09.00)
     let currentMinutes = 540; // 09:00 default
     try {
-        const p = startTimeStr.split(':');
-        currentMinutes = (parseInt(p[0]) * 60) + parseInt(p[1]);
+        const p = String(startTimeStr || '09:00').trim().replace('.', ':').split(':');
+        const parsedStart = (parseInt(p[0], 10) * 60) + (parseInt(p[1], 10) || 0);
+        if (!isNaN(parsedStart)) currentMinutes = parsedStart;
     } catch(e) {}
 
     let lunchStartMin = 99999;
     let lunchDur = 45;
     if (planLunch && lunchTimeStr) {
         try {
-            const times = lunchTimeStr.split('-');
+            const times = String(lunchTimeStr).replace(/\./g, ':').split('-');
             const s = times[0].trim().split(':');
-            const e = times[1].trim().split(':');
-            lunchStartMin = (parseInt(s[0]) * 60) + parseInt(s[1]);
-            lunchDur = ((parseInt(e[0]) * 60) + parseInt(e[1])) - lunchStartMin;
-            if (lunchDur <= 0) lunchDur = 45;
+            const e = (times[1] || '').trim().split(':');
+            const parsedLs = (parseInt(s[0], 10) * 60) + (parseInt(s[1], 10) || 0);
+            const parsedLe = (parseInt(e[0], 10) * 60) + (parseInt(e[1], 10) || 0);
+            if (!isNaN(parsedLs)) {
+                lunchStartMin = parsedLs;
+                lunchDur = !isNaN(parsedLe) ? (parsedLe - lunchStartMin) : 45;
+                if (lunchDur <= 0) lunchDur = 45;
+            }
         } catch(e) {}
     }
 
@@ -2296,7 +2313,22 @@ function beraknaGrupptabell(group) {
     });
 }
 
-// Hämta slutspelslag rangordnade från alla tabeller
+// Hämta slutspelslag rangordnade från alla tabeller (rättvist viktat med poängsnitt om gruppstorlekarna skiljer sig)
+function jamforLagMellanGrupper(a, b) {
+    const samePlayed = a.played === b.played;
+    if (!samePlayed && a.played > 0 && b.played > 0) {
+        const ppmA = a.points / a.played;
+        const ppmB = b.points / b.played;
+        if (Math.abs(ppmB - ppmA) > 1e-6) return ppmB - ppmA;
+        const dpmA = a.diff / a.played;
+        const dpmB = b.diff / b.played;
+        if (Math.abs(dpmB - dpmA) > 1e-6) return dpmB - dpmA;
+    }
+    if (b.points !== a.points) return b.points - a.points;
+    if (b.diff !== a.diff) return b.diff - a.diff;
+    return b.scored - a.scored;
+}
+
 function hamtaSlutspelslag(antal) {
     const allTables = tournamentState.groups.map(g => beraknaGrupptabell(g));
     const advancing = [];
@@ -2307,11 +2339,7 @@ function hamtaSlutspelslag(antal) {
         allTables.forEach(t => {
             if (pos < t.length) teamsAtPos.push(t[pos]);
         });
-        teamsAtPos.sort((a, b) => {
-            if (b.points !== a.points) return b.points - a.points;
-            if (b.diff !== a.diff) return b.diff - a.diff;
-            return b.scored - a.scored;
-        });
+        teamsAtPos.sort(jamforLagMellanGrupper);
         advancing.push(...teamsAtPos);
     }
     return advancing.slice(0, antal).map(s => s.name);
@@ -2322,27 +2350,25 @@ function hamtaSlutspelslag(antal) {
 // ==========================================
 function uppdateraSlutspelsmatch(phase, home, away, indexInPhase = 0) {
     const matchesInPhase = tournamentState.schedule.filter(m => m.matchPhase === phase);
-    if (matchesInPhase[indexInPhase]) {
+    if (matchesInPhase[indexInPhase] && !matchesInPhase[indexInPhase].isFinished) {
         matchesInPhase[indexInPhase].homeTeam = home;
         matchesInPhase[indexInPhase].awayTeam = away;
     }
 }
 
-function genereraNastaSlutspelsrunda(targetPhase) {
+function genereraNastaSlutspelsrunda(targetPhase, forceFromGroup = false) {
+    const fromGroup = forceFromGroup || tournamentState.phase === 'GROUP';
+    const allTables = (tournamentState.groups || []).map(g => beraknaGrupptabell(g));
+
     if (targetPhase === 'ROUND_OF_16') {
         const teams = hamtaSlutspelslag(16);
         if (teams.length >= 16) {
-            uppdateraSlutspelsmatch('ROUND_OF_16', teams[0], teams[15], 0);
-            uppdateraSlutspelsmatch('ROUND_OF_16', teams[1], teams[14], 1);
-            uppdateraSlutspelsmatch('ROUND_OF_16', teams[2], teams[13], 2);
-            uppdateraSlutspelsmatch('ROUND_OF_16', teams[3], teams[12], 3);
-            uppdateraSlutspelsmatch('ROUND_OF_16', teams[4], teams[11], 4);
-            uppdateraSlutspelsmatch('ROUND_OF_16', teams[5], teams[10], 5);
-            uppdateraSlutspelsmatch('ROUND_OF_16', teams[6], teams[9], 6);
-            uppdateraSlutspelsmatch('ROUND_OF_16', teams[7], teams[8], 7);
+            // Bracket-ordning så att #1 och #2 möts först i finalen
+            const pairs16 = [[0, 15], [7, 8], [3, 12], [4, 11], [1, 14], [6, 9], [2, 13], [5, 10]];
+            pairs16.forEach(([h, a], idx) => uppdateraSlutspelsmatch('ROUND_OF_16', teams[h], teams[a], idx));
         }
     } else if (targetPhase === 'QUARTERS') {
-        if (tournamentState.phase === 'ROUND_OF_16') {
+        if (!fromGroup && tournamentState.phase === 'ROUND_OF_16') {
             const vinnare = hamtaVinnareFranFas('ROUND_OF_16');
             if (vinnare.length >= 8) {
                 uppdateraSlutspelsmatch('QUARTERS', vinnare[0], vinnare[1], 0);
@@ -2350,21 +2376,36 @@ function genereraNastaSlutspelsrunda(targetPhase) {
                 uppdateraSlutspelsmatch('QUARTERS', vinnare[4], vinnare[5], 2);
                 uppdateraSlutspelsmatch('QUARTERS', vinnare[6], vinnare[7], 3);
             }
+        } else if (allTables.length === 2 && allTables[0].length >= 4 && allTables[1].length >= 4) {
+            // Klassisk korsseedning vid 2 grupper (A1-B4, B2-A3 på övre halvan; B1-A4, A2-B3 på undre halvan)
+            const gA = allTables[0].map(t => t.name);
+            const gB = allTables[1].map(t => t.name);
+            uppdateraSlutspelsmatch('QUARTERS', gA[0], gB[3], 0);
+            uppdateraSlutspelsmatch('QUARTERS', gB[1], gA[2], 1);
+            uppdateraSlutspelsmatch('QUARTERS', gB[0], gA[3], 2);
+            uppdateraSlutspelsmatch('QUARTERS', gA[1], gB[2], 3);
         } else {
             const teams = hamtaSlutspelslag(8);
             if (teams.length >= 8) {
+                // Bracket-ordning [1v8, 4v5, 2v7, 3v6] så att #1 och #2 hamnar på varsin halva
                 uppdateraSlutspelsmatch('QUARTERS', teams[0], teams[7], 0);
-                uppdateraSlutspelsmatch('QUARTERS', teams[1], teams[6], 1);
-                uppdateraSlutspelsmatch('QUARTERS', teams[2], teams[5], 2);
-                uppdateraSlutspelsmatch('QUARTERS', teams[3], teams[4], 3);
+                uppdateraSlutspelsmatch('QUARTERS', teams[3], teams[4], 1);
+                uppdateraSlutspelsmatch('QUARTERS', teams[1], teams[6], 2);
+                uppdateraSlutspelsmatch('QUARTERS', teams[2], teams[5], 3);
             }
         }
     } else if (targetPhase === 'SEMIS') {
-        if (tournamentState.phase === 'GROUP') {
-            const teams = hamtaSlutspelslag(4);
-            if (teams.length >= 4) {
-                uppdateraSlutspelsmatch('SEMIS', teams[0], teams[3], 0);
-                uppdateraSlutspelsmatch('SEMIS', teams[1], teams[2], 1);
+        if (fromGroup) {
+            if (allTables.length === 2 && allTables[0].length >= 2 && allTables[1].length >= 2) {
+                // Klassisk korsseedning vid 2 grupper: A1 mot B2 och B1 mot A2 (aldrig gruppkompisar i semi!)
+                uppdateraSlutspelsmatch('SEMIS', allTables[0][0].name, allTables[1][1].name, 0);
+                uppdateraSlutspelsmatch('SEMIS', allTables[1][0].name, allTables[0][1].name, 1);
+            } else {
+                const teams = hamtaSlutspelslag(4);
+                if (teams.length >= 4) {
+                    uppdateraSlutspelsmatch('SEMIS', teams[0], teams[3], 0);
+                    uppdateraSlutspelsmatch('SEMIS', teams[1], teams[2], 1);
+                }
             }
         } else {
             const vinnare = hamtaVinnareFranFas('QUARTERS');
@@ -2374,11 +2415,15 @@ function genereraNastaSlutspelsrunda(targetPhase) {
             }
         }
     } else if (targetPhase === 'FINAL') {
-        if (tournamentState.phase === 'GROUP') {
+        if (fromGroup) {
             // Direkt final från gruppspel (2 lag till slutspel)
-            const teams = hamtaSlutspelslag(2);
-            if (teams.length >= 2) {
-                uppdateraSlutspelsmatch('FINAL', teams[0], teams[1], 0);
+            if (allTables.length === 2 && allTables[0].length >= 1 && allTables[1].length >= 1) {
+                uppdateraSlutspelsmatch('FINAL', allTables[0][0].name, allTables[1][0].name, 0);
+            } else {
+                const teams = hamtaSlutspelslag(2);
+                if (teams.length >= 2) {
+                    uppdateraSlutspelsmatch('FINAL', teams[0], teams[1], 0);
+                }
             }
         } else {
             const vinnare = hamtaVinnareFranFas('SEMIS');
@@ -2593,6 +2638,13 @@ function renderaSpelschema() {
                 const nextPhase = adv >= 16 ? 'ROUND_OF_16' : (adv >= 8 ? 'QUARTERS' : (adv >= 4 ? 'SEMIS' : 'FINAL'));
                 const label = adv >= 16 ? 'Skapa Åttondelar 🏆' : (adv >= 8 ? 'Skapa Kvartsfinaler 🏆' : (adv >= 4 ? 'Skapa Semifinaler 🏆' : 'Skapa Final 🏆'));
                 nextBtnHtml = `<button class="btn btn-gold btn-sm" onclick="genereraNastaSlutspelsrunda('${nextPhase}')">${label}</button>`;
+            } else if (phase === 'GROUP' && tournamentState.phase !== 'GROUP') {
+                const adv = tournamentState.settings.teamsToAdvance;
+                const firstPlayoff = adv >= 16 ? 'ROUND_OF_16' : (adv >= 8 ? 'QUARTERS' : (adv >= 4 ? 'SEMIS' : 'FINAL'));
+                const anyPlayoffFinished = tournamentState.schedule.some(m => m.matchPhase !== 'GROUP' && !m.isLunchBreak && m.isFinished);
+                if (!anyPlayoffFinished && tournamentState.phase === firstPlayoff) {
+                    nextBtnHtml = `<button class="btn btn-outline btn-sm" onclick="genereraNastaSlutspelsrunda('${firstPlayoff}', true)" title="Uppdatera slutspelsmöten om du har ändrat ett gruppresultat">🔄 Uppdatera slutspelslag</button>`;
+                }
             } else if (phase === 'ROUND_OF_16' && tournamentState.phase === 'ROUND_OF_16') {
                 nextBtnHtml = `<button class="btn btn-gold btn-sm" onclick="genereraNastaSlutspelsrunda('QUARTERS')">Skapa Kvartsfinaler 🏆</button>`;
             } else if (phase === 'QUARTERS' && tournamentState.phase === 'QUARTERS') {
@@ -3035,41 +3087,69 @@ function stangScoreboard() {
     closeModal('scoreboardModal');
 }
 
+let liveTimerEndTime = 0;
+let scoreAudioCtx = null;
+
+function getScoreAudioContext() {
+    if (!scoreAudioCtx) {
+        const AC = window.AudioContext || window.webkitAudioContext;
+        if (AC) scoreAudioCtx = new AC();
+    }
+    if (scoreAudioCtx && scoreAudioCtx.state === 'suspended') {
+        scoreAudioCtx.resume();
+    }
+    return scoreAudioCtx;
+}
+
 function toggleTimer() {
     const btn = document.getElementById('sbStartBtn');
     if (liveTimerRunning) {
         // Pausa
+        if (liveTimerEndTime > 0) {
+            liveTimeRemaining = Math.max(0, Math.ceil((liveTimerEndTime - Date.now()) / 1000));
+        }
         clearInterval(liveTimerInterval);
         liveTimerInterval = null;
         liveTimerRunning = false;
         btn.textContent = '▶ Fortsätt';
         btn.className = 'btn btn-green';
     } else {
-        // Starta
+        // Starta (lås upp Web Audio direkt på klicket så slutsignalen hörs på iOS/iPad)
+        try { getScoreAudioContext(); } catch (e) {}
         if (liveTimeRemaining <= 0) liveTimeRemaining = (tournamentState.settings.matchDuration || 12) * 60;
+        liveTimerEndTime = Date.now() + (liveTimeRemaining * 1000);
         liveTimerRunning = true;
         btn.textContent = '⏸ Pausa';
         btn.className = 'btn btn-gold';
 
         liveTimerInterval = setInterval(() => {
-            if (liveTimeRemaining > 0) {
-                liveTimeRemaining--;
+            const msLeft = liveTimerEndTime - Date.now();
+            if (msLeft <= 0) {
+                liveTimeRemaining = 0;
                 uppdateraTimerDisplay();
-                if (liveTimeRemaining === 0) {
-                    clearInterval(liveTimerInterval);
-                    liveTimerRunning = false;
-                    btn.textContent = '▶ Starta om';
-                    btn.className = 'btn btn-green';
-                    spelaVissla();
-                    alert('⏱️ Matchen är slut!');
-                }
+                clearInterval(liveTimerInterval);
+                liveTimerInterval = null;
+                liveTimerRunning = false;
+                btn.textContent = '▶ Starta om';
+                btn.className = 'btn btn-green';
+                spelaVissla();
+                alert('⏱️ Matchen är slut!');
+                return;
             }
-        }, 1000);
+            const nextSec = Math.ceil(msLeft / 1000);
+            if (nextSec !== liveTimeRemaining) {
+                liveTimeRemaining = nextSec;
+                uppdateraTimerDisplay();
+            }
+        }, 200);
     }
 }
 
 function justeraTid(sekunder) {
     liveTimeRemaining = Math.max(0, liveTimeRemaining + sekunder);
+    if (liveTimerRunning) {
+        liveTimerEndTime = Date.now() + (liveTimeRemaining * 1000);
+    }
     uppdateraTimerDisplay();
 }
 
@@ -3157,7 +3237,8 @@ function sparaOchAvslutaMatch() {
 // Syntetiserad domarvissla med Web Audio API
 function spelaVissla() {
     try {
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const audioCtx = getScoreAudioContext();
+        if (!audioCtx) return;
         const osc = audioCtx.createOscillator();
         const gain = audioCtx.createGain();
         osc.type = 'triangle';

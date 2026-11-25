@@ -373,6 +373,7 @@
             transition: all 0.15s;
             position: relative;
             user-select: none;
+            touch-action: manipulation;
         }
         .elev-tile:hover {
             border-color: #22C55E;
@@ -1094,6 +1095,7 @@
     let currentTimelineIndex = 0;
     let audioEnabled = true;
     let wakeLock = null;
+    let savedAudioTimeBeforeFinish = 0;
 
     // ==========================================
     //  INITIERING & LJUDPROV
@@ -1107,6 +1109,14 @@
             });
         }
         uppdateraDeltagarCount();
+    });
+
+    window.addEventListener('beforeunload', (e) => {
+        const testViewOpen = document.getElementById('testView')?.style.display === 'block';
+        if (isRunning || (testViewOpen && elever.some(el => el.status === 'KLAR'))) {
+            e.preventDefault();
+            e.returnValue = '';
+        }
     });
 
     async function sparaAktuellKlassIBeep() {
@@ -1213,6 +1223,10 @@
         introSeconds = OFFICIAL_INTRO_SECONDS;
         buildTimeline();
 
+        if (audioEnabled && typeof getAudioContext === 'function') {
+            try { getAudioContext(); } catch (e) {}
+        }
+
         elever = namnLista.map((namn, idx) => ({
             id: idx + 1,
             namn: namn,
@@ -1222,7 +1236,8 @@
             meter: 0,
             speed: 0,
             vo2: 0,
-            placering: 0
+            placering: 0,
+            autoMarkedKlar: false
         }));
 
         currentTimelineIndex = 0;
@@ -1231,8 +1246,15 @@
         testStartTime = Date.now();
         pauseTime = 0;
         totalPausedMs = 0;
+        savedAudioTimeBeforeFinish = 0;
         isRunning = true;
         isIntro = true;
+
+        const pausBtn = document.getElementById('pausBtn');
+        if (pausBtn) {
+            pausBtn.innerHTML = "⏸️ Pausa";
+            pausBtn.className = "btn btn-orange btn-sm";
+        }
 
         document.getElementById('setupView').style.display = 'none';
         document.getElementById('testView').style.display = 'block';
@@ -1393,6 +1415,7 @@
         const active = shuttleTimeline[currentTimelineIndex] || shuttleTimeline[0];
 
         elev.status = 'KLAR';
+        elev.autoMarkedKlar = false;
         elev.niva = active.level;
         elev.vanda = active.shuttle;
         elev.meter = active.totalDistance;
@@ -1423,6 +1446,7 @@
         if (!elev || elev.status !== 'KLAR') return;
 
         elev.status = 'SPRINGER';
+        elev.autoMarkedKlar = false;
         elev.niva = 0;
         elev.vanda = 0;
         elev.meter = 0;
@@ -1520,6 +1544,7 @@
                 audioEl.play().then(() => {
                     isAudioPlaying = true;
                     testStartTime = Date.now() - (audioEl.currentTime * 1000);
+                    totalPausedMs = 0;
                 }).catch(() => {});
             }
             document.getElementById('pausBtn').innerHTML = "⏸️ Pausa";
@@ -1536,15 +1561,16 @@
             msg += `\n\n⚠️ Obs: Det finns fortfarande ${kvar} elever kvar som springer!`;
         }
         if (confirm(msg)) {
-            // Ge resterande elever aktuell nivå
-            const active = shuttleTimeline[currentTimelineIndex] || shuttleTimeline[0];
+            // Ge resterande elever aktuell nivå (och minns vilka som auto-markerades om läraren trycker Fortsätt testet)
+            const active = isIntro ? null : (shuttleTimeline[currentTimelineIndex] || shuttleTimeline[0]);
             elever.filter(e => e.status === 'SPRINGER').forEach(e => {
                 e.status = 'KLAR';
-                e.niva = active.level;
-                e.vanda = active.shuttle;
-                e.meter = active.totalDistance;
-                e.speed = active.speed;
-                e.vo2 = beraknaVO2Max(active.speed);
+                e.autoMarkedKlar = true;
+                e.niva = active ? active.level : 0;
+                e.vanda = active ? active.shuttle : 0;
+                e.meter = active ? active.totalDistance : 0;
+                e.speed = active ? active.speed : 0;
+                e.vo2 = active ? beraknaVO2Max(active.speed) : 0;
                 e.placering = 1;
             });
             avslutaTest();
@@ -1552,6 +1578,7 @@
     }
 
     function avslutaTest() {
+        savedAudioTimeBeforeFinish = Math.max(0, getElapsedSeconds());
         isRunning = false;
         cancelAnimationFrame(animFrameId);
         releaseWakeLock();
@@ -1571,16 +1598,44 @@
     }
 
     function gaTillbakaTillTest() {
+        // Återställ elever som endast auto-markerades när läraren avslutade i förtid
+        elever.forEach(e => {
+            if (e.autoMarkedKlar) {
+                e.status = 'SPRINGER';
+                e.autoMarkedKlar = false;
+                e.niva = 0;
+                e.vanda = 0;
+                e.meter = 0;
+                e.speed = 0;
+                e.vo2 = 0;
+                e.placering = 0;
+            }
+        });
+
         document.getElementById('summaryView').style.display = 'none';
         document.getElementById('testView').style.display = 'block';
+        document.getElementById('pausBtn').innerHTML = "⏸️ Pausa";
+        document.getElementById('pausBtn').className = "btn btn-orange btn-sm";
+
+        const resumeSec = savedAudioTimeBeforeFinish > 0 ? savedAudioTimeBeforeFinish : 0;
+        testStartTime = Date.now() - (resumeSec * 1000);
+        totalPausedMs = 0;
         isRunning = true;
 
+        renderaElever();
+        renderaAvhopp();
+
         const audioEl = document.getElementById('beepAudio');
-        if (audioEl && audioEl.paused) {
+        if (audioEl) {
+            try { audioEl.currentTime = resumeSec; } catch (e) {}
+            audioEl.muted = !audioEnabled;
             audioEl.play().then(() => {
                 isAudioPlaying = true;
                 testStartTime = Date.now() - (audioEl.currentTime * 1000);
-            }).catch(() => {});
+                totalPausedMs = 0;
+            }).catch(() => {
+                isAudioPlaying = false;
+            });
         }
 
         requestWakeLock();
@@ -1916,7 +1971,8 @@
 
     function sparaBeepSomLok() {
         if (!window.SkolIFKlasser || !window.SkolIFKlasser.saveLokActivity) return;
-        const deltagareNamn = elever.map(e => e.namn);
+        const medResultat = elever.filter(e => (Number(e.meter) || 0) > 0).map(e => e.namn);
+        const deltagareNamn = medResultat.length > 0 ? medResultat : elever.map(e => e.namn);
         window.SkolIFKlasser.saveLokActivity({
             titel: `Beep-test (${klassNamn})`,
             klass: klassNamn,

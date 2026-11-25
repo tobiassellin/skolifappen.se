@@ -837,13 +837,18 @@
             .map(s => s.trim())
             .filter(s => s.length > 0);
 
-        // Bevara befintlig närvaro för namn som redan fanns
+        // Bevara befintlig närvaro även om två elever har samma förnamn
         const gammalNärvaro = new Map();
-        elever.forEach(e => gammalNärvaro.set(e.namn.toLowerCase(), e.narvarande));
+        elever.forEach(e => {
+            const low = e.namn.toLowerCase();
+            if (!gammalNärvaro.has(low)) gammalNärvaro.set(low, []);
+            gammalNärvaro.get(low).push(e.narvarande);
+        });
 
         elever = rader.map((namn, idx) => {
             const low = namn.toLowerCase();
-            const narvarande = gammalNärvaro.has(low) ? gammalNärvaro.get(low) : true;
+            const ko = gammalNärvaro.get(low);
+            const narvarande = (ko && ko.length > 0) ? ko.shift() : true;
             return {
                 id: idx + 1,
                 namn: namn,
@@ -959,6 +964,11 @@
         uppdateraEstimering();
     }
 
+    function beraknaAntalLagForStorlek(antalAktiva, malStorlek) {
+        if (antalAktiva <= 1) return 1;
+        return Math.min(antalAktiva, Math.max(2, Math.round(antalAktiva / malStorlek)));
+    }
+
     function uppdateraEstimering() {
         const aktiva = elever.filter(e => e.narvarande).length;
         const estElem = document.getElementById('lagEstimering');
@@ -972,8 +982,11 @@
             const snitt = (aktiva / antalLag).toFixed(1);
             estElem.textContent = `(blir ca ${snitt} spelare/lag)`;
         } else {
-            const beraknatLag = Math.ceil(aktiva / spelarePerLag);
-            estElem.textContent = `(blir ${beraknatLag} st lag)`;
+            const beraknatLag = beraknaAntalLagForStorlek(aktiva, spelarePerLag);
+            const minPerLag = Math.floor(aktiva / beraknatLag);
+            const maxPerLag = Math.ceil(aktiva / beraknatLag);
+            const storlekText = minPerLag === maxPerLag ? `${minPerLag}/lag` : `${minPerLag}–${maxPerLag}/lag`;
+            estElem.textContent = `(blir ${beraknatLag} lag, ${storlekText})`;
         }
     }
 
@@ -1064,20 +1077,30 @@
         // Beräkna antal lag
         let numTeams = antalLag;
         if (delningsMode === 'SPELARE_PER_LAG') {
-            numTeams = Math.max(2, Math.ceil(aktiva.length / spelarePerLag));
+            numTeams = beraknaAntalLagForStorlek(aktiva.length, spelarePerLag);
         }
         numTeams = Math.min(numTeams, aktiva.length);
 
         const temaKod = document.getElementById('temaSelect').value;
         const temaData = THEMES[temaKod] || THEMES.VASTAR;
 
-        // Initiera tomma lag
+        // Initiera tomma lag (med unika namn även vid > 8 lag)
         aktivaLag = [];
         for (let i = 0; i < numTeams; i++) {
             const t = temaData[i % temaData.length];
+            let lagNamn = t.namn;
+            if (i >= temaData.length) {
+                if (temaKod === 'SIFFROR') {
+                    lagNamn = `Lag ${i + 1}`;
+                } else if (temaKod === 'BOKSTAVER' && i < 26) {
+                    lagNamn = `Lag ${String.fromCharCode(65 + i)}`;
+                } else {
+                    lagNamn = `${t.namn} ${Math.floor(i / temaData.length) + 1}`;
+                }
+            }
             aktivaLag.push({
                 id: i + 1,
-                namn: t.namn,
+                namn: lagNamn,
                 fargKlass: t.fargKlass,
                 ikon: t.ikon,
                 spelare: []

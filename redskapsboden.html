@@ -733,6 +733,11 @@
         <div class="form-group">
             <label>Låntagare (namn / klass)</label>
             <input type="text" id="lanarnamn" placeholder="T.ex. Kalle / 7A" onkeydown="if(event.key==='Enter') sparaUtlaning()">
+            <div id="lanaKlassQuickBox" style="display:none; margin-top:8px;">
+                <div style="font-size:0.76rem; color:#64748B; font-weight:600; margin-bottom:5px;">⚡ Snabbvälj från Mina Klasser:</div>
+                <div id="lanaKlassPills" style="display:flex; flex-wrap:wrap; gap:5px;"></div>
+                <div id="lanaElevPills" style="display:none; flex-wrap:wrap; gap:5px; margin-top:7px; padding-top:7px; border-top:1px dashed #CBD5E1; max-height:130px; overflow-y:auto;"></div>
+            </div>
         </div>
         <div class="form-group">
             <label>Antal st att låna ut</label>
@@ -740,7 +745,7 @@
         </div>
         <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:20px;">
             <button class="btn btn-outline" onclick="closeModal('lanaModal')">Avbryt</button>
-            <button class="btn btn-green" onclick="sparaUtlaning()">✅ Registrera lån</button>
+            <button class="btn btn-green" id="sparaLanSubmitBtn" onclick="sparaUtlaning()">✅ Registrera lån</button>
         </div>
     </div>
 </div>
@@ -1287,37 +1292,45 @@ function openRedigeraArtikelModal(id) {
     openModal('artikelModal');
 }
 
+let isSavingBodAction = false;
+
 async function sparaArtikel() {
     if (isBodElevlageLocked()) { showToast('🔒 Låst i Elevläge – lås upp med PIN först'); return; }
+    if (isSavingBodAction) return;
     const namn = document.getElementById('artikelNamn').value.trim();
     const antal = Math.max(1, parseInt(document.getElementById('artikelAntal').value) || 1);
     const valdEmoji = (document.getElementById('artikelEmoji')?.value || '').trim() || matchEmojiByName(namn);
     if (!namn) { showToast('Ange ett namn på artikeln'); return; }
 
-    if (editingArtikelId !== null) {
-        const a = artiklar.find(x => x.id === editingArtikelId);
-        if (a) {
-            a.namn = namn;
-            a.emoji = valdEmoji;
-            a.totaltAntal = antal;
+    isSavingBodAction = true;
+    try {
+        if (editingArtikelId !== null) {
+            const a = artiklar.find(x => x.id === editingArtikelId);
+            if (a) {
+                a.namn = namn;
+                a.emoji = valdEmoji;
+                a.totaltAntal = antal;
+            }
+            laggTillHistorik('artikel', `Ändrade artikeln "${namn}"`);
+        } else {
+            const nextId = artiklar.length > 0 ? Math.max(...artiklar.map(x => typeof x.id === 'number' ? x.id : 0)) + 1 : 1;
+            artiklar.push({
+                id: nextId,
+                namn: namn,
+                emoji: valdEmoji,
+                totaltAntal: antal,
+                lan: []
+            });
+            laggTillHistorik('artikel', `Lade till artikeln "${namn}"`);
         }
-        laggTillHistorik('artikel', `Ändrade artikeln "${namn}"`);
-    } else {
-        const nextId = artiklar.length > 0 ? Math.max(...artiklar.map(x => typeof x.id === 'number' ? x.id : 0)) + 1 : 1;
-        artiklar.push({
-            id: nextId,
-            namn: namn,
-            emoji: valdEmoji,
-            totaltAntal: antal,
-            lan: []
-        });
-        laggTillHistorik('artikel', `Lade till artikeln "${namn}"`);
-    }
 
-    await sparaTillMolnEllerLokalt();
-    renderAll();
-    closeModal('artikelModal');
-    showToast(editingArtikelId ? '✅ Artikel uppdaterad' : '✅ Ny artikel sparad');
+        await sparaTillMolnEllerLokalt();
+        renderAll();
+        closeModal('artikelModal');
+        showToast(editingArtikelId ? '✅ Artikel uppdaterad' : '✅ Ny artikel sparad');
+    } finally {
+        isSavingBodAction = false;
+    }
 }
 
 async function raderaArtikel() {
@@ -1337,23 +1350,122 @@ async function raderaArtikel() {
 // ==========================================
 //  LÅN - CRUD (Krav 2 & 5)
 // ==========================================
-function openLanaModal(artikelId) {
-    const sel = document.getElementById('lanaArtikelSelect');
-    sel.innerHTML = artiklar.map(a => {
-        const utlanat = (a.lan || []).reduce((s, l) => s + (l.antal || 0), 0);
-        const kvar = Math.max(0, a.totaltAntal - utlanat);
-        return `<option value="${a.id}" ${a.id === artikelId ? 'selected' : ''} ${kvar <= 0 ? 'disabled' : ''}>
-            ${getArtikelEmoji(a)} ${a.namn} (${kvar} kvar av ${a.totaltAntal})
-        </option>`;
+let valdLanaKlassNamn = '';
+
+function renderaLanaKlassSnabbval() {
+    const box = document.getElementById('lanaKlassQuickBox');
+    const klassPills = document.getElementById('lanaKlassPills');
+    const elevPills = document.getElementById('lanaElevPills');
+    if (!box || !klassPills || !elevPills) return;
+
+    const klasser = (window.SkolIFKlasser && typeof window.SkolIFKlasser.getClasses === 'function')
+        ? window.SkolIFKlasser.getClasses()
+        : {};
+    const klassNamnLista = Object.keys(klasser || {});
+
+    if (klassNamnLista.length === 0) {
+        box.style.display = 'none';
+        return;
+    }
+
+    box.style.display = 'block';
+    klassPills.innerHTML = klassNamnLista.map((k, idx) => {
+        const active = k === valdLanaKlassNamn;
+        return `<button type="button" onclick="valjLanaKlassChip(${idx})" style="border:1px solid ${active ? '#2E7D32' : '#CBD5E1'}; background:${active ? '#E8F5E9' : '#F8FAFC'}; color:${active ? '#1B5E20' : '#334155'}; border-radius:999px; padding:3px 10px; font-size:0.76rem; font-weight:700; cursor:pointer;">🏫 ${escapeHtml(k)}</button>`;
     }).join('');
 
-    if (!sel.innerHTML) {
+    if (valdLanaKlassNamn && klasser[valdLanaKlassNamn]) {
+        const rawText = typeof klasser[valdLanaKlassNamn] === 'string'
+            ? klasser[valdLanaKlassNamn]
+            : (klasser[valdLanaKlassNamn].text || '');
+        const elever = String(rawText).split(/[\n,;]+/).map(s => s.trim()).filter(Boolean);
+        if (elever.length > 0) {
+            elevPills.style.display = 'flex';
+            elevPills.innerHTML = `<button type="button" onclick="sattLanarnamnSnabb('${escapeHtml(valdLanaKlassNamn).replace(/'/g, "\\'")}')" style="border:1px solid #93C5FD; background:#EFF6FF; color:#1D4ED8; border-radius:8px; padding:3px 9px; font-size:0.75rem; font-weight:700; cursor:pointer;">Hela ${escapeHtml(valdLanaKlassNamn)}</button>` +
+                elever.map((elevNamn, eIdx) =>
+                    `<button type="button" data-elev-idx="${eIdx}" onclick="valjLanaElevIndex(${eIdx})" style="border:1px solid #E2E8F0; background:#FFFFFF; color:#1E293B; border-radius:8px; padding:3px 9px; font-size:0.75rem; font-weight:600; cursor:pointer;">👤 ${escapeHtml(elevNamn)}</button>`
+                ).join('');
+            return;
+        }
+    }
+    elevPills.style.display = 'none';
+    elevPills.innerHTML = '';
+}
+
+function valjLanaKlassChip(idx) {
+    const klasser = (window.SkolIFKlasser && typeof window.SkolIFKlasser.getClasses === 'function')
+        ? window.SkolIFKlasser.getClasses()
+        : {};
+    const klassNamnLista = Object.keys(klasser || {});
+    const valt = klassNamnLista[idx] || '';
+    valdLanaKlassNamn = (valdLanaKlassNamn === valt) ? '' : valt;
+    renderaLanaKlassSnabbval();
+}
+
+function valjLanaElevIndex(eIdx) {
+    const klasser = (window.SkolIFKlasser && typeof window.SkolIFKlasser.getClasses === 'function')
+        ? window.SkolIFKlasser.getClasses()
+        : {};
+    if (!valdLanaKlassNamn || !klasser[valdLanaKlassNamn]) return;
+    const rawText = typeof klasser[valdLanaKlassNamn] === 'string'
+        ? klasser[valdLanaKlassNamn]
+        : (klasser[valdLanaKlassNamn].text || '');
+    const elever = String(rawText).split(/[\n,;]+/).map(s => s.trim()).filter(Boolean);
+    const elevNamn = elever[eIdx];
+    if (elevNamn) {
+        sattLanarnamnSnabb(`${elevNamn} (${valdLanaKlassNamn})`);
+    }
+}
+
+function sattLanarnamnSnabb(text) {
+    const input = document.getElementById('lanarnamn');
+    if (input) input.value = text;
+}
+
+function openLanaModal(artikelId) {
+    if (artiklar.length === 0) {
         showToast('Lägg till artiklar först');
         return;
     }
 
+    if (artikelId !== undefined && artikelId !== null) {
+        const targetArt = artiklar.find(x => x.id === artikelId);
+        if (targetArt) {
+            const utlanat = (targetArt.lan || []).reduce((s, l) => s + (l.antal || 0), 0);
+            const kvar = Math.max(0, (targetArt.totaltAntal || 0) - utlanat);
+            if (kvar <= 0) {
+                showToast(`⚠️ Alla exemplar av "${targetArt.namn}" är redan utlånade`);
+                return;
+            }
+        }
+    }
+
+    const finnsNagonKvar = artiklar.some(a => {
+        const utlanat = (a.lan || []).reduce((s, l) => s + (l.antal || 0), 0);
+        return Math.max(0, (a.totaltAntal || 0) - utlanat) > 0;
+    });
+    if (!finnsNagonKvar) {
+        showToast('⚠️ Alla artiklar i boden är för tillfället utlånade');
+        return;
+    }
+
+    let selectedAssigned = false;
+    const sel = document.getElementById('lanaArtikelSelect');
+    sel.innerHTML = artiklar.map(a => {
+        const utlanat = (a.lan || []).reduce((s, l) => s + (l.antal || 0), 0);
+        const kvar = Math.max(0, (a.totaltAntal || 0) - utlanat);
+        const shouldSelect = (artikelId !== undefined && a.id === artikelId && kvar > 0) ||
+            ((artikelId === undefined || artikelId === null) && !selectedAssigned && kvar > 0);
+        if (shouldSelect) selectedAssigned = true;
+        return `<option value="${a.id}" ${shouldSelect ? 'selected' : ''} ${kvar <= 0 ? 'disabled' : ''}>
+            ${getArtikelEmoji(a)} ${escapeHtml(a.namn)} (${kvar} kvar av ${a.totaltAntal})
+        </option>`;
+    }).join('');
+
     document.getElementById('lanarnamn').value = '';
     document.getElementById('lanaAntal').value = '1';
+    valdLanaKlassNamn = '';
+    renderaLanaKlassSnabbval();
     openModal('lanaModal');
     setTimeout(() => {
         const input = document.getElementById('lanarnamn');
@@ -1362,10 +1474,12 @@ function openLanaModal(artikelId) {
 }
 
 async function sparaUtlaning() {
+    if (isSavingBodAction) return;
     const artikelIdVal = document.getElementById('lanaArtikelSelect').value;
     const artikelId = isNaN(artikelIdVal) ? artikelIdVal : Number(artikelIdVal);
     const lanarnamn = document.getElementById('lanarnamn').value.trim();
-    const antal = parseInt(document.getElementById('lanaAntal').value) || 1;
+    const rawAntal = parseInt(document.getElementById('lanaAntal').value, 10);
+    const antal = Math.max(1, isNaN(rawAntal) ? 1 : rawAntal);
 
     if (!lanarnamn) {
         showToast('Ange vem som lånar (namn / klass)');
@@ -1381,26 +1495,39 @@ async function sparaUtlaning() {
     if (!Array.isArray(a.lan)) a.lan = [];
 
     const utlanat = a.lan.reduce((s, l) => s + (l.antal || 0), 0);
-    const kvar = a.totaltAntal - utlanat;
+    const kvar = Math.max(0, (a.totaltAntal || 0) - utlanat);
+    if (kvar <= 0) {
+        showToast('Inga exemplar kvar i boden');
+        return;
+    }
     if (antal > kvar) {
         showToast(`Bara ${kvar} st tillgängliga`);
         return;
     }
 
-    // Android-kompatibelt UUID
-    const nyttLan = {
-        id: generateUUID(),
-        namn: lanarnamn,
-        antal: antal
-    };
+    isSavingBodAction = true;
+    const submitBtn = document.getElementById('sparaLanSubmitBtn');
+    if (submitBtn) submitBtn.disabled = true;
 
-    a.lan.push(nyttLan);
-    laggTillHistorik('lånad', `Lånade ut ${antal} st ${a.namn} till ${lanarnamn}`);
+    try {
+        // Android-kompatibelt UUID
+        const nyttLan = {
+            id: generateUUID(),
+            namn: lanarnamn,
+            antal: antal
+        };
 
-    await sparaTillMolnEllerLokalt();
-    renderAll();
-    closeModal('lanaModal');
-    showToast(`✅ ${antal} st utlånat till ${lanarnamn}`);
+        a.lan.push(nyttLan);
+        laggTillHistorik('lånad', `Lånade ut ${antal} st ${a.namn} till ${lanarnamn}`);
+
+        await sparaTillMolnEllerLokalt();
+        renderAll();
+        closeModal('lanaModal');
+        showToast(`✅ ${antal} st utlånat till ${lanarnamn}`);
+    } finally {
+        isSavingBodAction = false;
+        if (submitBtn) submitBtn.disabled = false;
+    }
 }
 
 function openAterlamnModal(artikelId, lanId) {
@@ -1418,29 +1545,35 @@ function openAterlamnModal(artikelId, lanId) {
 }
 
 async function bekraftaAterlam() {
-    if (!aterlamnInfo) return;
+    if (!aterlamnInfo || isSavingBodAction) return;
     const { artikelId, lanId } = aterlamnInfo;
     const a = artiklar.find(x => x.id === artikelId);
     if (!a || !a.lan) return;
     const l = a.lan.find(x => x.id === lanId);
     if (!l) return;
 
-    const antal = parseInt(document.getElementById('aterlamnAntal').value) || l.antal;
+    const rawAntal = parseInt(document.getElementById('aterlamnAntal').value, 10);
+    const antal = Math.max(1, isNaN(rawAntal) ? l.antal : rawAntal);
 
-    if (antal >= l.antal) {
-        // Hela lånet återlämnat
-        a.lan = a.lan.filter(x => x.id !== lanId);
-        laggTillHistorik('återlämnad', `${l.namn} återlämnade alla ${antal} st ${a.namn}`);
-    } else {
-        // Delvis återlämning
-        l.antal -= antal;
-        laggTillHistorik('återlämnad', `${l.namn} återlämnade ${antal} st ${a.namn} (${l.antal} kvar)`);
+    isSavingBodAction = true;
+    try {
+        if (antal >= l.antal) {
+            // Hela lånet återlämnat
+            a.lan = a.lan.filter(x => x.id !== lanId);
+            laggTillHistorik('återlämnad', `${l.namn} återlämnade alla ${l.antal} st ${a.namn}`);
+        } else {
+            // Delvis återlämning
+            l.antal -= antal;
+            laggTillHistorik('återlämnad', `${l.namn} återlämnade ${antal} st ${a.namn} (${l.antal} kvar)`);
+        }
+
+        await sparaTillMolnEllerLokalt();
+        renderAll();
+        closeModal('aterlamnModal');
+        showToast('✅ Återlämning registrerad');
+    } finally {
+        isSavingBodAction = false;
     }
-
-    await sparaTillMolnEllerLokalt();
-    renderAll();
-    closeModal('aterlamnModal');
-    showToast('✅ Återlämning registrerad');
 }
 
 // Snabb-återlämning av allt direkt från listan

@@ -342,6 +342,7 @@
             transition: all 0.15s;
             position: relative;
             user-select: none;
+            touch-action: manipulation;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
@@ -405,6 +406,7 @@
             cursor: pointer;
             box-shadow: 0 3px 10px rgba(245, 127, 23, 0.3);
             transition: all 0.15s;
+            touch-action: manipulation;
         }
         .btn-spurt:active { transform: scale(0.96); }
 
@@ -1137,7 +1139,7 @@
         if (sparad) {
             try {
                 const data = JSON.parse(sparad);
-                if (data && data.loppStatus === 'RUNNING' || data.loppStatus === 'PAUSED') {
+                if (data && (data.loppStatus === 'RUNNING' || data.loppStatus === 'PAUSED')) {
                     if (confirm("Ett pågående lopp hittades (" + data.loppNamn + "). Vill du återuppta det?")) {
                         atertallLopp(data);
                         return;
@@ -1151,6 +1153,13 @@
         }
 
         uppdateraDeltagarCount();
+    });
+
+    window.addEventListener('beforeunload', (e) => {
+        if (loppStatus === 'RUNNING' || loppStatus === 'PAUSED') {
+            e.preventDefault();
+            e.returnValue = '';
+        }
     });
 
     async function sparaAktuellKlassILopning() {
@@ -1215,6 +1224,9 @@
     //  STARTA LOPP
     // ==========================================
     function startaLopp() {
+        if (ljudPa) {
+            try { getAudioContext(); } catch (e) {}
+        }
         loppNamn = document.getElementById('loppNamn').value.trim() || "Löprunda";
         banLangdKm = parseFloat(document.getElementById('banLangd').value) || 0;
         const namnLista = parsaNamn(document.getElementById('deltagareInput').value);
@@ -1348,6 +1360,10 @@
     // ==========================================
     function elevGickIMal(elevId) {
         if (loppStatus === 'FINISHED') return;
+        if (loppStatus === 'PAUSED') {
+            alert('Loppet är pausat – tryck på "▶️ Återuppta" först för att registrera målgång!');
+            return;
+        }
 
         const elev = deltagare.find(e => e.id === elevId);
         if (!elev || elev.status !== 'BANAN') return;
@@ -1380,6 +1396,11 @@
 
     // Spurtknapp: Registrera tid utan namn
     function registreraSpurtTid() {
+        if (loppStatus === 'FINISHED') return;
+        if (loppStatus === 'PAUSED') {
+            alert('Loppet är pausat – tryck på "▶️ Återuppta" först för att registrera spurttid!');
+            return;
+        }
         const aktuellTidMs = Date.now() - startTime - totalPausedMs;
         const iMalRedan = deltagare.filter(e => e.status === 'MAL').length + oidentifieradeTider.length;
         const placering = iMalRedan + 1;
@@ -1397,6 +1418,17 @@
         sparaStateLokalt();
     }
 
+    function raderaSpurtTid(spurtId) {
+        oidentifieradeTider = oidentifieradeTider.filter(x => String(x.id) !== String(spurtId));
+        // Uppdatera preliminära placeringar för kvarvarande spurttider
+        const baseCount = deltagare.filter(e => e.status === 'MAL').length;
+        oidentifieradeTider.forEach((t, idx) => {
+            t.placering = baseCount + idx + 1;
+        });
+        renderaOidentifierade();
+        sparaStateLokalt();
+    }
+
     function renderaOidentifierade() {
         const container = document.getElementById('oidentifieradeContainer');
         if (!container) return;
@@ -1410,7 +1442,10 @@
             return `
             <div class="oidentifierad-banner">
                 <span>⚡ <strong>Plats #${t.placering}</strong> (${formatTid(t.tidMs)}) väntar på namn</span>
-                <button class="btn btn-sm btn-green" onclick="oppnaTilldelaModal('${t.id}')">Välj elev</button>
+                <div style="display:flex; align-items:center; gap:6px;">
+                    <button class="btn btn-sm btn-green" onclick="oppnaTilldelaModal('${t.id}')">Välj elev</button>
+                    <button class="btn btn-sm btn-outline" style="padding:5px 9px; border-color:#FCA5A5; color:#B91C1C; background:#FEF2F2;" onclick="raderaSpurtTid('${t.id}')" title="Ta bort felklickad spurttid">✕</button>
+                </div>
             </div>`;
         }).join('');
     }
@@ -1562,9 +1597,14 @@
     // ==========================================
     //  AVSLUTA LOPP & RESULTATVY
     // ==========================================
+    let statusForeAvslut = 'RUNNING';
+
     function avslutaLoppBekrafta() {
         const kvar = deltagare.filter(e => e.status === 'BANAN').length;
         let msg = "Är du säker på att du vill avsluta loppet och se sammanställningen?";
+        if (oidentifieradeTider.length > 0) {
+            msg += `\n\n⚡ Obs: Du har ${oidentifieradeTider.length} spurttid(er) som ännu inte har tilldelats någon elev!`;
+        }
         if (kvar > 0) {
             msg += `\n\n⚠️ Obs: Det finns fortfarande ${kvar} elever kvar på banan!`;
         }
@@ -1574,6 +1614,10 @@
     }
 
     function avslutaLopp() {
+        statusForeAvslut = loppStatus === 'PAUSED' ? 'PAUSED' : 'RUNNING';
+        if (statusForeAvslut === 'RUNNING') {
+            pauseTime = Date.now();
+        }
         loppStatus = 'FINISHED';
         clearInterval(timerInterval);
         localStorage.removeItem(STORAGE_KEY);
@@ -1586,10 +1630,21 @@
     }
 
     function gaTillbakaTillLopp() {
-        loppStatus = 'RUNNING';
+        if (statusForeAvslut === 'PAUSED') {
+            loppStatus = 'PAUSED';
+            document.getElementById('pausBtn').innerHTML = "▶️ Återuppta";
+            document.getElementById('pausBtn').className = "btn btn-green";
+            const shownMs = Math.max(0, pauseTime - startTime - totalPausedMs);
+            uppdateraTimerDisplay(shownMs);
+        } else {
+            loppStatus = 'RUNNING';
+            document.getElementById('pausBtn').innerHTML = "⏸️ Pausa";
+            document.getElementById('pausBtn').className = "btn btn-orange";
+        }
         document.getElementById('summaryView').style.display = 'none';
         document.getElementById('raceView').style.display = 'block';
         startTimerInterval();
+        sparaStateLokalt();
     }
 
     function nyttLopp() {
@@ -1897,9 +1952,11 @@
         if (loppStatus === 'PAUSED') {
             document.getElementById('pausBtn').innerHTML = "▶️ Återuppta";
             document.getElementById('pausBtn').className = "btn btn-green";
+            uppdateraTimerDisplay(Math.max(0, (pauseTime || Date.now()) - startTime - totalPausedMs));
         } else {
             document.getElementById('pausBtn').innerHTML = "⏸️ Pausa";
             document.getElementById('pausBtn').className = "btn btn-orange";
+            uppdateraTimerDisplay(Math.max(0, Date.now() - startTime - totalPausedMs));
         }
 
         startTimerInterval();
@@ -1934,9 +1991,9 @@
 
     function beraknaTempo(ms, km) {
         if (!km || km <= 0) return "";
-        const totalMin = (ms / 1000 / 60) / km;
-        const min = Math.floor(totalMin);
-        const sek = Math.round((totalMin - min) * 60);
+        const totalSek = Math.round((ms / 1000) / km);
+        const min = Math.floor(totalSek / 60);
+        const sek = totalSek % 60;
         return `${min}:${String(sek).padStart(2, '0')}`;
     }
 
@@ -2048,7 +2105,8 @@
 
     function sparaLopningSomLok() {
         if (!window.SkolIFKlasser || !window.SkolIFKlasser.saveLokActivity) return;
-        const deltagareNamn = deltagare.map(e => e.namn);
+        const iMalNamn = deltagare.filter(e => e.status === 'MAL').map(e => e.namn);
+        const deltagareNamn = iMalNamn.length > 0 ? iMalNamn : deltagare.map(e => e.namn);
         window.SkolIFKlasser.saveLokActivity({
             titel: `Löprunda (${loppNamn})`,
             klass: loppNamn,

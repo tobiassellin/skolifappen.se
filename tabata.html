@@ -405,17 +405,19 @@
             color: #FFD54F;
         }
 
-        /* Fullskärmsläge */
-        :fullscreen body { background-color: #0F172A; }
-        :fullscreen nav { display: none; }
-        :fullscreen .settings-card, :fullscreen .presets-section { display: none; }
-        :fullscreen .container { height: 100vh; padding: 0; }
-        :fullscreen .timer-display-card { max-width: 90vw; }
-        :fullscreen .timer-circle-wrap { width: min(65vw, 65vh); height: min(65vw, 65vh); }
-        :fullscreen .timer-digits { font-size: min(18vw, 18vh); }
-        :fullscreen .phase-badge { font-size: min(5vw, 5vh); padding: 10px 40px; }
-        :fullscreen .timer-subtext { font-size: min(4vw, 4vh); }
-        :fullscreen .btn-play { width: 110px; height: 110px; font-size: 3rem; }
+        /* Fullskärmsläge (behåller fasfärgerna på body!) */
+        :fullscreen nav, :-webkit-full-screen nav { display: none; }
+        :fullscreen .settings-card, :fullscreen .presets-section,
+        :-webkit-full-screen .settings-card, :-webkit-full-screen .presets-section { display: none; }
+        :fullscreen .seo-guide, :fullscreen footer,
+        :-webkit-full-screen .seo-guide, :-webkit-full-screen footer { display: none !important; }
+        :fullscreen .container, :-webkit-full-screen .container { height: 100vh; padding: 0; align-items: center; justify-content: center; }
+        :fullscreen .timer-display-card, :-webkit-full-screen .timer-display-card { max-width: 90vw; margin: auto; }
+        :fullscreen .timer-circle-wrap, :-webkit-full-screen .timer-circle-wrap { width: min(62vw, 62vh); height: min(62vw, 62vh); }
+        :fullscreen .timer-digits, :-webkit-full-screen .timer-digits { font-size: min(18vw, 18vh); }
+        :fullscreen .phase-badge, :-webkit-full-screen .phase-badge { font-size: min(5vw, 5vh); padding: 10px 40px; }
+        :fullscreen .timer-subtext, :-webkit-full-screen .timer-subtext { font-size: min(4vw, 4vh); }
+        :fullscreen .btn-play, :-webkit-full-screen .btn-play { width: 110px; height: 110px; font-size: 3rem; }
     </style>
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3461073406787574"
      crossorigin="anonymous"></script>
@@ -717,6 +719,10 @@
     // ==========================================
     //  KONTROLLER (PLAY / PAUSE / RESET)
     // ==========================================
+    let phaseEndTime = 0;
+    let pausedRemainingMs = 0;
+    let lastCountdownSecBeeped = -1;
+
     function togglePlay() {
         if (isRunning) {
             pauseTimer();
@@ -726,6 +732,11 @@
     }
 
     function startTimer() {
+        // Lås upp Web Audio direkt på användarklick (krävs av iOS/iPad Safari)
+        if (audioEnabled) {
+            try { getAudioContext(); } catch (e) {}
+        }
+
         if (currentState === TimerState.IDLE || currentState === TimerState.FINISHED) {
             currentSet = 1;
             currentStation = 1;
@@ -735,6 +746,9 @@
             } else {
                 setPhase(TimerState.WORK, settings.work);
             }
+        } else {
+            const resumeMs = pausedRemainingMs > 0 ? pausedRemainingMs : (timeRemaining * 1000);
+            phaseEndTime = Date.now() + resumeMs;
         }
 
         isRunning = true;
@@ -746,6 +760,9 @@
     }
 
     function pauseTimer() {
+        if (isRunning && phaseEndTime > 0) {
+            pausedRemainingMs = Math.max(0, phaseEndTime - Date.now());
+        }
         isRunning = false;
         clearInterval(timerInterval);
         document.getElementById('playBtn').innerHTML = "▶";
@@ -758,6 +775,9 @@
         currentState = TimerState.IDLE;
         timeRemaining = 0;
         phaseTotalTime = 0;
+        phaseEndTime = 0;
+        pausedRemainingMs = 0;
+        lastCountdownSecBeeped = -1;
         currentStation = 1;
         currentSet = 1;
         updateUI();
@@ -773,27 +793,36 @@
         timerInterval = setInterval(() => {
             if (!isRunning) return;
 
-            if (timeRemaining > 0) {
-                // Pip vid 3, 2, 1 sekunder kvar
-                if (timeRemaining <= 3 && timeRemaining > 0) {
-                    playBeep(750, 0.12);
-                }
-
-                timeRemaining--;
+            const msLeft = phaseEndTime - Date.now();
+            if (msLeft <= 0) {
+                timeRemaining = 0;
                 updateDisplayDigits();
                 updateProgressCircle();
-
-                if (timeRemaining === 0) {
-                    transitionToNextPhase();
-                }
+                transitionToNextPhase();
+                return;
             }
-        }, 1000);
+
+            const ceilSec = Math.ceil(msLeft / 1000);
+            if (ceilSec !== timeRemaining) {
+                timeRemaining = ceilSec;
+                // Pip vid exakt 3, 2, 1 sekunder kvar (utan att krocka med fasskiftet vid 0)
+                if (ceilSec <= 3 && ceilSec >= 1 && lastCountdownSecBeeped !== ceilSec) {
+                    lastCountdownSecBeeped = ceilSec;
+                    playBeep(750, 0.12);
+                }
+                updateDisplayDigits();
+                updateProgressCircle();
+            }
+        }, 120);
     }
 
     function setPhase(newPhase, duration) {
         currentState = newPhase;
         timeRemaining = duration;
         phaseTotalTime = duration;
+        pausedRemainingMs = duration * 1000;
+        phaseEndTime = Date.now() + duration * 1000;
+        lastCountdownSecBeeped = -1;
 
         // Ljudsignaler
         if (newPhase === TimerState.WORK) {
@@ -815,9 +844,20 @@
 
             case TimerState.WORK:
                 if (currentStation < settings.stations) {
-                    setPhase(TimerState.REST, settings.rest);
+                    if (settings.rest > 0) {
+                        setPhase(TimerState.REST, settings.rest);
+                    } else {
+                        currentStation++;
+                        setPhase(TimerState.WORK, settings.work);
+                    }
                 } else if (currentSet < settings.sets) {
-                    setPhase(TimerState.SET_REST, settings.setRest);
+                    if (settings.setRest > 0) {
+                        setPhase(TimerState.SET_REST, settings.setRest);
+                    } else {
+                        currentSet++;
+                        currentStation = 1;
+                        setPhase(TimerState.WORK, settings.work);
+                    }
                 } else {
                     setPhase(TimerState.FINISHED, 0);
                     pauseTimer();
@@ -845,7 +885,15 @@
     // ==========================================
     function updateUI() {
         const body = document.body;
-        body.className = '';
+        body.classList.remove(
+            'phase-idle',
+            'phase-prepare',
+            'phase-work',
+            'phase-rest',
+            'phase-setrest',
+            'phase-finished'
+        );
+        body.classList.add('seo-dark');
 
         const badge = document.getElementById('phaseBadge');
         const progress = document.getElementById('timerProgress');
@@ -1002,24 +1050,30 @@
     //  FULLSKÄRM & WAKE LOCK
     // ==========================================
     function toggleFullscreen() {
-        if (!document.fullscreenElement) {
-            document.documentElement.requestFullscreen().catch(err => {
-                console.warn("Kunde inte gå till fullskärm", err);
-            });
-            document.getElementById('fsBtn').textContent = "✕ Avsluta fullskärm";
-        } else {
-            if (document.exitFullscreen) {
-                document.exitFullscreen();
+        const docEl = document.documentElement;
+        const isFs = document.fullscreenElement || document.webkitFullscreenElement;
+        if (!isFs) {
+            const req = docEl.requestFullscreen || docEl.webkitRequestFullscreen;
+            if (req) {
+                Promise.resolve(req.call(docEl)).catch(err => {
+                    console.warn("Kunde inte gå till fullskärm", err);
+                });
+                document.getElementById('fsBtn').textContent = "✕ Avsluta fullskärm";
             }
+        } else {
+            const exit = document.exitFullscreen || document.webkitExitFullscreen;
+            if (exit) exit.call(document);
             document.getElementById('fsBtn').textContent = "⛶ Fullskärm";
         }
     }
 
-    document.addEventListener('fullscreenchange', () => {
-        if (!document.fullscreenElement) {
+    function syncFsButton() {
+        if (!document.fullscreenElement && !document.webkitFullscreenElement) {
             document.getElementById('fsBtn').textContent = "⛶ Fullskärm";
         }
-    });
+    }
+    document.addEventListener('fullscreenchange', syncFsButton);
+    document.addEventListener('webkitfullscreenchange', syncFsButton);
 
     async function requestWakeLock() {
         try {

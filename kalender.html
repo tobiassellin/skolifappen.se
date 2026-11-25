@@ -977,6 +977,7 @@
             .form-row-2 { grid-template-columns: 1fr; }
             .cal-hero-title { font-size: 1.38rem; }
         }
+        body.skolif-elevlage-locked .admin-only { display: none !important; }
     </style>
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3461073406787574"
      crossorigin="anonymous"></script>
@@ -2320,15 +2321,38 @@ function oppnaRedigeraAktivitet(evId) {
     oppnaModal('eventModal');
 }
 
+function autoJusteraSluttidVidBehov() {
+    const startEl = document.getElementById('evStartTime');
+    const endEl = document.getElementById('evEndTime');
+    if (!startEl || !endEl || !startEl.value) return;
+    if (!endEl.value || endEl.value < startEl.value) {
+        const parts = startEl.value.split(':');
+        const totalMin = Math.min(23 * 60 + 59, (parseInt(parts[0], 10) || 0) * 60 + (parseInt(parts[1], 10) || 0) + 45);
+        const eh = String(Math.floor(totalMin / 60)).padStart(2, '0');
+        const em = String(totalMin % 60).padStart(2, '0');
+        endEl.value = `${eh}:${em}`;
+    }
+}
+window.addEventListener('DOMContentLoaded', () => {
+    const startEl = document.getElementById('evStartTime');
+    if (startEl) startEl.addEventListener('change', autoJusteraSluttidVidBehov);
+});
+
 function sparaAktivitetFranModal() {
     const title = document.getElementById('evTitle').value.trim();
     const date = document.getElementById('evDate').value;
+    const startTimeVal = document.getElementById('evStartTime').value || '';
+    const endTimeVal = document.getElementById('evEndTime').value || '';
     if (!title) {
         alert('⚠️ Fyll i vad aktiviteten heter!');
         return;
     }
     if (!date) {
         alert('⚠️ Välj ett datum för aktiviteten!');
+        return;
+    }
+    if (startTimeVal && endTimeVal && endTimeVal < startTimeVal) {
+        alert('⚠️ Sluttiden kan inte vara tidigare än starttiden!');
         return;
     }
 
@@ -2533,12 +2557,14 @@ function laddaNerIcs(evId, instanceDate) {
     const escIcs = (txt) => String(txt || '').replace(/\\/g, '\\\\').replace(/\n/g, '\\n').replace(/,/g, '\\,').replace(/;/g, '\\;');
     const descParts = [ev.target ? `Målgrupp: ${ev.target}` : '', ev.leaders ? `Ledare: ${ev.leaders}` : '', ev.notes || ''].filter(Boolean).join(' | ');
 
+    const dtStampUtc = new Date().toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
     const ics = [
         'BEGIN:VCALENDAR',
         'VERSION:2.0',
         'PRODID:-//Skol-IF Webben//Aktivitetskalender//SV',
         'BEGIN:VEVENT',
         `UID:${ev.id}-${dStr}@skolifwebben.se`,
+        `DTSTAMP:${dtStampUtc}`,
         dtStartLine,
         dtEndLine,
         `SUMMARY:${escIcs(ev.title)}`,
@@ -2563,6 +2589,12 @@ function laddaNerIcs(evId, instanceDate) {
 //  QR-KOD & A4-AFFISCH
 // ==========================================
 function renderQrIntoBox(boxEl, urlStr, sizePx) {
+    if (!boxEl) return;
+    if (boxEl.dataset.renderedQrUrl === urlStr && boxEl.dataset.renderedQrSize === String(sizePx) && boxEl.childElementCount > 0) {
+        return;
+    }
+    boxEl.dataset.renderedQrUrl = urlStr;
+    boxEl.dataset.renderedQrSize = String(sizePx);
     if (!boxEl) return;
     boxEl.innerHTML = '';
     if (typeof QRCode !== 'undefined') {
