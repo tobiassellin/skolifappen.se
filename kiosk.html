@@ -955,7 +955,8 @@
                 <div>
                     <div class="modal-section-title">Massimportera elever</div>
                     <p style="font-size: 0.85rem; color: #666; margin-bottom: 8px;">Klistra in en lista nedanför (programmet känner automatiskt av vilken del som är klassen, t.ex. "Tobias Sellin 9B").</p>
-                    <textarea id="massImportText" class="custom-input" style="width: 100%; height: 120px; resize: vertical; margin-bottom: 10px;" placeholder="Klistra in din lista här..."></textarea>
+                    <textarea id="massImportText" class="custom-input" style="width: 100%; height: 120px; resize: vertical;" placeholder="Klistra in din lista här..."></textarea>
+                    <div data-skolif-gdpr-bar="massImportText" data-preserve-class="true" style="margin-bottom: 10px;"></div>
                     <button onclick="utforMassimportWebb()" class="btn-insattning" style="width: 100%; padding: 12px;">Kör massimport</button>
                 </div>
             </div>
@@ -1112,7 +1113,7 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-    <script src="klasser.js?v=6"></script>
+    <script src="klasser.js?v=7"></script>
 
     <script>
         const firebaseConfig = {

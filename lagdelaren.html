@@ -569,11 +569,12 @@
                     </div>
                 </div>
 
-                <!-- Sparade klasser (Molnsynkade via klasser.js?v=6) -->
+                <!-- Sparade klasser (Molnsynkade via klasser.js?v=7) -->
                 <div data-skolif-classbar></div>
 
                 <div class="form-group" id="inputAreaGroup">
                     <textarea id="eleverInput" rows="6" placeholder="Klistra in eller skriv elever här...&#10;Kalle Andersson&#10;Lisa Lindqvist&#10;Ahmed Hassan&#10;Sara Nilsson" oninput="parsaInputTillElever()"></textarea>
+                    <div data-skolif-gdpr-bar="eleverInput"></div>
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
                         <input type="text" id="sparaKlassNamn" class="form-input" style="max-width: 200px; padding: 6px 10px; font-size: 0.85rem;" placeholder="Klassnamn (t.ex. 8B)">
                         <button class="btn btn-outline btn-sm" onclick="sparaKlassLokalt()">💾 Spara klass</button>
@@ -755,7 +756,7 @@
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-<script src="klasser.js?v=6"></script>
+<script src="klasser.js?v=7"></script>
 
 <!-- ========================================== -->
 <!-- JAVASCRIPT LOGIK                           -->

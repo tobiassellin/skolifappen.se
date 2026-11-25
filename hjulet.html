@@ -561,6 +561,9 @@
                 <span class="items-count" id="itemsCountBadge">10 st</span>
             </div>
             <textarea class="items-input" id="itemsInput" oninput="handleInputEdit()" placeholder="Skriv en övning eller ett namn per rad..."></textarea>
+            <div id="hjuletGdprWrap" style="display: none;">
+                <div data-skolif-gdpr-bar="itemsInput" data-theme="dark"></div>
+            </div>
         </div>
 
         <div>
@@ -676,7 +679,7 @@
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-<script src="klasser.js?v=6"></script>
+<script src="klasser.js?v=7"></script>
 
 <script>
     // ==========================================
@@ -872,6 +875,8 @@
                 document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
                 const elevBtn = document.getElementById('btnPresetElever');
                 if (elevBtn) elevBtn.classList.add('active');
+                const gdprWrap = document.getElementById('hjuletGdprWrap');
+                if (gdprWrap) gdprWrap.style.display = 'block';
 
                 const rader = text.split(/[\n,;]+/).map(s => s.trim()).filter(s => s.length > 0);
                 items = rader;
@@ -918,6 +923,8 @@
         const btnId = 'btnPreset' + key.charAt(0).toUpperCase() + key.slice(1);
         const btn = document.getElementById(btnId);
         if (btn) btn.classList.add('active');
+        const gdprWrap = document.getElementById('hjuletGdprWrap');
+        if (gdprWrap) gdprWrap.style.display = (key === 'elever') ? 'block' : 'none';
 
         if (key === 'elever' && window.SkolIFKlasser) {
             const sparade = SkolIFKlasser.getClasses();

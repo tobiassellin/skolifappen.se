@@ -111,6 +111,321 @@
     }
 
     // ==========================================
+    //  GDPR-TVÄTT, INITIALER & STARTNUMMER
+    // ==========================================
+    const gdprOriginalBackups = new Map(); // textareaId -> ursprunglig inklistrad text
+    const gdprNumberOpenState = new Set(); // textareaId där startnummer-väljaren är öppen
+
+    function capitalizeWord(word) {
+        const s = String(word || '').trim();
+        if (!s) return '';
+        return s.charAt(0).toUpperCase() + s.slice(1);
+    }
+
+    function stripSensitiveTokens(line) {
+        return String(line || '')
+            // Ta bort ev. e-postadresser
+            .replace(/\S+@\S+\.\S+/g, ' ')
+            // Ta bort ev. personnummer / födelsedatum (YYYYMMDD-XXXX, YYMMDD-XXXX, YYYY-MM-DD, YYYYMMDD)
+            .replace(/\b(?:19|20)?\d{6}[-+]\d{4}\b/g, ' ')
+            .replace(/\b(?:19|20)\d{2}-\d{2}-\d{2}\b/g, ' ')
+            .replace(/\b(?:19|20)\d{6}\b/g, ' ')
+            .replace(/\t+/g, ' ')
+            .replace(/\s+/g, ' ')
+            .trim();
+    }
+
+    function parseRawEntriesForGdpr(rawText) {
+        const normalized = String(rawText || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+        const rawLines = normalized.split(/[\n;]+/).map(s => s.trim()).filter(Boolean);
+        if (rawLines.length === 0) return [];
+
+        // Om allt ligger på en enda rad separerat med kommatecken ("Kalle Andersson, Lisa Lindqvist")
+        if (rawLines.length === 1 && rawLines[0].includes(',')) {
+            const parts = rawLines[0].split(',').map(s => s.trim()).filter(Boolean);
+            // Om exakt 2 korta delar av ett enda namn ("Andersson, Kalle") vänd till "Kalle Andersson"
+            if (parts.length === 2 && parts[0].split(/\s+/).length === 1 && parts[1].split(/\s+/).length <= 2) {
+                return [`${parts[1]} ${parts[0]}`];
+            }
+            return parts;
+        }
+
+        const result = [];
+        for (const line of rawLines) {
+            const commaCount = (line.match(/,/g) || []).length;
+            if (commaCount === 1) {
+                // Vanligt vid export från Vklass/SchoolSoft: "Efternamn, Förnamn"
+                const [left, right] = line.split(',').map(s => s.trim());
+                if (left && right && left.split(/\s+/).length <= 2 && right.split(/\s+/).length <= 3) {
+                    result.push(`${right} ${left}`);
+                    continue;
+                }
+            }
+            if (commaCount >= 1) {
+                line.split(',').map(s => s.trim()).filter(Boolean).forEach(p => result.push(p));
+            } else {
+                result.push(line);
+            }
+        }
+        return result;
+    }
+
+    function anonymizeParsedRows(rows, mode) {
+        // rows: [{ firstName, lastName, rawClean, klass }]
+        const items = rows.map((r, idx) => {
+            let base = r.rawClean;
+            if (mode === 'fornamn_initial') {
+                if (r.firstName && r.lastName) {
+                    base = `${capitalizeWord(r.firstName)} ${r.lastName.charAt(0).toUpperCase()}`;
+                } else if (r.firstName) {
+                    base = capitalizeWord(r.firstName);
+                }
+            } else if (mode === 'initialer') {
+                if (r.firstName && r.lastName) {
+                    base = `${r.firstName.charAt(0).toUpperCase()}${r.lastName.charAt(0).toUpperCase()}`;
+                } else if (r.firstName) {
+                    base = r.firstName.slice(0, 2).toUpperCase();
+                }
+            }
+            return { ...r, idx, out: base };
+        });
+
+        // Särskilj dubbletter inom samma klass (t.ex. "Anna Andersson" & "Anna Axelsson" -> "Anna An" & "Anna Ax")
+        const groups = new Map();
+        items.forEach(item => {
+            const key = `${item.klass || ''}__${item.out.toLowerCase()}`;
+            if (!groups.has(key)) groups.set(key, []);
+            groups.get(key).push(item);
+        });
+
+        groups.forEach(group => {
+            if (group.length < 2) return;
+            if (mode === 'fornamn_initial') {
+                group.forEach((item, i) => {
+                    if (item.lastName && item.lastName.length >= 2) {
+                        const twoChar = `${capitalizeWord(item.firstName)} ${capitalizeWord(item.lastName.slice(0, 2).toLowerCase())}`;
+                        item.out = twoChar;
+                    } else {
+                        item.out = `${item.out} ${i + 1}`;
+                    }
+                });
+            } else if (mode === 'initialer') {
+                group.forEach((item, i) => {
+                    if (item.lastName && item.lastName.length >= 2) {
+                        item.out = `${item.firstName.charAt(0).toUpperCase()}${capitalizeWord(item.lastName.slice(0, 2).toLowerCase())}`;
+                    } else {
+                        item.out = `${item.out}${i + 1}`;
+                    }
+                });
+            }
+            // Om två elever hade exakt samma två första bokstäver i efternamnet, numrera sista steget
+            const subCounts = new Map();
+            group.forEach(item => {
+                const k = item.out.toLowerCase();
+                subCounts.set(k, (subCounts.get(k) || 0) + 1);
+            });
+            const seenSub = new Map();
+            group.forEach(item => {
+                const k = item.out.toLowerCase();
+                if ((subCounts.get(k) || 0) > 1) {
+                    const n = (seenSub.get(k) || 0) + 1;
+                    seenSub.set(k, n);
+                    item.out = mode === 'initialer' ? `${item.out}${n}` : `${item.out} ${n}`;
+                }
+            });
+        });
+
+        return items.map(item => item.klass ? `${item.out} ${item.klass}` : item.out);
+    }
+
+    function gdprTransformText(rawText, mode, options) {
+        const opts = options || {};
+        const preserveClass = Boolean(opts.preserveClass);
+        const entries = parseRawEntriesForGdpr(rawText);
+
+        if (mode === 'startnummer') {
+            const requestedCount = Math.max(1, Math.min(200, Number(opts.count) || entries.length || 25));
+            const prefix = opts.prefix || 'Nr';
+            if (preserveClass && entries.length > 0) {
+                const perClassCounter = {};
+                return entries.map(entry => {
+                    const cleaned = stripSensitiveTokens(entry);
+                    const words = cleaned.split(/\s+/).filter(Boolean);
+                    let klassCode = '';
+                    for (const w of words) {
+                        if (/\d/.test(w) && !klassCode) klassCode = normalizeKlassCode(w);
+                    }
+                    const key = klassCode || '_';
+                    perClassCounter[key] = (perClassCounter[key] || 0) + 1;
+                    return klassCode ? `${prefix} ${perClassCounter[key]} ${klassCode}` : `${prefix} ${perClassCounter[key]}`;
+                }).join('\n');
+            }
+            const generated = [];
+            for (let i = 1; i <= requestedCount; i++) {
+                generated.push(`${prefix} ${i}`);
+            }
+            return generated.join('\n');
+        }
+
+        if (entries.length === 0) return '';
+
+        const parsedRows = entries.map(entry => {
+            const cleaned = stripSensitiveTokens(entry);
+            const words = cleaned.split(/\s+/).filter(Boolean);
+            let klassCode = '';
+            const nameWords = [];
+
+            for (const w of words) {
+                if (preserveClass && /\d/.test(w) && !klassCode) {
+                    klassCode = normalizeKlassCode(w);
+                } else {
+                    nameWords.push(w);
+                }
+            }
+
+            const rawName = nameWords.join(' ').trim();
+            // Lämna befintliga startnummer ("Nr 1", "Elev 4") orörda
+            if (/^(nr|elev|deltagare|startnr)\.?\s*\d+$/i.test(rawName) || /^\d+$/.test(rawName)) {
+                return { firstName: '', lastName: '', rawClean: rawName, klass: klassCode };
+            }
+
+            const firstName = nameWords[0] || '';
+            const lastName = nameWords.length > 1 ? nameWords[nameWords.length - 1] : '';
+            return {
+                firstName,
+                lastName,
+                rawClean: rawName,
+                klass: klassCode
+            };
+        });
+
+        return anonymizeParsedRows(parsedRows, mode).join('\n');
+    }
+
+    function dispatchGdprInputEvent(textarea) {
+        if (!textarea) return;
+        const ev = new Event('input', { bubbles: true });
+        ev._fromSkolifGdpr = true;
+        textarea.dispatchEvent(ev);
+    }
+
+    function applyGdprToTextarea(textareaId, mode, extraOpts) {
+        const textarea = document.getElementById(textareaId);
+        if (!textarea) return;
+
+        const bar = document.querySelector(`[data-skolif-gdpr-bar="${textareaId}"]`);
+        const preserveClass = Boolean((extraOpts && extraOpts.preserveClass) || (bar && bar.dataset.preserveClass === 'true'));
+        const currentVal = String(textarea.value || '').trim();
+
+        if (mode !== 'startnummer' && !currentVal && !gdprOriginalBackups.has(textareaId)) {
+            showToast('Klistra in eller skriv elevnamn i rutan först (eller välj Startnummer)!', 'warning');
+            textarea.focus();
+            return;
+        }
+
+        if (!gdprOriginalBackups.has(textareaId) && currentVal) {
+            gdprOriginalBackups.set(textareaId, textarea.value);
+        }
+
+        const sourceText = gdprOriginalBackups.has(textareaId)
+            ? gdprOriginalBackups.get(textareaId)
+            : textarea.value;
+
+        const transformed = gdprTransformText(sourceText, mode, {
+            ...(extraOpts || {}),
+            preserveClass
+        });
+
+        textarea.value = transformed;
+        gdprNumberOpenState.delete(textareaId);
+        dispatchGdprInputEvent(textarea);
+        renderAllGdprBars();
+
+        const count = parseStudentNames(transformed).length;
+        if (mode === 'fornamn_initial') {
+            showToast(`🔒 GDPR-tvätt klar! ${count} namn kortades till förnamn + initial.`, 'success');
+        } else if (mode === 'initialer') {
+            showToast(`🔤 ${count} namn omvandlades till endast initialer!`, 'success');
+        } else if (mode === 'startnummer') {
+            showToast(`🔢 Skapade ${count} anonyma startnummer (Nr 1–${count})!`, 'success');
+        }
+    }
+
+    function undoGdprTextarea(textareaId) {
+        const textarea = document.getElementById(textareaId);
+        if (!textarea || !gdprOriginalBackups.has(textareaId)) return;
+        textarea.value = gdprOriginalBackups.get(textareaId);
+        gdprOriginalBackups.delete(textareaId);
+        gdprNumberOpenState.delete(textareaId);
+        dispatchGdprInputEvent(textarea);
+        renderAllGdprBars();
+        showToast('↩️ Återställde ursprunglig lista.', 'info');
+    }
+
+    function toggleGdprStartnummerPanel(textareaId) {
+        if (gdprNumberOpenState.has(textareaId)) {
+            gdprNumberOpenState.delete(textareaId);
+        } else {
+            gdprNumberOpenState.add(textareaId);
+        }
+        renderAllGdprBars();
+        if (gdprNumberOpenState.has(textareaId)) {
+            const numIn = document.getElementById(`skolifGdprCount_${textareaId}`);
+            if (numIn) {
+                numIn.focus();
+                numIn.select();
+            }
+        }
+    }
+
+    function applyStartnummerFromPanel(textareaId, presetCount) {
+        const numIn = document.getElementById(`skolifGdprCount_${textareaId}`);
+        const count = presetCount || (numIn ? Number(numIn.value) : 25) || 25;
+        applyGdprToTextarea(textareaId, 'startnummer', { count });
+    }
+
+    async function gdprCleanAllSavedClasses() {
+        const elever = await getVerifiedActiveEleverArray();
+        if (elever.length === 0) {
+            showToast('Det finns inga sparade klasser eller elever att GDPR-tvätta än.', 'warning');
+            return;
+        }
+
+        const ok = confirm(
+            `🔒 GDPR-tvätta alla sparade klasser?\n\nAlla ${elever.length} sparade elevnamn förkortas till Förnamn + Initial (t.ex. "Anna Andersson" ➔ "Anna A").\n\nKlassindelning och eventuella saldon i Kiosken behålls!`
+        );
+        if (!ok) return;
+
+        const parsedRows = elever.map(e => {
+            const cleaned = stripSensitiveTokens(e.namn || '');
+            const words = cleaned.split(/\s+/).filter(Boolean);
+            if (/^(nr|elev|deltagare|startnr)\.?\s*\d+$/i.test(cleaned) || /^\d+$/.test(cleaned)) {
+                return { firstName: '', lastName: '', rawClean: cleaned, klass: normalizeKlassCode(e.klass) };
+            }
+            return {
+                firstName: words[0] || '',
+                lastName: words.length > 1 ? words[words.length - 1] : '',
+                rawClean: cleaned,
+                klass: normalizeKlassCode(e.klass)
+            };
+        });
+
+        // Anonymisera utan att lägga till klasskoden i själva namnet
+        const shortNames = anonymizeParsedRows(parsedRows, 'fornamn_initial').map((str, i) => {
+            const k = parsedRows[i].klass;
+            return (k && str.endsWith(' ' + k)) ? str.slice(0, -(k.length + 1)).trim() : str;
+        });
+
+        const updatedElever = elever.map((e, idx) => ({
+            ...e,
+            namn: shortNames[idx] || e.namn
+        }));
+
+        await persistEleverArray(updatedElever);
+        showToast(`🔒 Alla ${updatedElever.length} sparade elever har GDPR-tvättats till Förnamn + Initial!`, 'success');
+    }
+
+    // ==========================================
     //  SNYGGT NOTIS-SYSTEM (ERSÄTTER SVARTA ALERTS)
     // ==========================================
     function showToast(message, type) {
@@ -1669,6 +1984,117 @@
                 flex-wrap: wrap;
             }
 
+            /* ====== GDPR-VERKTYGSRAD & TRYGGHETSINFO ====== */
+            .skolif-gdpr-wrap {
+                margin-top: 8px;
+                background: #F0FDF4;
+                border: 1px solid #BBF7D0;
+                border-radius: 11px;
+                padding: 9px 12px;
+                display: flex;
+                flex-direction: column;
+                gap: 7px;
+            }
+            .skolif-gdpr-wrap.dark-theme {
+                background: rgba(16, 185, 129, 0.1);
+                border-color: rgba(52, 211, 153, 0.28);
+            }
+            .skolif-gdpr-top {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                gap: 8px;
+                flex-wrap: wrap;
+            }
+            .skolif-gdpr-label {
+                font-size: 0.76rem;
+                font-weight: 800;
+                color: #166534;
+                display: inline-flex;
+                align-items: center;
+                gap: 5px;
+            }
+            .skolif-gdpr-wrap.dark-theme .skolif-gdpr-label {
+                color: #6EE7B7;
+            }
+            .skolif-gdpr-btns {
+                display: flex;
+                gap: 6px;
+                flex-wrap: wrap;
+                align-items: center;
+            }
+            .skolif-gdpr-btn {
+                background: #FFFFFF;
+                color: #1E3A24;
+                border: 1px solid #86EFAC;
+                padding: 4px 10px;
+                border-radius: 8px;
+                font-size: 0.75rem;
+                font-weight: 700;
+                cursor: pointer;
+                font-family: inherit;
+                display: inline-flex;
+                align-items: center;
+                gap: 4px;
+                transition: all 0.15s;
+                white-space: nowrap;
+            }
+            .skolif-gdpr-btn:hover {
+                background: #DCFCE7;
+                border-color: #22C55E;
+                transform: translateY(-1px);
+            }
+            .skolif-gdpr-btn.primary-gdpr {
+                background: #166534;
+                color: #FFFFFF;
+                border-color: #166534;
+            }
+            .skolif-gdpr-btn.primary-gdpr:hover {
+                background: #14532D;
+            }
+            .skolif-gdpr-btn.undo-gdpr {
+                background: #FEF3C7;
+                color: #92400E;
+                border-color: #FCD34D;
+            }
+            .skolif-gdpr-wrap.dark-theme .skolif-gdpr-btn {
+                background: rgba(255, 255, 255, 0.1);
+                color: #ECFDF5;
+                border-color: rgba(110, 231, 183, 0.35);
+            }
+            .skolif-gdpr-wrap.dark-theme .skolif-gdpr-btn:hover {
+                background: rgba(16, 185, 129, 0.28);
+            }
+            .skolif-gdpr-wrap.dark-theme .skolif-gdpr-btn.primary-gdpr {
+                background: #10B981;
+                color: #064E3B;
+                border-color: #34D399;
+            }
+            .skolif-gdpr-num-panel {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 8px;
+                flex-wrap: wrap;
+                background: #FFFFFF;
+                border: 1px solid #86EFAC;
+                border-radius: 9px;
+                padding: 7px 10px;
+            }
+            .skolif-gdpr-wrap.dark-theme .skolif-gdpr-num-panel {
+                background: rgba(15, 23, 42, 0.75);
+                border-color: rgba(110, 231, 183, 0.35);
+                color: #E2E8F0;
+            }
+            .skolif-gdpr-note {
+                font-size: 0.74rem;
+                color: #15803D;
+                line-height: 1.4;
+            }
+            .skolif-gdpr-wrap.dark-theme .skolif-gdpr-note {
+                color: #A7F3D0;
+            }
+
             /* ====== MOBILANPASSNING (INGEN UTZOOMNING ELLER AVKLIPPNING) ====== */
             @media (max-width: 640px) {
                 html, body {
@@ -1890,7 +2316,7 @@
                                         <button type="button" onclick="SkolIFKlasser.toggleClassDrawer(null)" style="background:none; border:none; color:#64748B; cursor:pointer; font-weight:800; font-size:0.85rem;">✕</button>
                                     </div>
                                     <div class="skolif-mobile-stack" style="display: flex; gap: 8px; flex-wrap: wrap;">
-                                        <input type="text" id="skolifSingleStudentName" placeholder="Elevens namn (t.ex. Anna Andersson)" style="flex: 2; min-width: 160px; padding: 8px 10px; border: 1.5px solid #CBD5E1; border-radius: 8px; font-size: 0.85rem; font-family: inherit; background: white;" onkeydown="if(event.key==='Enter') SkolIFKlasser.addSingleFromModal()">
+                                        <input type="text" id="skolifSingleStudentName" placeholder="Förnamn / Kod (t.ex. Anna A eller Nr 7)" style="flex: 2; min-width: 160px; padding: 8px 10px; border: 1.5px solid #CBD5E1; border-radius: 8px; font-size: 0.85rem; font-family: inherit; background: white;" onkeydown="if(event.key==='Enter') SkolIFKlasser.addSingleFromModal()">
                                         <input type="text" id="skolifSingleStudentClass" placeholder="Klass (t.ex. 8B)" style="flex: 1; min-width: 85px; max-width: 120px; padding: 8px 10px; border: 1.5px solid #CBD5E1; border-radius: 8px; font-size: 0.85rem; font-family: inherit; text-transform: uppercase; font-weight: 700; background: white;" onkeydown="if(event.key==='Enter') SkolIFKlasser.addSingleFromModal()">
                                         <button type="button" class="skolif-btn-sm primary" onclick="SkolIFKlasser.addSingleFromModal()" style="padding: 8px 14px;">Lägg till</button>
                                     </div>
@@ -1916,7 +2342,8 @@
                                             <span id="skolifModalCountBadge" style="font-size: 0.76rem; font-weight: 800; color: #2E7D32; background: #E8F5E9; padding: 5px 11px; border-radius: 999px; white-space: nowrap;">0 elever</span>
                                         </div>
                                         <div>
-                                            <textarea id="skolifModalClassStudents" rows="5" placeholder="Skriv eller klistra in elever i klassen (ett namn per rad)..." oninput="SkolIFKlasser.updateModalCount()" style="width: 100%; padding: 8px 11px; border: 1.5px solid #CBD5E1; border-radius: 8px; font-size: 0.84rem; font-family: inherit; resize: vertical; background: white;"></textarea>
+                                            <textarea id="skolifModalClassStudents" rows="5" placeholder="Skriv eller klistra in elever i klassen (t.ex. bara förnamn, initialer eller klistra in klasslista och klicka GDPR-tvätta nedan)..." oninput="SkolIFKlasser.updateModalCount()" style="width: 100%; padding: 8px 11px; border: 1.5px solid #CBD5E1; border-radius: 8px; font-size: 0.84rem; font-family: inherit; resize: vertical; background: white;"></textarea>
+                                            <div data-skolif-gdpr-bar="skolifModalClassStudents"></div>
                                         </div>
                                         <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px; gap: 8px; flex-wrap: wrap;">
                                             <span style="font-size: 0.73rem; color: #64748B;">💡 Tips: Ändra klassbeteckningen ovan (t.ex. 8B ➔ 9B) om du vill byta namn på klassen.</span>
@@ -1932,7 +2359,8 @@
                                         <p style="font-size: 0.8rem; color: #475569; margin: 0 0 8px 0; line-height: 1.4;">
                                             Klistra in en lista där både elevens namn och klass står på varje rad (t.ex. <strong>Tobias Sellin 9B</strong> eller <strong>Anna Andersson 7A</strong>). Alla klasser skapas automatiskt!
                                         </p>
-                                        <textarea id="skolifMassImportText" rows="6" placeholder="Exempel:\nTobias Sellin 9B\nAnna Andersson 7A\nErik Eriksson 8C" style="width: 100%; padding: 9px 11px; border: 1.5px solid #CBD5E1; border-radius: 8px; font-size: 0.84rem; font-family: inherit; resize: vertical; margin-bottom: 8px; background: white;"></textarea>
+                                        <textarea id="skolifMassImportText" rows="6" placeholder="Exempel:\nTobias S 9B\nAnna A 7A\nErik E 8C" style="width: 100%; padding: 9px 11px; border: 1.5px solid #CBD5E1; border-radius: 8px; font-size: 0.84rem; font-family: inherit; resize: vertical; background: white;"></textarea>
+                                        <div data-skolif-gdpr-bar="skolifMassImportText" data-preserve-class="true" style="margin-bottom: 8px;"></div>
                                         <div class="skolif-form-footer-btns" style="display: flex; justify-content: flex-end; gap: 8px;">
                                             <button type="button" class="skolif-btn-sm" onclick="SkolIFKlasser.clearModalForm()">Avbryt</button>
                                             <button type="button" class="skolif-btn-sm primary" onclick="SkolIFKlasser.massImportFromModal()">🚀 Kör massimport</button>
@@ -1955,6 +2383,17 @@
                                         </div>
                                     </div>
                                     <button type="button" class="skolif-btn-sm primary" onclick="SkolIFKlasser.upgradeAllYear()" style="padding: 9px 14px; white-space: nowrap;">🚀 Höj alla klasser (+1)</button>
+                                </div>
+
+                                <!-- 1B. GDPR-tvätta alla sparade klasser -->
+                                <div class="skolif-tool-card-row" style="background: #F0FDF4; border: 1.5px solid #86EFAC; border-radius: 12px; padding: 14px 16px; display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;">
+                                    <div style="flex: 1; min-width: 180px;">
+                                        <div style="font-weight: 800; font-size: 0.92rem; color: #166534; margin-bottom: 3px;">🔒 GDPR-tvätta alla sparade klasser</div>
+                                        <div style="font-size: 0.79rem; color: #334155; line-height: 1.4;">
+                                            Kortar alla redan sparade elevnamn till <strong>Förnamn + Initial</strong> (t.ex. <em>Anna Andersson ➔ Anna A</em>). Klasser och saldon i Kiosken behålls!
+                                        </div>
+                                    </div>
+                                    <button type="button" class="skolif-btn-sm primary" onclick="SkolIFKlasser.gdprCleanAllSaved()" style="padding: 9px 14px; white-space: nowrap;">🔒 GDPR-tvätta alla</button>
                                 </div>
 
                                 <!-- 2. Exportera elevlista till Excel / CSV -->
@@ -2179,6 +2618,68 @@
                 </div>
             `;
         });
+        renderAllGdprBars();
+    }
+
+    function renderAllGdprBars() {
+        const bars = document.querySelectorAll('[data-skolif-gdpr-bar]');
+        bars.forEach(bar => {
+            const targetId = bar.getAttribute('data-skolif-gdpr-bar');
+            if (!targetId) return;
+            const textarea = document.getElementById(targetId);
+            if (textarea && !textarea._skolifGdprBound) {
+                textarea._skolifGdprBound = true;
+                textarea.addEventListener('input', (ev) => {
+                    if (ev && ev._fromSkolifGdpr) return;
+                    if (gdprOriginalBackups.has(targetId)) {
+                        gdprOriginalBackups.delete(targetId);
+                        renderAllGdprBars();
+                    }
+                });
+            }
+
+            const isDark = bar.dataset.theme === 'dark';
+            bar.className = 'skolif-gdpr-wrap' + (isDark ? ' dark-theme' : '');
+
+            const hasUndo = gdprOriginalBackups.has(targetId);
+            const isNumOpen = gdprNumberOpenState.has(targetId);
+            const currentRows = textarea ? parseStudentNames(textarea.value).length : 0;
+            const defaultCount = currentRows > 0 ? currentRows : 25;
+
+            const noteHtml = (currentUser && currentUser.email)
+                ? `☁️ <strong>Molnsynk aktiv:</strong> För skolundervisning (GDPR) – klicka gärna på <strong>Förnamn + E</strong>, <strong>Initialer</strong> eller <strong>Startnummer</strong> så lagras inga efternamn i molnet.`
+                : `🔒 <strong>100 % lokalt utan inloggning:</strong> Listan sparas bara i din egen webbläsare på denna enhet – inget skickas till någon server.`;
+
+            const numPanelHtml = isNumOpen ? `
+                <div class="skolif-gdpr-num-panel">
+                    <div style="font-size: 0.76rem; font-weight: 700; display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                        <span>🔢 Skapa anonyma startnummer:</span>
+                        <button type="button" class="skolif-gdpr-btn" onclick="SkolIFKlasser.applyStartnummer('${escapeHtml(targetId)}', 20)">1–20</button>
+                        <button type="button" class="skolif-gdpr-btn" onclick="SkolIFKlasser.applyStartnummer('${escapeHtml(targetId)}', 25)">1–25</button>
+                        <button type="button" class="skolif-gdpr-btn" onclick="SkolIFKlasser.applyStartnummer('${escapeHtml(targetId)}', 30)">1–30</button>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 6px;">
+                        <span style="font-size: 0.74rem; font-weight: 600;">Valfritt antal:</span>
+                        <input type="number" id="skolifGdprCount_${escapeHtml(targetId)}" min="1" max="200" value="${defaultCount}" style="width: 62px; padding: 4px 7px; border: 1.5px solid #86EFAC; border-radius: 7px; font-size: 0.8rem; font-weight: 800; text-align: center; font-family: inherit;" onkeydown="if(event.key==='Enter'){event.preventDefault();SkolIFKlasser.applyStartnummer('${escapeHtml(targetId)}');}">
+                        <button type="button" class="skolif-gdpr-btn primary-gdpr" onclick="SkolIFKlasser.applyStartnummer('${escapeHtml(targetId)}')">Skapa</button>
+                    </div>
+                </div>
+            ` : '';
+
+            bar.innerHTML = `
+                <div class="skolif-gdpr-top">
+                    <span class="skolif-gdpr-label">🛡️ GDPR-verktyg:</span>
+                    <div class="skolif-gdpr-btns">
+                        <button type="button" class="skolif-gdpr-btn primary-gdpr" onclick="SkolIFKlasser.gdprClean('${escapeHtml(targetId)}', 'fornamn_initial')" title="Kortar t.ex. Anna Andersson till Anna A (och rensar ev. personnummer)">🔒 Förnamn + E</button>
+                        <button type="button" class="skolif-gdpr-btn" onclick="SkolIFKlasser.gdprClean('${escapeHtml(targetId)}', 'initialer')" title="Kortar t.ex. Anna Andersson till AA">🔤 Initialer</button>
+                        <button type="button" class="skolif-gdpr-btn" onclick="SkolIFKlasser.toggleStartnummer('${escapeHtml(targetId)}')" title="Fyll i Nr 1, Nr 2... helt utan elevnamn">🔢 Startnummer</button>
+                        ${hasUndo ? `<button type="button" class="skolif-gdpr-btn undo-gdpr" onclick="SkolIFKlasser.gdprUndo('${escapeHtml(targetId)}')" title="Återställ listan som den såg ut innan GDPR-tvätt">↩️ Ångra</button>` : ''}
+                    </div>
+                </div>
+                ${numPanelHtml}
+                <div class="skolif-gdpr-note">${noteHtml}</div>
+            `;
+        });
     }
 
     function renderModalClassList() {
@@ -2397,12 +2898,20 @@
         if (nameInput) nameInput.value = code;
         if (textInput) textInput.value = klasser[code];
         if (titleEl) titleEl.textContent = `✏️ Redigerar ${formatDisplayKlass(code)}`;
+        gdprOriginalBackups.delete('skolifModalClassStudents');
+        gdprNumberOpenState.delete('skolifModalClassStudents');
+        renderAllGdprBars();
         updateModalCount();
         if (textInput) textInput.focus();
     }
 
     function clearModalForm() {
         editingOriginalKlassCode = null;
+        gdprOriginalBackups.delete('skolifModalClassStudents');
+        gdprOriginalBackups.delete('skolifMassImportText');
+        gdprNumberOpenState.delete('skolifModalClassStudents');
+        gdprNumberOpenState.delete('skolifMassImportText');
+        renderAllGdprBars();
         const nameInput = document.getElementById('skolifModalClassName');
         const textInput = document.getElementById('skolifModalClassStudents');
         const titleEl = document.getElementById('skolifFormTitle');
@@ -3690,6 +4199,13 @@
             renderModalClassList();
         },
         triggerSelect: triggerSelect,
-        refreshBars: renderAllClassBars
+        refreshBars: renderAllClassBars,
+        // GDPR-funktioner
+        gdprClean: applyGdprToTextarea,
+        gdprUndo: undoGdprTextarea,
+        toggleStartnummer: toggleGdprStartnummerPanel,
+        applyStartnummer: applyStartnummerFromPanel,
+        gdprCleanAllSaved: gdprCleanAllSavedClasses,
+        renderGdprBars: renderAllGdprBars
     };
 })();

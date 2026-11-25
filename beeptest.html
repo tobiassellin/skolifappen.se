@@ -694,8 +694,9 @@
                     <label style="margin: 0;">Elever som deltar (ett namn per rad eller separera med komma)</label>
                     <span id="deltagarCount" style="font-size: 0.8rem; font-weight: 700; color: #2E7D32;">0 elever</span>
                 </div>
-                <textarea id="eleverInput" rows="7" placeholder="Kalle Andersson&#10;Lisa Lindqvist&#10;Ahmed Hassan&#10;Sara Nilsson&#10;..." oninput="uppdateraDeltagarCount()"></textarea>
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 6px; flex-wrap: wrap; gap: 8px;">
+                <textarea id="eleverInput" rows="7" placeholder="Kalle Andersson&#10;Lisa Lindqvist&#10;Ahmed Hassan&#10;Sara Nilsson&#10;(eller bara förnamn / startnummer)" oninput="uppdateraDeltagarCount()"></textarea>
+                <div data-skolif-gdpr-bar="eleverInput"></div>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px; flex-wrap: wrap; gap: 8px;">
                     <div style="font-size: 0.78rem; color: #777;">Tips: Välj en sparad klass ovan eller klistra in från Schoolsoft/Vklass!</div>
                     <div style="display: flex; gap: 6px; flex-wrap: wrap;">
                         <button type="button" class="btn btn-outline btn-sm" onclick="sparaAktuellKlassIBeep()">💾 Spara klass</button>
@@ -985,7 +986,7 @@
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-<script src="klasser.js?v=6"></script>
+<script src="klasser.js?v=7"></script>
 
 <script>
     // ==========================================
