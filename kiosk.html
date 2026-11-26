@@ -1113,7 +1113,7 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-    <script src="klasser.js?v=8"></script>
+    <script src="klasser.js?v=9"></script>
 
     <script>
         const firebaseConfig = {
@@ -1221,15 +1221,19 @@
                 }
 
                 // 3. Kolla om användaren har bjudits in till en kollegas kassa
-                const q = db.collection("skolif_kassa").where("behoriga_anvandare", "array-contains", userEmail);
-                const deladeSnap = await q.get();
+                try {
+                    const q = db.collection("skolif_kassa").where("behoriga_anvandare", "array-contains", userEmail);
+                    const deladeSnap = await q.get();
 
-                if (!deladeSnap.empty) {
-                    const kollegaDoc = deladeSnap.docs[0];
-                    const kollegaDocId = kollegaDoc.id;
-                    aktivUserId = kollegaDocId;
-                    startaLiveLyssnare(kollegaDocId);
-                    return;
+                    if (!deladeSnap.empty) {
+                        const kollegaDoc = deladeSnap.docs[0];
+                        const kollegaDocId = kollegaDoc.id;
+                        aktivUserId = kollegaDocId;
+                        startaLiveLyssnare(kollegaDocId);
+                        return;
+                    }
+                } catch (listErr) {
+                    console.warn("Kunde inte söka delade kassor, använder egen kassa:", listErr);
                 }
 
                 // 4. Ingen kassa fanns – skapa en ny tom kassa kopplad till e-postadressen

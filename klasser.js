@@ -812,14 +812,17 @@
                         }
 
                         if (!migrated) {
-                            // Kolla om inbjuden till en kollegas kassa (även om användaren råkat få ett tomt eget dokument tidigare!)
-                            const q = db.collection('skolif_kassa').where('behoriga_anvandare', 'array-contains', userEmail);
-                            const deladeSnap = await q.get();
-                            const kollegaDoc = deladeSnap.docs.find(d => d.id.toLowerCase() !== userEmail);
-                            if (kollegaDoc) {
-                                docId = kollegaDoc.id;
-                            } else {
-                                docId = userEmail;
+                            // Kolla om inbjuden till en kollegas kassa (skyddad med egen try/catch så egen kassa alltid fungerar även om list-frågan nekas)
+                            docId = userEmail;
+                            try {
+                                const q = db.collection('skolif_kassa').where('behoriga_anvandare', 'array-contains', userEmail);
+                                const deladeSnap = await q.get();
+                                const kollegaDoc = deladeSnap.docs.find(d => d.id.toLowerCase() !== userEmail);
+                                if (kollegaDoc) {
+                                    docId = kollegaDoc.id;
+                                }
+                            } catch (listErr) {
+                                console.warn('Kunde inte söka delade kassor (använder egen kassa):', listErr);
                             }
                         }
                     }
@@ -1139,6 +1142,7 @@
                 }
             } catch (err) {
                 console.error('Kunde inte spara elevlista till skolif_kassa:', err);
+                showToast('⚠️ Sparat lokalt, men kunde inte synka mot molnet (' + (err && err.code ? err.code : 'kontrollera Firestore Rules') + ').', 'warning');
             }
         } else {
             saveLocalKassa({ elever: nyKomplettLista }, true);

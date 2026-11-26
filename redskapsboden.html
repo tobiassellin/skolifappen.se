@@ -794,7 +794,7 @@
 <!-- Toast -->
 <div id="toast"></div>
 
-<script src="klasser.js?v=8"></script>
+<script src="klasser.js?v=9"></script>
 <script>
 // ==========================================
 //  FIREBASE KONFIGURATION
@@ -1067,11 +1067,18 @@ async function hanteraInloggadAnvandare(userEmail) {
 
 async function sokEllerSkapaBod(userEmail, egetRef) {
     try {
-        const q = db.collection('redskapsbodar').where('behoriga_anvandare', 'array-contains', userEmail);
-        const deladeSnap = await q.get();
+        let kollegaBod = null;
+        try {
+            const q = db.collection('redskapsbodar').where('behoriga_anvandare', 'array-contains', userEmail);
+            const deladeSnap = await q.get();
+            if (!deladeSnap.empty) {
+                kollegaBod = deladeSnap.docs[0];
+            }
+        } catch (listErr) {
+            console.warn('Kunde inte söka delade bodar, skapar egen bod:', listErr);
+        }
 
-        if (!deladeSnap.empty) {
-            const kollegaBod = deladeSnap.docs[0];
+        if (kollegaBod) {
             const kollegaBodId = kollegaBod.id;
             startCloudListener(kollegaBodId);
             showToast('☁️ Ansluten till delad bod från ' + (kollegaBod.data().skapare || kollegaBodId));

@@ -5,7 +5,7 @@
  * idrottshall i källaren eller i skogen utan täckning.
  * ============================================================================ */
 
-const CACHE_NAME = 'skolif-offline-v3';
+const CACHE_NAME = 'skolif-offline-v4';
 
 const PRECACHE_URLS = [
     './',
@@ -22,7 +22,7 @@ const PRECACHE_URLS = [
     './integritet.html',
     './om.html',
     './seo-shared.css',
-    './klasser.js?v=8',
+    './klasser.js?v=9',
     './manifest.json',
     './icon.svg',
     './apple-touch-icon.png',
@@ -89,6 +89,9 @@ self.addEventListener('fetch', (event) => {
     }
 
     if (url.protocol !== 'http:' && url.protocol !== 'https:') return;
+
+    // Fånga ALDRIG anrop till externa domäner (Firebase, Firestore, Google Auth, CDN, AdSense m.m.)
+    if (url.origin !== self.location.origin) return;
 
     if (BYPASS_HOSTS.some((h) => url.hostname === h || url.hostname.endsWith('.' + h))) {
         return;

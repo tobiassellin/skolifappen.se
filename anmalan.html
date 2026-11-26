@@ -1100,7 +1100,7 @@ match /utbildning_anmalan/{docId} {
     </div>
 </div>
 
-<!-- FIREBASE SDK v8 & EXCELJS (Fristående utan klasser.js?v=6 eller AdSense) -->
+<!-- FIREBASE SDK v8 & EXCELJS (Fristående utan klasser.js?v=9 eller AdSense) -->
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
@@ -1761,7 +1761,13 @@ async function sparaUtkastTystTillFirestore() {
         }
     } catch (err) {
         console.error('Kunde inte spara borttagningen till Firestore:', err);
-        showToast('Kunde inte synka borttagningen till molnet. Kontrollera din uppkoppling.', 'error');
+        const isPerm = err && (err.code === 'permission-denied' || String(err.message || '').includes('insufficient permissions'));
+        showToast(
+            isPerm
+                ? 'Åtkomst nekad i Firestore (kontrollera Firestore Rules för utbildning_anmalan eller om anmälan är låst).'
+                : 'Kunde inte synka borttagningen till molnet. Kontrollera din uppkoppling.',
+            'error'
+        );
     }
 }
 
@@ -2112,7 +2118,13 @@ async function sparaDistriktsAnmalan(isFinalSubmit = false) {
         }
     } catch (err) {
         console.error('Fel vid sparning:', err);
-        showToast('Kunde inte spara till molnet. Kontrollera din uppkoppling eller om anmälan har låsts.', 'error');
+        const isPerm = err && (err.code === 'permission-denied' || String(err.message || '').includes('insufficient permissions'));
+        showToast(
+            isPerm
+                ? 'Åtkomst nekad i Firestore (uppdatera Firestore Rules för utbildning_anmalan eller kontrollera om anmälan är låst).'
+                : 'Kunde inte spara till molnet. Kontrollera din uppkoppling.',
+            'error'
+        );
     } finally {
         btn.disabled = isDistrictReadOnly();
         btn.textContent = districtState.isSubmitted ? '📨 Uppdatera anmälan' : '📨 Skicka in anmälan';
@@ -2512,6 +2524,10 @@ async function togglaAnmalanLas() {
     if (!confirm(msg)) return;
 
     const nextOverrideOpen = nextLocked ? false : isDeadlineExpired();
+    const parsedDl = eventConfig.deadlineIso ? new Date(eventConfig.deadlineIso) : null;
+    const deadlineTs = (parsedDl && !isNaN(parsedDl.getTime()))
+        ? firebase.firestore.Timestamp.fromDate(parsedDl)
+        : null;
 
     try {
         await db.collection(COLLECTION_NAME).doc('_config').set({
@@ -2519,6 +2535,7 @@ async function togglaAnmalanLas() {
             subtitle: eventConfig.subtitle,
             deadlineIso: eventConfig.deadlineIso || '',
             deadlineText: eventConfig.deadlineText || '',
+            deadlineTs: deadlineTs,
             nightOptions: eventConfig.nightOptions,
             isLocked: nextLocked,
             overrideOpenAfterDeadline: nextOverrideOpen,
