@@ -901,9 +901,13 @@
         <button class="modal-close" onclick="closeModal('qrLiveModal')">✕</button>
         <div style="font-size:2.2rem; margin-bottom:4px;">📱</div>
         <div class="modal-title" style="margin-bottom:6px;">Följ turneringen LIVE</div>
-        <p style="font-size:0.86rem; color:#555; margin-bottom:16px;">
+        <p style="font-size:0.86rem; color:#555; margin-bottom:12px;">
             Publik, elever och lärare kan skanna QR-koden med mobilkameran för att följa <strong>spelschema, tabeller och resultat i realtid</strong> (skrivskyddad publikvy).
         </p>
+
+        <div style="text-align:left; font-size:0.77rem; line-height:1.45; background:#FFFBEB; border:1px solid #FDE68A; color:#92400E; border-radius:10px; padding:9px 12px; margin-bottom:14px;">
+            ⚠️ <strong>GDPR &amp; skyddad identitet:</strong> Alla med länken kan läsa sidan. Använd lag-/klassnamn eller förnamn – skriv aldrig ut fullständiga elevnamn eller elever med skyddade personuppgifter.
+        </div>
 
         <div style="display:flex; flex-direction:column; align-items:center; background:#F8FAFC; border:2px solid #E2E8F0; border-radius:16px; padding:18px; margin-bottom:16px;">
             <div id="modalQrBox" style="background:white; padding:12px; border-radius:12px; border:1px solid #CBD5E1; display:inline-flex; align-items:center; justify-content:center; min-width:190px; min-height:190px; margin-bottom:10px;"></div>
@@ -928,7 +932,7 @@
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-<script src="klasser.js?v=7"></script>
+<script src="klasser.js?v=8"></script>
 
 <script>
 // ==========================================

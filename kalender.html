@@ -1367,9 +1367,13 @@
     <div class="modal-content" style="max-width:500px; text-align:center;">
         <button type="button" class="modal-close" onclick="stangModal('qrDelaModal')">✕</button>
         <div class="modal-title" style="text-align:left;">📱 QR-kod &amp; Publik Live-länk</div>
-        <p style="font-size:0.86rem; color:#475569; text-align:left; margin-bottom:14px;">
+        <p style="font-size:0.86rem; color:#475569; text-align:left; margin-bottom:10px;">
             Skriv upp eller dela länken i t.ex. Classroom, SchoolSoft eller på skolans anslagstavla. Elever och kollegor ser schemat direkt utan att behöva logga in – och alla ändringar du gör syns automatiskt!
         </p>
+
+        <div style="text-align:left; font-size:0.77rem; line-height:1.45; background:#FFFBEB; border:1px solid #FDE68A; color:#92400E; border-radius:10px; padding:9px 12px; margin-bottom:12px;">
+            ⚠️ <strong>GDPR &amp; skyddad identitet:</strong> Alla med länken kan läsa kalendern. Skriv aldrig ut fullständiga elevnamn eller personer med skyddade personuppgifter i publika aktiviteter.
+        </div>
 
         <div style="background:#F8FAFC; border:1.5px solid #E2E8F0; border-radius:16px; padding:18px; margin-bottom:12px;">
             <div id="modalQrBox" class="qr-box-render" style="background:white; padding:14px; border-radius:12px; border:1px solid #CBD5E1; display:inline-flex; align-items:center; justify-content:center; min-width:208px; min-height:208px; margin-bottom:10px;"></div>
@@ -1445,7 +1449,7 @@
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-<script src="klasser.js?v=7"></script>
+<script src="klasser.js?v=8"></script>
 
 <script>
 const KALENDER_LOCAL_KEY = 'skolif_kalender_v1';

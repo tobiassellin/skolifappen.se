@@ -425,6 +425,102 @@
         showToast(`🔒 Alla ${updatedElever.length} sparade elever har GDPR-tvättats till Förnamn + Initial!`, 'success');
     }
 
+    async function deleteAllMyDataPermanent() {
+        const isLoggedIn = Boolean(currentUser && currentUser.email);
+        const warningText = isLoggedIn
+            ? `⚠️ PERMANENT RADERING AV DATA (${currentUser.email})\n\nDetta raderar permanent:\n• Alla dina sparade klasser, elever, kiosksaldon & transaktioner i molnet\n• Din Redskapsbod, testhistorik, LOK-underlag & publika länkar\n• All lokal data i denna webbläsare\n\nVill du fortsätta?`
+            : `⚠️ RADERA ALL LOKAL DATA\n\nDetta rensar alla sparade klasser, elever, kassa, redskapsbod, turneringar, kalender och testhistorik från denna webbläsare.\n\nVill du fortsätta?`;
+
+        if (!confirm(warningText)) return;
+
+        const check = prompt('Skriv RADERA med stora bokstäver för att bekräfta permanent radering:');
+        if (String(check || '').trim() !== 'RADERA') {
+            showToast('Raderingen avbröts (du måste skriva RADERA med stora bokstäver).', 'info');
+            return;
+        }
+
+        try {
+            // Hämta ev. publika ID:n innan localStorage rensas så publika live-dokument också tas bort
+            let publicCalId = '';
+            let publicTourId = '';
+            try {
+                const rawKal = localStorage.getItem('skolif_kalender_v1');
+                if (rawKal) publicCalId = String((JSON.parse(rawKal) || {}).publicId || '').trim();
+            } catch (e) {}
+            try {
+                const rawTour = localStorage.getItem('skolif_turnering_data');
+                if (rawTour) publicTourId = String((JSON.parse(rawTour) || {}).liveId || '').trim();
+            } catch (e) {}
+
+            if (kassaUnsubscribe) {
+                kassaUnsubscribe();
+                kassaUnsubscribe = null;
+            }
+
+            if (isLoggedIn && db) {
+                const userEmail = currentUser.email.trim().toLowerCase();
+                const uid = currentUser.uid || '';
+                const deleteOps = [];
+
+                if (userEmail) {
+                    deleteOps.push(db.collection('skolif_kassa').doc(userEmail).delete().catch(() => {}));
+                    deleteOps.push(db.collection('redskapsbodar').doc(userEmail).delete().catch(() => {}));
+                }
+                if (uid && uid !== userEmail) {
+                    deleteOps.push(db.collection('skolif_kassa').doc(uid).delete().catch(() => {}));
+                    deleteOps.push(db.collection('redskapsbodar').doc(uid).delete().catch(() => {}));
+                }
+                if (activeKassaDocId && activeKassaDocId !== userEmail && activeKassaDocId !== uid) {
+                    // Om inbjuden kollega till en annans kassa: ta bara bort egen behörighet, inte ägarens kassa
+                    deleteOps.push(
+                        db.collection('skolif_kassa').doc(activeKassaDocId).get().then(snap => {
+                            if (!snap.exists) return;
+                            const d = snap.data() || {};
+                            if (String(d.skapare || '').toLowerCase() === userEmail) {
+                                return snap.ref.delete();
+                            }
+                            const nextBeh = (Array.isArray(d.behoriga_anvandare) ? d.behoriga_anvandare : [])
+                                .filter(x => String(x || '').toLowerCase() !== userEmail);
+                            return snap.ref.update({ behoriga_anvandare: nextBeh });
+                        }).catch(() => {})
+                    );
+                }
+                if (publicCalId) {
+                    deleteOps.push(db.collection('skolif_kassa').doc('kalender_' + publicCalId).delete().catch(() => {}));
+                }
+                if (publicTourId) {
+                    deleteOps.push(db.collection('skolif_kassa').doc('turnering_' + publicTourId).delete().catch(() => {}));
+                }
+
+                await Promise.allSettled(deleteOps);
+            }
+
+            activeKassaDocId = null;
+            activeResolvePromise = null;
+            activeResolveUid = null;
+            clearLocalKassa();
+            try {
+                [
+                    'skolif_turnering_data',
+                    'redskapsbod_artiklar',
+                    'redskapsbod_historik',
+                    'SKOLIF_LOPRUNDAN_ACTIVE',
+                    'skolif_varor_explicit_empty'
+                ].forEach(k => localStorage.removeItem(k));
+            } catch (e) {}
+
+            if (isLoggedIn && auth) {
+                await auth.signOut().catch(() => {});
+            }
+
+            closeModal();
+            showToast('🗑️ All din sparade data har raderats permanent!', 'success');
+        } catch (err) {
+            console.error('Fel vid radering av all data:', err);
+            showToast('Kunde inte slutföra hela raderingen. Försök igen eller kontakta support.', 'error');
+        }
+    }
+
     // ==========================================
     //  SNYGGT NOTIS-SYSTEM (ERSÄTTER SVARTA ALERTS)
     // ==========================================
@@ -2416,6 +2512,17 @@
                                         <button type="button" class="skolif-btn-sm primary" onclick="SkolIFKlasser.savePinFromSettings()" style="background: #D97706; border-color: #D97706; padding: 8px 14px;">Spara PIN</button>
                                     </div>
                                 </div>
+
+                                <!-- 4. Radera all min sparade data (GDPR & Självbetjäning) -->
+                                <div class="skolif-tool-card-row" style="background: #FEF2F2; border: 1.5px solid #FECACA; border-radius: 12px; padding: 14px 16px; display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;">
+                                    <div style="flex: 1; min-width: 180px;">
+                                        <div style="font-weight: 800; font-size: 0.92rem; color: #991B1B; margin-bottom: 3px;">🗑️ Radera all min sparade data (GDPR)</div>
+                                        <div style="font-size: 0.79rem; color: #7F1D1D; line-height: 1.4;">
+                                            Raderar permanent alla sparade klasser, kassa, redskapsbod, testhistorik och publika länkar (både i molnet och lokalt på enheten).
+                                        </div>
+                                    </div>
+                                    <button type="button" class="skolif-btn-sm danger" onclick="SkolIFKlasser.deleteAllMyData()" style="background: #DC2626; color: white; border-color: #DC2626; padding: 9px 14px; white-space: nowrap;">🗑️ Radera all min data</button>
+                                </div>
                             </div>
 
                             <!-- FLIK 4: LOK-STÖD (ARENAN) -->
@@ -4206,6 +4313,7 @@
         toggleStartnummer: toggleGdprStartnummerPanel,
         applyStartnummer: applyStartnummerFromPanel,
         gdprCleanAllSaved: gdprCleanAllSavedClasses,
+        deleteAllMyData: deleteAllMyDataPermanent,
         renderGdprBars: renderAllGdprBars
     };
 })();
