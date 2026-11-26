@@ -307,6 +307,17 @@
             justify-content: center;
             border: 1px solid #C8E6C9;
         }
+        .room-card, .room-overview-card {
+            scroll-margin-top: 84px;
+            scroll-margin-bottom: 110px;
+        }
+        .room-card.newly-added {
+            animation: newRoomHighlight 1.5s ease-out;
+        }
+        @keyframes newRoomHighlight {
+            0% { border-color: #22C55E; box-shadow: 0 0 0 5px rgba(34, 197, 94, 0.28), 0 10px 25px rgba(15, 41, 30, 0.08); }
+            100% { border-color: #CBD5E1; box-shadow: none; }
+        }
 
         /* ====== SPARA-LIST (STICKY BOTTOM BAR) ====== */
         .save-bar {
@@ -1695,8 +1706,23 @@ function laggTillRum() {
         stay: eventConfig.nightOptions[0] || DEFAULT_NIGHT_OPTIONS[0],
         isEditing: true
     }, true));
+    const newIdx = districtState.rooms.length - 1;
     setDistrictDirty(true);
     renderDistrictRooms();
+
+    requestAnimationFrame(() => {
+        const newCard = document.getElementById(`districtRoomCard-${newIdx}`);
+        if (newCard) {
+            newCard.classList.add('newly-added');
+            newCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+        setTimeout(() => {
+            const firstInput = document.getElementById(`roomGuestName-${newIdx}-0`);
+            if (firstInput) {
+                try { firstInput.focus({ preventScroll: true }); } catch (e) { firstInput.focus(); }
+            }
+        }, 380);
+    });
 }
 
 function togglaRumRedigering(index, forceState) {
@@ -1939,7 +1965,7 @@ function renderDistrictRooms() {
             }).join('');
 
             return `
-                <div class="room-overview-card">
+                <div class="room-overview-card" id="districtRoomCard-${rIdx}">
                     <div style="flex:1; min-width:240px;">
                         <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
                             <span class="room-num-pill">Rum ${rIdx + 1}</span>
@@ -1982,7 +2008,7 @@ function renderDistrictRooms() {
             <div class="guest-row">
                 <span class="guest-idx">P${gIdx + 1}</span>
                 <div>
-                    <input type="text" value="${escapeHtml(g.name)}" placeholder="Deltagare ${gIdx + 1}: För- och efternamn"
+                    <input type="text" id="roomGuestName-${rIdx}-${gIdx}" value="${escapeHtml(g.name)}" placeholder="Deltagare ${gIdx + 1}: För- och efternamn"
                         oninput="onGuestFieldInput(${rIdx}, ${gIdx}, 'name', this.value)" ${disAttr}>
                 </div>
                 <div>
@@ -1993,7 +2019,7 @@ function renderDistrictRooms() {
         `).join('');
 
         return `
-            <div class="room-card">
+            <div class="room-card" id="districtRoomCard-${rIdx}">
                 <div class="room-card-header">
                     <div class="room-badge-title">
                         <span class="room-num-pill">Rum ${rIdx + 1}</span>
