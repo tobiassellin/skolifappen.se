@@ -1102,7 +1102,7 @@
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-<script src="klasser.js?v=9"></script>
+<script src="klasser.js?v=10"></script>
 
 <script>
     // ==========================================
@@ -1164,6 +1164,10 @@
     });
 
     async function sparaAktuellKlassILopning() {
+        if (window.SkolIFKlasser && SkolIFKlasser.isElevlage && SkolIFKlasser.isElevlage()) {
+            SkolIFKlasser.requireTeacherUnlock(() => sparaAktuellKlassILopning());
+            return;
+        }
         let namn = document.getElementById('loppNamn').value.trim();
         namn = namn.replace(/\s*-\s*(Löpning|Terränglopp|Lopp)$/i, '').trim() || namn;
         const text = document.getElementById('deltagareInput').value.trim();
@@ -1224,7 +1228,13 @@
     // ==========================================
     //  STARTA LOPP
     // ==========================================
+    let isCountingDown = false;
+
     function startaLopp() {
+        if (isCountingDown || loppStatus === 'RUNNING') return;
+        if (document.activeElement && typeof document.activeElement.blur === 'function') {
+            document.activeElement.blur();
+        }
         if (ljudPa) {
             try { getAudioContext(); } catch (e) {}
         }
@@ -1244,11 +1254,13 @@
                 inledLopp(namnLista);
             });
         } else {
+            spelaStartSkott();
             inledLopp(namnLista);
         }
     }
 
     function startaNedrakning(sekunder, callback) {
+        isCountingDown = true;
         let kvar = sekunder;
         spelaPip(600, 0.15); // Pip för förberedelse
 
@@ -1265,25 +1277,37 @@
         overlay.style.justifyContent = 'center';
         overlay.style.zIndex = '9999';
         overlay.style.color = 'white';
-        overlay.innerHTML = `
-            <div style="font-size: 1.5rem; font-weight: 700; color: #FFD54F; margin-bottom: 10px;">GÖR ER REDO!</div>
-            <div id="countdownNum" style="font-size: 8rem; font-weight: 900; line-height: 1;">${kvar}</div>
-        `;
+        const titleEl = document.createElement('div');
+        titleEl.style.cssText = 'font-size: 1.5rem; font-weight: 700; color: #FFD54F; margin-bottom: 10px;';
+        titleEl.textContent = 'GÖR ER REDO!';
+        const numEl = document.createElement('div');
+        numEl.style.cssText = 'font-size: 8rem; font-weight: 900; line-height: 1;';
+        numEl.textContent = String(kvar);
+        overlay.appendChild(titleEl);
+        overlay.appendChild(numEl);
         document.body.appendChild(overlay);
 
         const countTimer = setInterval(() => {
             kvar--;
             if (kvar > 0) {
-                document.getElementById('countdownNum').textContent = kvar;
+                numEl.textContent = String(kvar);
                 spelaPip(600, 0.15);
-            } else if (kvar === 0) {
-                document.getElementById('countdownNum').textContent = "SPRING!";
-                document.getElementById('countdownNum').style.color = "#4CAF50";
-                spelaStartSkott();
             } else {
                 clearInterval(countTimer);
-                document.body.removeChild(overlay);
+                isCountingDown = false;
+                numEl.textContent = "SPRING!";
+                numEl.style.color = "#4CAF50";
+                overlay.style.pointerEvents = 'none';
+                overlay.style.transition = 'opacity 0.35s ease';
+                // Startskott och tidtagning sker i exakt samma millisekund!
+                spelaStartSkott();
                 callback();
+                setTimeout(() => {
+                    overlay.style.opacity = '0';
+                    setTimeout(() => {
+                        if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
+                    }, 360);
+                }, 450);
             }
         }, 1000);
     }

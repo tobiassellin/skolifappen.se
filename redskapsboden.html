@@ -794,7 +794,7 @@
 <!-- Toast -->
 <div id="toast"></div>
 
-<script src="klasser.js?v=9"></script>
+<script src="klasser.js?v=10"></script>
 <script>
 // ==========================================
 //  FIREBASE KONFIGURATION
@@ -807,11 +807,27 @@ const firebaseConfig = {
     messagingSenderId: "593631856247",
     appId: "1:593631856247:web:874d4a87142b44bc336872"
 };
-if (!firebase.apps.length) {
+if (typeof firebase !== 'undefined' && (!firebase.apps || !firebase.apps.length)) {
     firebase.initializeApp(firebaseConfig);
 }
-const auth = firebase.auth();
-const db = firebase.firestore();
+const auth = (typeof firebase !== 'undefined' && firebase.auth) ? firebase.auth() : null;
+const db = (typeof firebase !== 'undefined' && firebase.firestore) ? firebase.firestore() : null;
+
+const DISTRICT_ONLY_EMAILS_BOD = new Set([
+    'jamtland@skolifwebben.se',
+    'medelpad@skolifwebben.se',
+    'angermanland@skolifwebben.se',
+    'admin@skolifwebben.se'
+]);
+function isDistrictOnlyAccountBod(user) {
+    if (!user) return false;
+    const em = String(user.email || '').trim().toLowerCase();
+    if (DISTRICT_ONLY_EMAILS_BOD.has(em)) return true;
+    if (Array.isArray(user.providerData) && user.providerData.length > 0) {
+        if (user.providerData.every(p => p && p.providerId === 'password')) return true;
+    }
+    return false;
+}
 
 // Standardartiklar för en ny redskapsbod
 const STANDARD_ARTIKLAR = [
@@ -919,7 +935,9 @@ function startCloudListener(docId) {
         firestoreListener();
         firestoreListener = null;
     }
+    if (!db || !docId) return;
     activeBodDocId = docId;
+    isCloudMode = true;
     const ref = db.collection('redskapsbodar').doc(docId);
 
     firestoreListener = ref.onSnapshot(docSnap => {
@@ -929,22 +947,23 @@ function startCloudListener(docId) {
             return;
         }
 
-        const data = docSnap.data();
+        const data = docSnap.data() || {};
         bodDocData = data;
 
         // Krav 4: Läs i första hand snapshot.data().artiklar, annars JSON.parse(data.data)
-        if (data.data) {
-        try {
-            artiklar = JSON.parse(data.data);
-        } catch(e) {
-            console.error('Kunde inte parsa data.data:', e);
+        if (Array.isArray(data.artiklar) && (data.artiklar.length > 0 || !data.data)) {
+            artiklar = data.artiklar;
+        } else if (data.data) {
+            try {
+                artiklar = JSON.parse(data.data);
+            } catch(e) {
+                console.error('Kunde inte parsa data.data:', e);
+                if (Array.isArray(data.artiklar)) artiklar = data.artiklar;
+            }
         }
-    } else if (Array.isArray(data.artiklar)) {
-        artiklar = data.artiklar;
-    }
 
         saveLocal();
-        setSyncBar('cloud', `☁️ Synkad i realtid (${data.namn || docId})`);
+        setSyncBar('cloud', `☁️ Synkad i realtid (${escapeHtml(data.namn || docId)})`);
         renderAll();
         renderBehorigaPanel();
     }, err => {
@@ -958,7 +977,7 @@ function startCloudListener(docId) {
 async function sparaTillMolnEllerLokalt() {
     saveLocal();
 
-    if (isCloudMode && activeBodDocId) {
+    if (isCloudMode && activeBodDocId && db) {
         try {
             const bodRef = db.collection('redskapsbodar').doc(activeBodDocId);
             await bodRef.update({
@@ -976,39 +995,48 @@ async function sparaTillMolnEllerLokalt() {
 // ==========================================
 //  AUTH & INLOGGNINGSLOGIK (Krav 3)
 // ==========================================
-auth.onAuthStateChanged(async (user) => {
-    currentUser = user;
-
-    if (user && user.email) {
-        const userEmail = user.email.toLowerCase();
-        document.getElementById('userBadge').style.display = 'inline-block';
-        document.getElementById('userEmail').textContent = userEmail;
-        document.getElementById('logoutBtn').style.display = 'inline-block';
-        document.getElementById('delaBtn').textContent = '👥 Behöriga kollegor';
-        document.getElementById('bodInfoText').innerHTML = '';
-
-        await hanteraInloggadAnvandare(userEmail);
-    } else {
-        document.getElementById('userBadge').style.display = 'none';
-        document.getElementById('logoutBtn').style.display = 'none';
-        document.getElementById('delaBtn').textContent = '☁️ Logga in & synka';
-        document.getElementById('delaPanel').classList.remove('visible');
-
-        if (firestoreListener) {
-            firestoreListener();
-            firestoreListener = null;
+if (auth) {
+    auth.onAuthStateChanged(async (user) => {
+        if (user && isDistrictOnlyAccountBod(user)) {
+            await auth.signOut().catch(() => {});
+            return;
         }
-        isCloudMode = false;
-        activeBodDocId = null;
-        bodDocData = null;
+        currentUser = (user && !user.isAnonymous && user.email) ? user : null;
 
-        setSyncBar('local', '<strong>Lokalt läge:</strong> All data sparas lokalt på denna enhet.');
-        document.getElementById('bodInfoText').innerHTML = '<a href="#" onclick="openModal(\'loginModal\'); return false;" style="color:#2E7D32; font-weight:700; text-decoration:underline;">☁️ Logga in för att synka med appen</a>';
-        renderAll();
-    }
-});
+        if (currentUser && currentUser.email) {
+            const userEmail = currentUser.email.toLowerCase();
+            document.getElementById('userBadge').style.display = 'inline-block';
+            document.getElementById('userEmail').textContent = userEmail;
+            document.getElementById('logoutBtn').style.display = 'inline-block';
+            document.getElementById('delaBtn').textContent = '👥 Behöriga kollegor';
+            document.getElementById('bodInfoText').innerHTML = '';
+
+            await hanteraInloggadAnvandare(userEmail);
+        } else {
+            document.getElementById('userBadge').style.display = 'none';
+            document.getElementById('logoutBtn').style.display = 'none';
+            document.getElementById('delaBtn').textContent = '☁️ Logga in & synka';
+            document.getElementById('delaPanel').classList.remove('visible');
+
+            if (firestoreListener) {
+                firestoreListener();
+                firestoreListener = null;
+            }
+            isCloudMode = false;
+            activeBodDocId = null;
+            bodDocData = null;
+
+            setSyncBar('local', '<strong>Lokalt läge:</strong> All data sparas lokalt på denna enhet.');
+            document.getElementById('bodInfoText').innerHTML = '<a href="#" onclick="openModal(\'loginModal\'); return false;" style="color:#2E7D32; font-weight:700; text-decoration:underline;">☁️ Logga in för att synka med appen</a>';
+            renderAll();
+        }
+    });
+} else {
+    setSyncBar('local', '<strong>Lokalt offline-läge:</strong> All data sparas lokalt på denna enhet.');
+}
 
 async function hanteraInloggadAnvandare(userEmail) {
+    if (!db) return;
     try {
         setSyncBar('cloud', '🔄 Ansluter till Redskapsboden...');
 
@@ -1028,10 +1056,10 @@ async function hanteraInloggadAnvandare(userEmail) {
         if (egenSnap && egenSnap.exists) {
             const ed = egenSnap.data() || {};
             let eArt = [];
-            if (ed.data) {
-                try { eArt = JSON.parse(ed.data); } catch (e) {}
-            } else if (Array.isArray(ed.artiklar)) {
+            if (Array.isArray(ed.artiklar) && (ed.artiklar.length > 0 || !ed.data)) {
                 eArt = ed.artiklar;
+            } else if (ed.data) {
+                try { eArt = JSON.parse(ed.data); } catch (e) {}
             }
             const harLan = Array.isArray(eArt) && eArt.some(a => Array.isArray(a.lan) && a.lan.length > 0);
             const behCount = Array.isArray(ed.behoriga_anvandare) ? ed.behoriga_anvandare.length : 0;
@@ -1106,6 +1134,7 @@ async function sokEllerSkapaBod(userEmail, egetRef) {
 }
 
 function handleDelaClick() {
+    if (isBodElevlageLocked()) { showToast('🔒 Låst i Elevläge – lås upp med PIN först'); return; }
     if (!currentUser) {
         openModal('loginModal');
     } else {
@@ -1121,6 +1150,10 @@ function closeDela() {
 
 let isLoggingIn = false;
 function loginGoogle() {
+    if (!auth || typeof firebase === 'undefined') {
+        showToast('⚠️ Ingen internetanslutning för Google-inloggning just nu');
+        return;
+    }
     if (isLoggingIn) return;
     isLoggingIn = true;
     closeModal('loginModal');
@@ -1136,26 +1169,49 @@ function loginGoogle() {
 }
 
 function logoutUser() {
+    if (isBodElevlageLocked()) { showToast('🔒 Låst i Elevläge – lås upp med PIN först'); return; }
+    if (!confirm('Vill du logga ut från Redskapsboden och Skol-IF Webben?')) return;
     if (firestoreListener) {
         firestoreListener();
         firestoreListener = null;
     }
+    isCloudMode = false;
+    activeBodDocId = null;
+    bodDocData = null;
     try {
         localStorage.removeItem('redskapsbod_artiklar');
         localStorage.removeItem('redskapsbod_historik');
     } catch (e) {}
+    if (window.SkolIFKlasser && window.SkolIFKlasser.clearLocalKassa) {
+        window.SkolIFKlasser.clearLocalKassa();
+    }
     artiklar = JSON.parse(JSON.stringify(STANDARD_ARTIKLAR));
     historik = [];
-    auth.signOut().then(() => {
+    if (auth) {
+        auth.signOut().then(() => {
+            renderAll();
+            showToast('👋 Utloggad');
+        });
+    } else {
         renderAll();
         showToast('👋 Utloggad');
-    });
+    }
 }
 
 // ==========================================
 //  LÄGGA TILL / TA BORT KOLLEGA (Krav 6)
 // ==========================================
+function isBodCreatorUser() {
+    if (!currentUser || !currentUser.email) return false;
+    const current = currentUser.email.toLowerCase();
+    const skapare = (bodDocData && bodDocData.skapare)
+        ? String(bodDocData.skapare).toLowerCase()
+        : String(activeBodDocId || '').toLowerCase();
+    return Boolean(skapare && current === skapare);
+}
+
 async function laggTillBehorig() {
+    if (isBodElevlageLocked()) { showToast('🔒 Låst i Elevläge – lås upp med PIN först'); return; }
     const input = document.getElementById('bjudEmail');
     const email = input.value.trim().toLowerCase();
 
@@ -1164,8 +1220,13 @@ async function laggTillBehorig() {
         return;
     }
 
-    if (!isCloudMode || !activeBodDocId) {
+    if (!isCloudMode || !activeBodDocId || !db) {
         showToast('Du måste vara ansluten till molnet');
+        return;
+    }
+
+    if (!isBodCreatorUser()) {
+        showToast('Endast skaparen av boden kan bjuda in nya kollegor');
         return;
     }
 
@@ -1184,10 +1245,21 @@ async function laggTillBehorig() {
 }
 
 async function taBortBehorig(email) {
-    if (!isCloudMode || !activeBodDocId) return;
+    if (isBodElevlageLocked()) { showToast('🔒 Låst i Elevläge – lås upp med PIN först'); return; }
+    if (!isCloudMode || !activeBodDocId || !db || !email) return;
 
-    if (currentUser && currentUser.email && email.toLowerCase() === currentUser.email.toLowerCase()) {
-        showToast('Du kan inte ta bort dig själv');
+    const cleanTarget = String(email).trim().toLowerCase();
+    const skapare = (bodDocData && bodDocData.skapare)
+        ? String(bodDocData.skapare).toLowerCase()
+        : String(activeBodDocId || '').toLowerCase();
+    const isSelf = Boolean(currentUser && currentUser.email && cleanTarget === currentUser.email.toLowerCase());
+
+    if (cleanTarget === skapare) {
+        showToast('Skaparen av boden kan inte tas bort');
+        return;
+    }
+    if (!isBodCreatorUser() && !isSelf) {
+        showToast('Endast skaparen av boden kan ta bort kollegor');
         return;
     }
 
@@ -1215,19 +1287,22 @@ function renderBehorigaPanel() {
     }
 
     const behoriga = bodDocData.behoriga_anvandare || [];
+    const skapare = (bodDocData.skapare || activeBodDocId || '').toLowerCase();
     let html = '<strong>Behöriga Gmail-adresser med direkt tillgång:</strong><ul style="list-style:none; margin-top:8px; padding:0;">';
 
     behoriga.forEach(email => {
-        const isSelf = currentUser && currentUser.email && email.toLowerCase() === currentUser.email.toLowerCase();
-        const isCreator = bodDocData.skapare && email.toLowerCase() === bodDocData.skapare.toLowerCase();
+        const emClean = String(email || '').trim().toLowerCase();
+        const isSelf = currentUser && currentUser.email && emClean === currentUser.email.toLowerCase();
+        const isCreator = Boolean(skapare && emClean === skapare);
+        const canRemove = !isCreator && (isBodCreatorUser() || isSelf);
 
         html += `<li style="padding:6px 0; border-bottom:1px solid #F0F0F0; display:flex; justify-content:space-between; align-items:center;">
             <span>
-                📧 <strong>${email}</strong>
+                📧 <strong>${escapeHtml(email)}</strong>
                 ${isCreator ? '<span style="color:#1976D2; font-size:0.75rem; margin-left:6px;">(Skapare)</span>' : ''}
                 ${isSelf ? '<span style="color:#4CAF50; font-size:0.75rem; margin-left:6px;">(Du)</span>' : ''}
             </span>
-            ${!isSelf ? `<button class="btn btn-sm btn-red" style="padding:2px 8px; font-size:0.75rem;" onclick="taBortBehorig('${email}')">Ta bort</button>` : ''}
+            ${canRemove ? `<button class="btn btn-sm btn-red" style="padding:2px 8px; font-size:0.75rem;" data-email="${escapeHtml(email)}" onclick="taBortBehorig(this.dataset.email)">Ta bort</button>` : ''}
         </li>`;
     });
 
@@ -1285,9 +1360,9 @@ function openNyArtikelModal() {
 
 function openRedigeraArtikelModal(id) {
     if (isBodElevlageLocked()) { showToast('🔒 Låst i Elevläge – lås upp med PIN först'); return; }
-    const a = artiklar.find(x => x.id === id);
+    const a = artiklar.find(x => String(x.id) === String(id));
     if (!a) return;
-    editingArtikelId = id;
+    editingArtikelId = a.id;
     const nuvarandeEmoji = getArtikelEmoji(a);
     artikelEmojiManuelltVald = Boolean(a.emoji && a.emoji.trim() && a.emoji.trim() !== '📦');
     document.getElementById('artikelModalTitel').textContent = 'Redigera artikel';
@@ -1467,11 +1542,11 @@ function openLanaModal(artikelId) {
     sel.innerHTML = artiklar.map(a => {
         const utlanat = (a.lan || []).reduce((s, l) => s + (l.antal || 0), 0);
         const kvar = Math.max(0, (a.totaltAntal || 0) - utlanat);
-        const shouldSelect = (artikelId !== undefined && a.id === artikelId && kvar > 0) ||
+        const shouldSelect = (artikelId !== undefined && artikelId !== null && String(a.id) === String(artikelId) && kvar > 0) ||
             ((artikelId === undefined || artikelId === null) && !selectedAssigned && kvar > 0);
         if (shouldSelect) selectedAssigned = true;
-        return `<option value="${a.id}" ${shouldSelect ? 'selected' : ''} ${kvar <= 0 ? 'disabled' : ''}>
-            ${getArtikelEmoji(a)} ${escapeHtml(a.namn)} (${kvar} kvar av ${a.totaltAntal})
+        return `<option value="${escapeHtml(String(a.id))}" ${shouldSelect ? 'selected' : ''} ${kvar <= 0 ? 'disabled' : ''}>
+            ${escapeHtml(getArtikelEmoji(a))} ${escapeHtml(a.namn)} (${kvar} kvar av ${a.totaltAntal})
         </option>`;
     }).join('');
 
@@ -1489,7 +1564,6 @@ function openLanaModal(artikelId) {
 async function sparaUtlaning() {
     if (isSavingBodAction) return;
     const artikelIdVal = document.getElementById('lanaArtikelSelect').value;
-    const artikelId = isNaN(artikelIdVal) ? artikelIdVal : Number(artikelIdVal);
     const lanarnamn = document.getElementById('lanarnamn').value.trim();
     const rawAntal = parseInt(document.getElementById('lanaAntal').value, 10);
     const antal = Math.max(1, isNaN(rawAntal) ? 1 : rawAntal);
@@ -1499,7 +1573,7 @@ async function sparaUtlaning() {
         return;
     }
 
-    const a = artiklar.find(x => x.id === artikelId);
+    const a = artiklar.find(x => String(x.id) === String(artikelIdVal));
     if (!a) {
         showToast('Välj en artikel');
         return;
@@ -1544,12 +1618,12 @@ async function sparaUtlaning() {
 }
 
 function openAterlamnModal(artikelId, lanId) {
-    const a = artiklar.find(x => x.id === artikelId);
+    const a = artiklar.find(x => String(x.id) === String(artikelId));
     if (!a || !a.lan) return;
-    const l = a.lan.find(x => x.id === lanId);
+    const l = a.lan.find(x => String(x.id) === String(lanId));
     if (!l) return;
 
-    aterlamnInfo = { artikelId, lanId };
+    aterlamnInfo = { artikelId: a.id, lanId: l.id };
     document.getElementById('aterlamnInfo').textContent =
         `${a.namn} – lånat av ${l.namn} (${l.antal} st)`;
     document.getElementById('aterlamnAntal').value = l.antal;
@@ -1560,10 +1634,10 @@ function openAterlamnModal(artikelId, lanId) {
 async function bekraftaAterlam() {
     if (!aterlamnInfo || isSavingBodAction) return;
     const { artikelId, lanId } = aterlamnInfo;
-    const a = artiklar.find(x => x.id === artikelId);
-    if (!a || !a.lan) return;
-    const l = a.lan.find(x => x.id === lanId);
-    if (!l) return;
+    const a = artiklar.find(x => String(x.id) === String(artikelId));
+    if (!a || !a.lan) { closeModal('aterlamnModal'); return; }
+    const l = a.lan.find(x => String(x.id) === String(lanId));
+    if (!l) { closeModal('aterlamnModal'); return; }
 
     const rawAntal = parseInt(document.getElementById('aterlamnAntal').value, 10);
     const antal = Math.max(1, isNaN(rawAntal) ? l.antal : rawAntal);
@@ -1572,7 +1646,7 @@ async function bekraftaAterlam() {
     try {
         if (antal >= l.antal) {
             // Hela lånet återlämnat
-            a.lan = a.lan.filter(x => x.id !== lanId);
+            a.lan = a.lan.filter(x => String(x.id) !== String(lanId));
             laggTillHistorik('återlämnad', `${l.namn} återlämnade alla ${l.antal} st ${a.namn}`);
         } else {
             // Delvis återlämning
@@ -1591,19 +1665,25 @@ async function bekraftaAterlam() {
 
 // Snabb-återlämning av allt direkt från listan
 async function aterlamnaHelaLanet(artikelId, lanId) {
-    const a = artiklar.find(x => x.id === artikelId);
+    if (isSavingBodAction) return;
+    const a = artiklar.find(x => String(x.id) === String(artikelId));
     if (!a || !a.lan) return;
-    const l = a.lan.find(x => x.id === lanId);
+    const l = a.lan.find(x => String(x.id) === String(lanId));
     if (!l) return;
 
-    const namn = l.namn;
-    const antal = l.antal;
-    a.lan = a.lan.filter(x => x.id !== lanId);
-    laggTillHistorik('återlämnad', `${namn} återlämnade ${antal} st ${a.namn}`);
+    isSavingBodAction = true;
+    try {
+        const namn = l.namn;
+        const antal = l.antal;
+        a.lan = a.lan.filter(x => String(x.id) !== String(lanId));
+        laggTillHistorik('återlämnad', `${namn} återlämnade ${antal} st ${a.namn}`);
 
-    await sparaTillMolnEllerLokalt();
-    renderAll();
-    showToast(`✅ ${antal} st återlämnade från ${namn}`);
+        await sparaTillMolnEllerLokalt();
+        renderAll();
+        showToast(`✅ ${antal} st återlämnade från ${namn}`);
+    } finally {
+        isSavingBodAction = false;
+    }
 }
 
 // ==========================================
@@ -1617,13 +1697,14 @@ function laggTillHistorik(typ, text) {
         tid: new Date().toISOString()
     });
     if (historik.length > 300) historik = historik.slice(0, 300);
-    localStorage.setItem(HISTORIK_KEY, JSON.stringify(historik));
+    try { localStorage.setItem(HISTORIK_KEY, JSON.stringify(historik)); } catch (e) {}
 }
 
 function rensaHistorik() {
+    if (isBodElevlageLocked()) { showToast('🔒 Låst i Elevläge – lås upp med PIN först'); return; }
     if (!confirm('Vill du rensa historiken?')) return;
     historik = [];
-    localStorage.setItem(HISTORIK_KEY, JSON.stringify(historik));
+    try { localStorage.setItem(HISTORIK_KEY, JSON.stringify(historik)); } catch (e) {}
     renderHistorik();
     showToast('🗑 Historiken rensad');
 }
@@ -1744,7 +1825,7 @@ function renderArtiklar() {
         if (utlanat > 0) cardKlass = 'utlånad';
         if (kvar === 0 && (a.totaltAntal || 0) > 0) cardKlass = 'slut';
 
-        const idArt = typeof a.id === 'string' ? `'${a.id}'` : a.id;
+        const safeArtId = escapeHtml(String(a.id));
 
         // Om artikeln har utlånade saker, visa dem direkt på kortet med snabbknapp för återlämning!
         let lanHtml = '';
@@ -1755,22 +1836,22 @@ function renderArtiklar() {
                 ${lanArray.map(l => `
                     <div class="card-lan-item">
                         <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:130px;" title="${escapeHtml(l.namn)}">
-                            👤 <strong>${escapeHtml(l.namn)}</strong> (${l.antal} st)
+                            👤 <strong>${escapeHtml(l.namn)}</strong> (${Number(l.antal) || 0} st)
                         </span>
-                        <button class="btn-quick-return" onclick="event.stopPropagation(); aterlamnaHelaLanet(${idArt}, '${l.id}')" title="Återlämna ${escapeHtml(l.namn)}s lån direkt">✅ Åter</button>
+                        <button class="btn-quick-return" data-art-id="${safeArtId}" data-lan-id="${escapeHtml(String(l.id))}" onclick="event.stopPropagation(); aterlamnaHelaLanet(this.dataset.artId, this.dataset.lanId)" title="Återlämna ${escapeHtml(l.namn)}s lån direkt">✅ Åter</button>
                     </div>
                 `).join('')}
             </div>`;
         }
 
         return `
-        <div class="artikel-card ${cardKlass}" onclick="openLanaModal(${idArt})">
-            <button class="artikel-edit-btn" title="Redigera" onclick="event.stopPropagation(); openRedigeraArtikelModal(${idArt})">✏️</button>
-            <div class="artikel-emoji">${getArtikelEmoji(a)}</div>
+        <div class="artikel-card ${cardKlass}" data-art-id="${safeArtId}" onclick="openLanaModal(this.dataset.artId)">
+            <button class="artikel-edit-btn" title="Redigera" data-art-id="${safeArtId}" onclick="event.stopPropagation(); openRedigeraArtikelModal(this.dataset.artId)">✏️</button>
+            <div class="artikel-emoji">${escapeHtml(getArtikelEmoji(a))}</div>
             <div class="artikel-namn">${escapeHtml(a.namn)}</div>
             <div class="artikel-antal ${antalKlass}">${kvar} / ${a.totaltAntal} kvar</div>
 
-            <button class="btn-quick-loan" ${kvar <= 0 ? 'disabled' : ''} onclick="event.stopPropagation(); openLanaModal(${idArt})">
+            <button class="btn-quick-loan" ${kvar <= 0 ? 'disabled' : ''} data-art-id="${safeArtId}" onclick="event.stopPropagation(); openLanaModal(this.dataset.artId)">
                 ${kvar <= 0 ? 'Slut i boden' : '+ Låna ut'}
             </button>
 
@@ -1814,18 +1895,18 @@ function renderUtlaningar() {
     }
 
     lista.innerHTML = allaLan.map(l => {
-        const idArt = typeof l.artikelId === 'string' ? `'${l.artikelId}'` : l.artikelId;
-        const idLan = `'${l.lanId}'`;
+        const safeArtId = escapeHtml(String(l.artikelId));
+        const safeLanId = escapeHtml(String(l.lanId));
 
         return `
         <div class="utlaning-card">
             <div class="utlaning-info">
                 <div class="utlaning-namn">👤 ${escapeHtml(l.namn)}</div>
-                <div class="utlaning-detalj">${l.artikelEmoji || '⚽'} <strong>${l.antal} st</strong> × <span class="utlaning-artikelnamn">${escapeHtml(l.artikelNamn)}</span></div>
+                <div class="utlaning-detalj">${escapeHtml(l.artikelEmoji || '⚽')} <strong>${Number(l.antal) || 0} st</strong> × <span class="utlaning-artikelnamn">${escapeHtml(l.artikelNamn)}</span></div>
             </div>
             <div style="display:flex; gap:6px; align-items:center;">
-                ${l.antal > 1 ? `<button class="btn btn-outline btn-sm" style="padding: 4px 8px; font-size: 0.75rem;" onclick="openAterlamnModal(${idArt}, ${idLan})">Delåterlämna</button>` : ''}
-                <button class="btn btn-green btn-sm" style="padding: 5px 10px; font-size: 0.78rem;" onclick="aterlamnaHelaLanet(${idArt}, ${idLan})">✅ Återlämnad</button>
+                ${l.antal > 1 ? `<button class="btn btn-outline btn-sm" style="padding: 4px 8px; font-size: 0.75rem;" data-art-id="${safeArtId}" data-lan-id="${safeLanId}" onclick="openAterlamnModal(this.dataset.artId, this.dataset.lanId)">Delåterlämna</button>` : ''}
+                <button class="btn btn-green btn-sm" style="padding: 5px 10px; font-size: 0.78rem;" data-art-id="${safeArtId}" data-lan-id="${safeLanId}" onclick="aterlamnaHelaLanet(this.dataset.artId, this.dataset.lanId)">✅ Återlämnad</button>
             </div>
         </div>`;
     }).join('');

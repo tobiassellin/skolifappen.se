@@ -25,6 +25,23 @@
     const auth = typeof firebase !== 'undefined' && firebase.auth ? firebase.auth() : null;
     const db = typeof firebase !== 'undefined' && firebase.firestore ? firebase.firestore() : null;
 
+    // Särskilda distriktskonton för anmalan.html ska aldrig förbli inloggade ute på vanliga skolifwebben.se
+    const ANMALAN_DISTRICT_EMAILS = new Set([
+        'jamtland@skolifwebben.se',
+        'medelpad@skolifwebben.se',
+        'angermanland@skolifwebben.se',
+        'admin@skolifwebben.se'
+    ]);
+    function isAnmalanDistrictAccount(user) {
+        if (!user) return false;
+        const em = String(user.email || '').trim().toLowerCase();
+        if (ANMALAN_DISTRICT_EMAILS.has(em)) return true;
+        if (Array.isArray(user.providerData) && user.providerData.length > 0) {
+            if (user.providerData.every(p => p && p.providerId === 'password')) return true;
+        }
+        return false;
+    }
+
     let currentUser = null;
     let authReady = false;
     let activeKassaDocId = null;
@@ -619,15 +636,19 @@
         const grupper = {};
         if (!Array.isArray(eleverArray)) return grupper;
 
+        const seenIds = new Set();
         eleverArray.forEach(e => {
             if (!e || !e.namn) return;
+            if (e.id !== undefined && e.id !== null) {
+                const idKey = String(e.id);
+                if (seenIds.has(idKey)) return;
+                seenIds.add(idKey);
+            }
             const code = normalizeKlassCode(e.klass || 'ÖVRIGA');
             const namn = String(e.namn).trim();
             if (!code || !namn) return;
             if (!grupper[code]) grupper[code] = [];
-            if (!grupper[code].some(existing => existing.toLowerCase() === namn.toLowerCase())) {
-                grupper[code].push(namn);
-            }
+            grupper[code].push(namn);
         });
 
         const result = {};
@@ -744,6 +765,8 @@
             localStorage.removeItem('skolif_elevlage_pin');
             localStorage.removeItem('skolif_elevlage_active');
             localStorage.removeItem(HIGHEST_ELEV_ID_KEY);
+            localStorage.removeItem('redskapsbod_artiklar');
+            localStorage.removeItem('redskapsbod_historik');
         } catch (e) {}
         kassaEleverCache = [];
         kassaCloudSyncedOnce = false;
@@ -882,6 +905,7 @@
                         const molnTxIds = new Set(molnTransaktioner.map(t => t && t.id));
                         const nyaLokalaTx = lokalKassa.transaktioner.filter(t => t && !molnTxIds.has(t.id));
                         const elevIdMap = new Map();
+                        const matchedMolnRefs = new Set();
 
                         lokalKassa.elever.forEach(lokElev => {
                             if (!lokElev || !lokElev.namn) return;
@@ -890,11 +914,13 @@
                             const klassNorm = normalizeKlassCode(lokElev.klass);
 
                             const befintlig = sammanslagnaElever.find(m =>
+                                !matchedMolnRefs.has(m) &&
                                 String(m.namn || '').trim().toLowerCase() === namnLow &&
                                 normalizeKlassCode(m.klass) === klassNorm
                             );
 
                             if (befintlig) {
+                                matchedMolnRefs.add(befintlig);
                                 elevIdMap.set(lokElev.id, befintlig.id);
                                 if (lokElev.tagg && !befintlig.tagg) {
                                     befintlig.tagg = lokElev.tagg;
@@ -1170,18 +1196,24 @@
             return k === klassCode;
         });
 
+        // Sortera så att elever med saldo eller kopplad blipp alltid matchas i första hand vid dubblettnamn
+        const sorteradeGamlaIKlassen = [...gamlaEleverIKlassen].sort((a, b) => {
+            const sDiff = Math.abs(Number(b.saldo) || 0) - Math.abs(Number(a.saldo) || 0);
+            if (sDiff !== 0) return sDiff;
+            return (b.tagg ? 1 : 0) - (a.tagg ? 1 : 0);
+        });
+
         const uppdateradeIKlassen = [];
-        const tillagdaLower = new Set();
+        const matchadeGamlaRefs = new Set();
 
         nyaNamnLista.forEach(namn => {
             const low = namn.toLowerCase();
-            if (tillagdaLower.has(low)) return;
-            tillagdaLower.add(low);
 
-            const befintlig = gamlaEleverIKlassen.find(
-                e => String(e.namn || '').trim().toLowerCase() === low
+            const befintlig = sorteradeGamlaIKlassen.find(
+                e => !matchadeGamlaRefs.has(e) && String(e.namn || '').trim().toLowerCase() === low
             );
             if (befintlig) {
+                matchadeGamlaRefs.add(befintlig);
                 uppdateradeIKlassen.push({
                     ...befintlig,
                     id: befintlig.id,
@@ -1200,10 +1232,11 @@
             }
         });
 
+        commitHighestElevId(maxId);
+
         if (!allowRemoveStudents) {
             gamlaEleverIKlassen.forEach(gammal => {
-                const low = String(gammal.namn || '').trim().toLowerCase();
-                if (!tillagdaLower.has(low)) {
+                if (!matchadeGamlaRefs.has(gammal)) {
                     uppdateradeIKlassen.push({
                         ...gammal,
                         klass: klassCode
@@ -1211,10 +1244,9 @@
                 }
             });
         } else {
-            const borttagnaMedSaldo = gamlaEleverIKlassen.filter(gammal => {
-                const low = String(gammal.namn || '').trim().toLowerCase();
-                return !tillagdaLower.has(low) && (Number(gammal.saldo) || 0) !== 0;
-            });
+            const borttagnaMedSaldo = gamlaEleverIKlassen.filter(
+                gammal => !matchadeGamlaRefs.has(gammal) && (Number(gammal.saldo) || 0) !== 0
+            );
 
             if (borttagnaMedSaldo.length > 0) {
                 const namnPaSaldoElever = borttagnaMedSaldo.map(e => `${e.namn} (${e.saldo} kr)`).join(', ');
@@ -1528,7 +1560,11 @@
     // ==========================================
     let isSigningIn = false;
     function loginWithGoogle() {
-        if (!auth || isSigningIn) return;
+        if (!auth || typeof firebase === 'undefined') {
+            showToast('Ingen internetanslutning just nu – alla verktyg fungerar direkt i lokalt offline-läge!', 'warning');
+            return;
+        }
+        if (isSigningIn) return;
         isSigningIn = true;
         const provider = new firebase.auth.GoogleAuthProvider();
         auth.signInWithPopup(provider)
@@ -1572,6 +1608,10 @@
 
     if (auth) {
         auth.onAuthStateChanged((user) => {
+            if (user && isAnmalanDistrictAccount(user)) {
+                auth.signOut().catch(() => {});
+                return;
+            }
             authReady = true;
             // Ignorera eventuella anonyma publiksessioner så de inte skapar skräp-kassor
             const validUser = (user && !user.isAnonymous && user.email) ? user : null;
@@ -3354,7 +3394,7 @@
     if (auth) {
         auth.onAuthStateChanged((user) => {
             updateHiddenStatsButtonVisibility();
-            if (user) {
+            if (user && !isAnmalanDistrictAccount(user)) {
                 flushPendingStatsQueue();
             }
         });

@@ -756,7 +756,7 @@
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-<script src="klasser.js?v=9"></script>
+<script src="klasser.js?v=10"></script>
 
 <!-- ========================================== -->
 <!-- JAVASCRIPT LOGIK                           -->
@@ -1008,6 +1008,10 @@
         }
 
         if (window.SkolIFKlasser) {
+            if (SkolIFKlasser.isElevlage && SkolIFKlasser.isElevlage()) {
+                SkolIFKlasser.requireTeacherUnlock(() => sparaKlassLokalt());
+                return;
+            }
             await SkolIFKlasser.saveClass(namn, text);
             return;
         }

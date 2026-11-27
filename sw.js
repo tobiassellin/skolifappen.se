@@ -5,7 +5,7 @@
  * idrottshall i källaren eller i skogen utan täckning.
  * ============================================================================ */
 
-const CACHE_NAME = 'skolif-offline-v4';
+const CACHE_NAME = 'skolif-offline-v5';
 
 const PRECACHE_URLS = [
     './',
@@ -22,12 +22,16 @@ const PRECACHE_URLS = [
     './integritet.html',
     './om.html',
     './seo-shared.css',
-    './klasser.js?v=9',
+    './klasser.js?v=10',
     './manifest.json',
     './icon.svg',
     './apple-touch-icon.png',
     './icon-192.png',
     './icon-512.png'
+];
+
+const BACKGROUND_AUDIO_URLS = [
+    './beeptest.mp3'
 ];
 
 // Domäner som alltid ska gå direkt mot nätet (Firebase, Auth, Annonser m.m.)
@@ -48,8 +52,8 @@ const BYPASS_HOSTS = [
 
 self.addEventListener('install', (event) => {
     event.waitUntil(
-        caches.open(CACHE_NAME).then((cache) =>
-            Promise.allSettled(
+        caches.open(CACHE_NAME).then(async (cache) => {
+            await Promise.allSettled(
                 PRECACHE_URLS.map((url) =>
                     fetch(url, { cache: 'reload' }).then((res) => {
                         if (res && res.ok) {
@@ -57,8 +61,16 @@ self.addEventListener('install', (event) => {
                         }
                     })
                 )
-            )
-        ).then(() => self.skipWaiting())
+            );
+            // Cacha även beep-testets ljudfil i bakgrunden utan att blockera installationen
+            BACKGROUND_AUDIO_URLS.forEach((audioUrl) => {
+                fetch(audioUrl).then((res) => {
+                    if (res && res.ok && res.status === 200) {
+                        cache.put(audioUrl, res).catch(() => {});
+                    }
+                }).catch(() => {});
+            });
+        }).then(() => self.skipWaiting())
     );
 });
 
@@ -74,12 +86,44 @@ self.addEventListener('activate', (event) => {
     );
 });
 
+async function serveCachedRangeResponse(req) {
+    const cached = await caches.match(req, { ignoreSearch: true });
+    if (!cached) throw new Error('Offline audio miss');
+    const rangeHeader = req.headers.get('range');
+    if (!rangeHeader) return cached;
+
+    const buf = await cached.arrayBuffer();
+    const total = buf.byteLength;
+    const match = /bytes=(\d*)-(\d*)/.exec(rangeHeader);
+    if (!match) return cached;
+
+    let start = match[1] ? parseInt(match[1], 10) : 0;
+    let end = match[2] ? parseInt(match[2], 10) : total - 1;
+    if (isNaN(start) || start < 0) start = 0;
+    if (isNaN(end) || end >= total) end = total - 1;
+    if (start > end || start >= total) {
+        return new Response(null, {
+            status: 416,
+            headers: { 'Content-Range': `bytes */${total}` }
+        });
+    }
+
+    const sliced = buf.slice(start, end + 1);
+    return new Response(sliced, {
+        status: 206,
+        statusText: 'Partial Content',
+        headers: {
+            'Content-Type': cached.headers.get('Content-Type') || 'audio/mpeg',
+            'Accept-Ranges': 'bytes',
+            'Content-Range': `bytes ${start}-${end}/${total}`,
+            'Content-Length': String(sliced.byteLength)
+        }
+    });
+}
+
 self.addEventListener('fetch', (event) => {
     const req = event.request;
     if (req.method !== 'GET') return;
-
-    // Låt ljud-/videoströmmar med Range-headers (t.ex. Safari <audio>) gå direkt
-    if (req.headers && req.headers.has('range')) return;
 
     let url;
     try {
@@ -94,6 +138,26 @@ self.addEventListener('fetch', (event) => {
     if (url.origin !== self.location.origin) return;
 
     if (BYPASS_HOSTS.some((h) => url.hostname === h || url.hostname.endsWith('.' + h))) {
+        return;
+    }
+
+    // Ljudströmmar med Range-headers (t.ex. Safari/Chrome <audio src="beeptest.mp3">):
+    // Gå direkt mot nätet när online, men servera 206 Partial Content ur cachen när offline!
+    if (req.headers && req.headers.has('range')) {
+        event.respondWith(
+            fetch(req).catch(() => serveCachedRangeResponse(req))
+        );
+        // Om filen ännu inte ligger i cachen när online, spara hela filen i bakgrunden
+        caches.open(CACHE_NAME).then(async (cache) => {
+            const exists = await cache.match(url.pathname, { ignoreSearch: true });
+            if (!exists) {
+                fetch(url.pathname).then((fullRes) => {
+                    if (fullRes && fullRes.ok && fullRes.status === 200) {
+                        cache.put(url.pathname, fullRes).catch(() => {});
+                    }
+                }).catch(() => {});
+            }
+        }).catch(() => {});
         return;
     }
 

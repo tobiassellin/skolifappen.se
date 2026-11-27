@@ -346,6 +346,11 @@
     .btn-insattning { background: linear-gradient(135deg, #4CAF50, #2E7D32); }
     /* ELEVLÄGE / KIOSKLÅS: Dölj admin- och insättningsfunktioner när kiosken sköts av elever */
     body.skolif-elevlage-locked [onclick="hanteraVaror()"],
+    body.skolif-elevlage-locked [onclick="bytVy('statistik')"],
+    body.skolif-elevlage-locked [onclick="exporteraTransaktionerCSV()"],
+    body.skolif-elevlage-locked [onclick="laggInBasutbudVaror()"],
+    body.skolif-elevlage-locked [onclick="laggInDemoEleverIKassan()"],
+    body.skolif-elevlage-locked [onclick="rensaDemoEleverIKassan()"],
     body.skolif-elevlage-locked [onclick="oppnaAdminModal()"],
     body.skolif-elevlage-locked [onclick="SkolIFKlasser.openModal()"],
     body.skolif-elevlage-locked [onclick="oppnaRedigeraElevModal()"],
@@ -1113,7 +1118,7 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-    <script src="klasser.js?v=9"></script>
+    <script src="klasser.js?v=10"></script>
 
     <script>
         const firebaseConfig = {
@@ -1126,11 +1131,30 @@
             measurementId: "G-6JP01V6CYC"
         };
 
-        if (!firebase.apps.length) {
+        if (typeof firebase !== 'undefined' && (!firebase.apps || !firebase.apps.length)) {
             firebase.initializeApp(firebaseConfig);
         }
-        const auth = firebase.auth();
-        const db = firebase.firestore();
+        const auth = (typeof firebase !== 'undefined' && firebase.auth) ? firebase.auth() : null;
+        const db = (typeof firebase !== 'undefined' && firebase.firestore) ? firebase.firestore() : null;
+
+        const DISTRICT_ONLY_EMAILS_KIOSK = new Set([
+            'jamtland@skolifwebben.se',
+            'medelpad@skolifwebben.se',
+            'angermanland@skolifwebben.se',
+            'admin@skolifwebben.se'
+        ]);
+        function isDistrictOnlyAccountKiosk(user) {
+            if (!user) return false;
+            const em = String(user.email || '').trim().toLowerCase();
+            if (DISTRICT_ONLY_EMAILS_KIOSK.has(em)) return true;
+            if (Array.isArray(user.providerData) && user.providerData.length > 0) {
+                if (user.providerData.every(p => p && p.providerId === 'password')) return true;
+            }
+            return false;
+        }
+        function arKassaElevlageLast() {
+            return Boolean(window.SkolIFKlasser && window.SkolIFKlasser.isElevlage && window.SkolIFKlasser.isElevlage());
+        }
 
         let aktivUserId = null;
         let kassaDocData = null;
@@ -1314,12 +1338,12 @@
                     // Uppdatera header-status
                     const statusEl = document.getElementById("kassaStatusText");
                     if (statusEl) {
-                        const currentUserEmail = (auth.currentUser && auth.currentUser.email) ? auth.currentUser.email.toLowerCase() : "";
+                        const currentUserEmail = (auth && auth.currentUser && auth.currentUser.email) ? auth.currentUser.email.toLowerCase() : "";
                         if (docId === currentUserEmail) {
                             statusEl.innerHTML = `☁️ Synkad i realtid &bull; Egen kassa`;
                         } else {
                             const skapare = kassaDocData.skapare || docId;
-                            statusEl.innerHTML = `☁️ Synkad i realtid &bull; Delad kassa från <strong>${skapare}</strong>`;
+                            statusEl.innerHTML = `☁️ Synkad i realtid &bull; Delad kassa från <strong>${escapeHtmlKassa(skapare)}</strong>`;
                         }
                     }
 
@@ -1348,6 +1372,7 @@
         //  HANTERING AV BEHÖRIGA KOLLEGOR
         // ==========================================
         function oppnaDelaKassaModal() {
+            if (arKassaElevlageLast()) return;
             renderaBehorigaKassaLista();
             document.getElementById("delaKassaModal").style.display = "flex";
         }
@@ -1372,7 +1397,7 @@
             }
 
             const skapare = (kassaDocData && kassaDocData.skapare) ? kassaDocData.skapare.toLowerCase() : (aktivUserId || "").toLowerCase();
-            const currentUserEmail = (auth.currentUser && auth.currentUser.email) ? auth.currentUser.email.toLowerCase() : "";
+            const currentUserEmail = (auth && auth.currentUser && auth.currentUser.email) ? auth.currentUser.email.toLowerCase() : "";
 
             let html = '<ul style="list-style: none; padding: 0; margin: 0;">';
             behoriga.forEach(email => {
@@ -1388,7 +1413,7 @@
                             ${isSelf ? '<span style="color: #2E7D32; font-size: 0.75rem; margin-left: 6px; font-weight: 700;">(Du)</span>' : ''}
                         </span>
                         ${!isCreator && (isCreatorUser() || isSelf) ? `
-                            <button type="button" onclick="taBortBehorigKassa('${escapeHtmlKassa(email)}')" style="background: #FFEBEE; color: #C62828; border: 1px solid #FFCDD2; border-radius: 6px; padding: 4px 10px; font-size: 0.75rem; font-weight: 700; cursor: pointer; transition: 0.2s;" onmouseover="this.style.background='#FFCDD2'" onmouseout="this.style.background='#FFEBEE'">Ta bort</button>
+                            <button type="button" data-email="${escapeHtmlKassa(email)}" onclick="taBortBehorigKassa(this.dataset.email)" style="background: #FFEBEE; color: #C62828; border: 1px solid #FFCDD2; border-radius: 6px; padding: 4px 10px; font-size: 0.75rem; font-weight: 700; cursor: pointer; transition: 0.2s;" onmouseover="this.style.background='#FFCDD2'" onmouseout="this.style.background='#FFEBEE'">Ta bort</button>
                         ` : ''}
                     </li>
                 `;
@@ -1398,13 +1423,14 @@
         }
 
         function isCreatorUser() {
-            if (!auth.currentUser || !auth.currentUser.email) return false;
+            if (!auth || !auth.currentUser || !auth.currentUser.email) return false;
             const current = auth.currentUser.email.toLowerCase();
             const skapare = (kassaDocData && kassaDocData.skapare) ? kassaDocData.skapare.toLowerCase() : (aktivUserId || "").toLowerCase();
             return current === skapare;
         }
 
         async function laggTillBehorigKassa() {
+            if (arKassaElevlageLast()) return;
             const input = document.getElementById("kassaBjudEmail");
             if (!input) return;
             const email = input.value.trim().toLowerCase();
@@ -1414,8 +1440,13 @@
                 return;
             }
 
-            if (!aktivUserId) {
-                alert("Ingen kassa är aktiv just nu.");
+            if (!aktivUserId || !db) {
+                alert("Ingen molnkassa är aktiv just nu.");
+                return;
+            }
+
+            if (!isCreatorUser()) {
+                alert("Endast ägaren av kassan kan bjuda in nya kollegor.");
                 return;
             }
 
@@ -1434,8 +1465,23 @@
         }
 
         async function taBortBehorigKassa(email) {
+            if (arKassaElevlageLast() || !email) return;
+            if (!aktivUserId || !db) return;
+
+            const cleanTarget = String(email).trim().toLowerCase();
+            const skapare = (kassaDocData && kassaDocData.skapare) ? kassaDocData.skapare.toLowerCase() : (aktivUserId || "").toLowerCase();
+            const currentUserEmail = (auth && auth.currentUser && auth.currentUser.email) ? auth.currentUser.email.toLowerCase() : "";
+            const isSelf = Boolean(currentUserEmail && cleanTarget === currentUserEmail);
+
+            if (cleanTarget === skapare) {
+                alert("Ägaren av kassan kan inte tas bort.");
+                return;
+            }
+            if (!isCreatorUser() && !isSelf) {
+                alert("Endast ägaren av kassan kan ta bort kollegor.");
+                return;
+            }
             if (!confirm(`Vill du ta bort behörigheten för ${email}?`)) return;
-            if (!aktivUserId) return;
 
             try {
                 await db.collection("skolif_kassa").doc(aktivUserId).set({
@@ -1660,7 +1706,8 @@
         }
 
         function taBortAktivElev() {
-            const e = allaEleverCache.find(x => x.id === aktivElevId);
+            if (arKassaElevlageLast()) return;
+            const e = allaEleverCache.find(x => String(x.id) === String(aktivElevId));
             if (!e) return;
 
             const borttagetNamn = e.namn;
@@ -1673,8 +1720,14 @@
 
             if (!confirm(varning)) return;
 
-            const targetId = e.id; const targetNamn = String(e.namn || "").trim().toLowerCase(); const targetKlass = String(e.klass || "").trim().toUpperCase();
-            allaEleverCache = allaEleverCache.filter(x => !(targetId !== undefined && targetId !== null && String(x.id) === String(targetId)) && !(String(x.namn || "").trim().toLowerCase() === targetNamn && String(x.klass || "").trim().toUpperCase() === targetKlass));
+            const targetId = e.id;
+            if (targetId !== undefined && targetId !== null) {
+                allaEleverCache = allaEleverCache.filter(x => String(x.id) !== String(targetId));
+            } else {
+                const targetNamn = String(e.namn || "").trim().toLowerCase();
+                const targetKlass = String(e.klass || "").trim().toUpperCase();
+                allaEleverCache = allaEleverCache.filter(x => !(String(x.namn || "").trim().toLowerCase() === targetNamn && String(x.klass || "").trim().toUpperCase() === targetKlass));
+            }
 
             sparaKassaData({
                 elever: JSON.stringify(allaEleverCache)
@@ -1804,13 +1857,13 @@
         function visaVaror(varor) {
             const div = document.getElementById("varorLista");
             div.innerHTML = varor.length === 0 ? "<p style='color:gray;'>Inga varor inlagda.</p>" : 
-                varor.map(v => {
+                varor.map((v, idx) => {
                     const arSlut = v.slut === true;
                     return `
-                    <div class="vara-card ${arSlut ? 'slut' : ''}" style="position: relative;" onclick="${arSlut ? '' : `kopFardigVara('${v.namn}', ${v.pris})`}">
+                    <div class="vara-card ${arSlut ? 'slut' : ''}" style="position: relative;" onclick="${arSlut ? '' : `kopFardigVaraIdx(${idx})`}">
                         ${arSlut ? '<span class="slut-badge">Slut</span>' : ''}
-                        <div class="vara-emoji">${v.emoji||'🍬'}</div>
-                        <div class="vara-namn">${v.namn}</div>
+                        <div class="vara-emoji">${escapeHtmlKassa(v.emoji||'🍬')}</div>
+                        <div class="vara-namn">${escapeHtmlKassa(v.namn)}</div>
                         <div class="vara-pris">${v.pris} kr</div>
                     </div>`;
                 }).join('');
@@ -2084,6 +2137,7 @@
         }
 
         function togglaVaraLager(index) {
+            if (arKassaElevlageLast()) return;
             allaVarorCache[index].slut = !allaVarorCache[index].slut;
             sparaKassaData({
                 varor: JSON.stringify(allaVarorCache)
@@ -2098,6 +2152,7 @@
         }
 
         function laggTillVara() {
+            if (arKassaElevlageLast()) return;
             const emoji = document.getElementById("nyVaraEmoji").value.trim() || "🍬";
             const namn = document.getElementById("nyVaraNamn").value.trim();
             const pris = parseInt(document.getElementById("nyVaraPris").value);
@@ -2120,6 +2175,7 @@
         }
 
         function taBortVara(index) {
+            if (arKassaElevlageLast()) return;
             if(confirm("Är du säker på att du vill ta bort " + allaVarorCache[index].namn + " från kassan?")) {
                 allaVarorCache.splice(index, 1);
                 sparaKassaData({
@@ -2136,6 +2192,7 @@
     // --- VY-HANTERING ---
         function bytVy(vy) {
             if(vy === 'statistik') {
+                if (arKassaElevlageLast()) return;
                 document.getElementById('kioskView').style.display = 'none';
                 document.getElementById('statistikView').style.display = 'block';
                 uppdateraStatistikVy('idag'); // Ladda dagens stat som default
@@ -2321,6 +2378,7 @@
             const labels = toppData.map(item => `${item[0]} (${item[1].antal} st)`);
             const values = toppData.map(item => item[1].summa); // Visar pengar i grafen
 
+            if (typeof Chart === 'undefined') return;
             forsaljningChart = new Chart(ctx, {
                 type: 'bar',
                 data: {
@@ -2390,6 +2448,7 @@
         }
 
         function exporteraTransaktionerCSV() {
+            if (arKassaElevlageLast()) return;
             if (allaTransaktionerCache.length === 0) {
                 alert("Det finns inga transaktioner att exportera.");
                 return;
@@ -2493,7 +2552,7 @@
         function sparaKassaData(fieldsObj) {
             uppdateraKassaVyDirekt();
 
-            if (aktivUserId) {
+            if (aktivUserId && db) {
                 const payload = { senastUppdaterad: Date.now() };
                 if (window.SkolIFKlasser && window.SkolIFKlasser.syncLocalCacheFromCloud) { window.SkolIFKlasser.syncLocalCacheFromCloud(allaEleverCache, allaVarorCache, allaTransaktionerCache); }
                 if (fieldsObj.elever !== undefined) payload.elever = fieldsObj.elever;
@@ -2579,15 +2638,18 @@
         loggaInMedGoogle = function() {
             if (window.SkolIFKlasser && window.SkolIFKlasser.login) {
                 window.SkolIFKlasser.login();
-            } else {
+            } else if (auth && typeof firebase !== 'undefined') {
                 const provider = new firebase.auth.GoogleAuthProvider();
                 auth.signInWithPopup(provider).catch((error) => {
                     alert("Kunde inte logga in med Google: " + error.message);
                 });
+            } else {
+                alert("Ingen internetanslutning just nu – kassan körs i lokalt offline-läge!");
             }
         };
 
         loggaUt = function() {
+            if (arKassaElevlageLast()) return;
             if (confirm("Vill du logga ut från molnkassan?\n(Efter utloggning kan du fortsätta använda en lokal kassa på datorn.)")) {
                 if (liveKassaListener) {
                     liveKassaListener();
@@ -2599,48 +2661,71 @@
                 if (window.SkolIFKlasser && window.SkolIFKlasser.clearLocalKassa) {
                     window.SkolIFKlasser.clearLocalKassa();
                 }
-                auth.signOut().then(() => {
+                if (auth) {
+                    auth.signOut().then(() => {
+                        laddaLokalKassaVy();
+                        if (window.visaNotis) window.visaNotis("Du har loggats ut", "info");
+                    });
+                } else {
                     laddaLokalKassaVy();
-                    if (window.visaNotis) window.visaNotis("Du har loggats ut", "info");
-                });
+                }
             }
         };
 
         // Om man ändrar en klass i "Mina Klasser"-modalen medan man kör i lokalt läge
         window.addEventListener("skolif-klasser-updated", () => {
-            if (!aktivUserId && !auth.currentUser && window.SkolIFKlasser && window.SkolIFKlasser.getLocalKassa) {
+            if (!aktivUserId && (!auth || !auth.currentUser) && window.SkolIFKlasser && window.SkolIFKlasser.getLocalKassa) {
                 const lokal = window.SkolIFKlasser.getLocalKassa();
                 allaEleverCache = Array.isArray(lokal.elever) ? lokal.elever : [];
                 uppdateraKassaVyDirekt();
             }
         });
 
+        window.addEventListener("skolif-elevlage-changed", (ev) => {
+            if (ev && ev.detail && ev.detail.locked) {
+                bytVy('kiosk');
+                ["varorModal", "redigeraElevModal", "adminModal", "delaKassaModal"].forEach(mId => {
+                    const el = document.getElementById(mId);
+                    if (el) el.style.display = "none";
+                });
+            }
+            filtreraOchVisa();
+        });
+
         // Starta direkt i lokalt läge och växla sömlöst om/när användaren är inloggad
         laddaLokalKassaVy();
 
-        auth.onAuthStateChanged(async (user) => {
-            document.getElementById("loginView").style.display = "none";
-            document.getElementById("kioskView").style.display = "block";
-
-            if (user) {
-                await initKassaForUser(user);
-            } else {
-                if (liveKassaListener) {
-                    liveKassaListener();
-                    liveKassaListener = null;
+        if (auth) {
+            auth.onAuthStateChanged(async (user) => {
+                if (user && isDistrictOnlyAccountKiosk(user)) {
+                    await auth.signOut().catch(() => {});
+                    return;
                 }
-                aktivUserId = null;
-                kassaDocData = null;
-                aktivElevId = null;
-                laddaLokalKassaVy();
-            }
-        });
+                document.getElementById("loginView").style.display = "none";
+                document.getElementById("kioskView").style.display = "block";
+
+                const validUser = (user && !user.isAnonymous && user.email) ? user : null;
+                if (validUser) {
+                    await initKassaForUser(validUser);
+                } else {
+                    if (liveKassaListener) {
+                        liveKassaListener();
+                        liveKassaListener = null;
+                    }
+                    aktivUserId = null;
+                    kassaDocData = null;
+                    aktivElevId = null;
+                    laddaLokalKassaVy();
+                }
+            });
+        }
         // ==========================================
         //  REDIGERA BEFINTLIGA VAROR I "HANTERA VAROR"
         // ==========================================
         let redigerarVaraIndex = null;
 
         hanteraVaror = function() {
+            if (arKassaElevlageLast()) return;
             redigerarVaraIndex = null;
             document.getElementById("varorModal").style.display = "flex";
             ritaUppVarorIHantera();
@@ -2658,6 +2743,7 @@
         };
 
         window.startaRedigeraVara = function(index) {
+            if (arKassaElevlageLast()) return;
             redigerarVaraIndex = index;
             ritaUppVarorIHantera();
             setTimeout(() => {
@@ -2672,6 +2758,7 @@
         };
 
         window.sparaRedigeradVara = function(index) {
+            if (arKassaElevlageLast()) return;
             const v = allaVarorCache[index];
             if (!v) return;
 
@@ -2730,7 +2817,7 @@
                 return `
                 <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #E0E0E0; gap: 8px; flex-wrap: wrap;">
                     <div style="flex: 1; min-width: 130px; ${arSlut ? 'opacity: 0.5; text-decoration: line-through;' : ''}">
-                        <span style="font-size:1.15rem; margin-right:6px;">${v.emoji || '🍬'}</span> 
+                        <span style="font-size:1.15rem; margin-right:6px;">${escapeHtmlKassa(v.emoji || '🍬')}</span> 
                         <strong style="font-size: 0.9rem;">${escapeHtmlKassa(v.namn)}</strong> <span style="font-size: 0.85rem; color: #2E7D32; font-weight: 700;">(${v.pris} kr)</span>
                         ${arSlut ? '<span style="color:#D32F2F; font-size:0.72rem; font-weight:700; margin-left:6px; text-decoration:none; display:inline-block;">[SLUT]</span>' : ''}
                     </div>
@@ -2914,7 +3001,7 @@
                     <div class="vara-card ${arSlut ? 'slut' : ''}" style="position: relative; ${valdaStil}" onclick="${arSlut ? '' : `kopFardigVaraIdx(${idx})`}" title="${arSlut ? 'Slut i lager' : 'Klicka för att lägga i snabbkorgen (välj sedan elev eller blippa tagg)'}">
                         ${arSlut ? '<span class="slut-badge">Slut</span>' : ''}
                         ${antal > 0 ? `<button type="button" onclick="event.stopPropagation(); minskaSnabbkorgIdx(${idx})" style="position:absolute; top:6px; left:6px; width:24px; height:24px; border-radius:50%; background:#FFEBEE; color:#C62828; border:1px solid #FFCDD2; font-weight:800; font-size:0.85rem; cursor:pointer; display:flex; align-items:center; justify-content:center; line-height:1;" title="Ta bort 1 st">−</button><span style="position:absolute; top:6px; right:6px; background:#2E7D32; color:white; font-size:0.75rem; font-weight:800; padding:2px 8px; border-radius:999px; box-shadow:0 2px 6px rgba(0,0,0,0.15);">${antal}x</span>` : ''}
-                        <div class="vara-emoji">${v.emoji||'🍬'}</div>
+                        <div class="vara-emoji">${escapeHtmlKassa(v.emoji||'🍬')}</div>
                         <div class="vara-namn">${escapeHtmlKassa(v.namn)}</div>
                         <div class="vara-pris">${v.pris} kr</div>
                     </div>`;
@@ -2956,7 +3043,7 @@
             }
             const totalPris = snabbkorg.reduce((sum, item) => sum + (item.pris * item.antal), 0);
             const totalAntal = snabbkorg.reduce((sum, item) => sum + item.antal, 0);
-            const sammanfattning = snabbkorg.map(item => `${item.emoji || '🍬'} <strong>${item.antal}x ${escapeHtmlKassa(item.namn)}</strong>`).join(" + ");
+            const sammanfattning = snabbkorg.map(item => `${escapeHtmlKassa(item.emoji || '🍬')} <strong>${item.antal}x ${escapeHtmlKassa(item.namn)}</strong>`).join(" + ");
             banner.style.display = "flex";
             banner.innerHTML = `
                 <div style="display:flex; flex-direction:column; gap:3px;">
@@ -3039,6 +3126,7 @@
         }
 
         window.laggInBasutbudVaror = function() {
+            if (arKassaElevlageLast()) return;
             localStorage.removeItem("skolif_varor_explicit_empty");
             STANDARD_KIOSK_VAROR.forEach(std => {
                 const finns = allaVarorCache.some(v => String(v.namn || "").toLowerCase() === std.namn.toLowerCase());
@@ -3059,6 +3147,7 @@
         };
 
         window.laggInDemoEleverIKassan = function() {
+            if (arKassaElevlageLast()) return;
             const demoLista = [
                 { namn: "Liam Lind", klass: "7A", saldo: 80, arDemo: true },
                 { namn: "Elsa Ek", klass: "7A", saldo: 50, arDemo: true },
@@ -3083,6 +3172,7 @@
         };
 
         window.rensaDemoEleverIKassan = function() {
+            if (arKassaElevlageLast()) return;
             allaEleverCache = allaEleverCache.filter(e => !e.arDemo);
             sparaKassaData({
                 elever: JSON.stringify(allaEleverCache)
@@ -3189,6 +3279,7 @@
 
         // Uppdatera Redigera Elev-modalen så att tagg-fältet fylls i och sparas
         oppnaRedigeraElevModal = function() {
+            if (arKassaElevlageLast()) return;
             const e = allaEleverCache.find(x => x.id === aktivElevId);
             if (!e) return;
 
@@ -3200,6 +3291,7 @@
         };
 
         sparaRedigeradElev = function() {
+            if (arKassaElevlageLast()) return;
             const e = allaEleverCache.find(x => x.id === aktivElevId);
             if (!e) return;
 

@@ -986,7 +986,7 @@
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-<script src="klasser.js?v=9"></script>
+<script src="klasser.js?v=10"></script>
 
 <script>
     // ==========================================
@@ -1121,6 +1121,10 @@
     });
 
     async function sparaAktuellKlassIBeep() {
+        if (window.SkolIFKlasser && SkolIFKlasser.isElevlage && SkolIFKlasser.isElevlage()) {
+            SkolIFKlasser.requireTeacherUnlock(() => sparaAktuellKlassIBeep());
+            return;
+        }
         const namn = document.getElementById('klassNamnInput').value.trim();
         const text = document.getElementById('eleverInput').value.trim();
         if (!namn) {
@@ -1244,12 +1248,14 @@
         currentTimelineIndex = 0;
         lastBeepIndex = -1;
         lastLevelAnnounced = 0;
+        lastIntroBeep = -1;
         testStartTime = Date.now();
         pauseTime = 0;
         totalPausedMs = 0;
         savedAudioTimeBeforeFinish = 0;
         isRunning = true;
         isIntro = true;
+        if (animFrameId) cancelAnimationFrame(animFrameId);
 
         const pausBtn = document.getElementById('pausBtn');
         if (pausBtn) {
@@ -1291,11 +1297,11 @@
 
     function getElapsedSeconds() {
         const audioEl = document.getElementById('beepAudio');
-        if (audioEl && !audioEl.paused && !audioEl.ended) {
+        if (isAudioPlaying && audioEl && !audioEl.paused && !audioEl.ended) {
             return audioEl.currentTime;
         }
-        const now = Date.now();
-        return (now - testStartTime - totalPausedMs) / 1000.0;
+        const effectiveNow = (!isRunning && pauseTime > 0) ? pauseTime : Date.now();
+        return Math.max(0, (effectiveNow - testStartTime - totalPausedMs) / 1000.0);
     }
 
     function tick() {
@@ -1307,6 +1313,11 @@
         if (elapsedSeconds < introSeconds) {
             isIntro = true;
             const timeToStart = Math.max(0, introSeconds - elapsedSeconds);
+            const wholeSecLeft = Math.ceil(timeToStart);
+            if (!isAudioPlaying && wholeSecLeft <= 3 && wholeSecLeft >= 1 && lastIntroBeep !== wholeSecLeft) {
+                lastIntroBeep = wholeSecLeft;
+                if (typeof playSynthBeep === 'function') playSynthBeep(600, 0.12);
+            }
 
             document.getElementById('statusBadge').innerHTML = "🟡 FÖRBEREDELSE (RÖSTINSTRUKTIONER)";
             document.getElementById('statusBadge').style.color = "#FBBF24";
@@ -1376,7 +1387,18 @@
             document.getElementById('shuttleBar').style.background = "#22C55E";
 
         } else if (elapsedSeconds >= shuttleTimeline[shuttleTimeline.length - 1].endTime) {
-            // Testet nådde slutet (Nivå 21 slutförd!)
+            // Testet nådde slutet (Nivå 21 slutförd!) – ge alla kvarvarande löpare slutnivån
+            const finalShuttle = shuttleTimeline[shuttleTimeline.length - 1];
+            elever.filter(e => e.status === 'SPRINGER').forEach(e => {
+                e.status = 'KLAR';
+                e.autoMarkedKlar = true;
+                e.niva = finalShuttle.level;
+                e.vanda = finalShuttle.shuttle;
+                e.meter = finalShuttle.totalDistance;
+                e.speed = finalShuttle.speed;
+                e.vo2 = beraknaVO2Max(finalShuttle.speed);
+                e.placering = 1;
+            });
             avslutaTest();
             return;
         }
@@ -1539,18 +1561,31 @@
             document.getElementById('statusBadge').style.color = "#FBBF24";
             releaseWakeLock();
         } else {
+            const currentElapsed = Math.max(0, (pauseTime - testStartTime - totalPausedMs) / 1000.0);
             isRunning = true;
             totalPausedMs += (Date.now() - pauseTime);
+            pauseTime = 0;
             if (audioEl && audioEl.paused) {
+                try {
+                    if (Math.abs((audioEl.currentTime || 0) - currentElapsed) > 0.5) {
+                        audioEl.currentTime = currentElapsed;
+                    }
+                } catch (e) {}
+                audioEl.muted = !audioEnabled;
                 audioEl.play().then(() => {
                     isAudioPlaying = true;
-                    testStartTime = Date.now() - (audioEl.currentTime * 1000);
-                    totalPausedMs = 0;
-                }).catch(() => {});
+                    if (Math.abs(audioEl.currentTime - currentElapsed) <= 1.5) {
+                        testStartTime = Date.now() - (audioEl.currentTime * 1000);
+                        totalPausedMs = 0;
+                    }
+                }).catch(() => {
+                    isAudioPlaying = false;
+                });
             }
             document.getElementById('pausBtn').innerHTML = "⏸️ Pausa";
             document.getElementById('pausBtn').className = "btn btn-orange btn-sm";
             requestWakeLock();
+            if (animFrameId) cancelAnimationFrame(animFrameId);
             tick();
         }
     }
@@ -1640,6 +1675,7 @@
         }
 
         requestWakeLock();
+        if (animFrameId) cancelAnimationFrame(animFrameId);
         tick();
     }
 

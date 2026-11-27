@@ -539,7 +539,7 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-    <script src="klasser.js?v=9"></script>
+    <script src="klasser.js?v=10"></script>
 
     <script>
         const PAGE_META = {
@@ -555,7 +555,7 @@
             hjulet: { label: 'Aktivitetshjulet', icon: '🎡' }
         };
 
-        const db = firebase.firestore();
+        const db = (typeof firebase !== 'undefined' && firebase.firestore) ? firebase.firestore() : null;
         let statsUnsubscribe = null;
 
         function getDateStr(daysOffset = 0) {
@@ -699,6 +699,10 @@
                 statsUnsubscribe();
                 statsUnsubscribe = null;
             }
+            if (!db) {
+                renderStats(readLocalStatsFallback(), false);
+                return;
+            }
 
             statsUnsubscribe = db.collection('skolif_kassa').doc('_webb_statistik_').onSnapshot((docSnap) => {
                 if (docSnap.exists) {
@@ -737,31 +741,42 @@
 
         const ADMIN_EMAIL = 'tobias.sellin@gmail.com';
 
-        firebase.auth().onAuthStateChanged((user) => {
-            const lockView = document.getElementById('adminLockView');
-            const dashView = document.getElementById('adminDashboardContent');
-            const lockMsg = document.getElementById('adminLockMessage');
-            const isAdmin = Boolean(user && user.email && user.email.toLowerCase() === ADMIN_EMAIL);
+        function escapeStatHtml(s) {
+            return String(s || '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[c]));
+        }
 
-            if (isAdmin) {
-                if (lockView) lockView.style.display = 'none';
-                if (dashView) dashView.style.display = 'block';
-                renderStats(readLocalStatsFallback(), false);
-                startListeningStats();
-            } else {
-                if (statsUnsubscribe) {
-                    statsUnsubscribe();
-                    statsUnsubscribe = null;
+        if (typeof firebase !== 'undefined' && firebase.auth) {
+            firebase.auth().onAuthStateChanged((user) => {
+                const lockView = document.getElementById('adminLockView');
+                const dashView = document.getElementById('adminDashboardContent');
+                const lockMsg = document.getElementById('adminLockMessage');
+                const isAdmin = Boolean(user && user.email && user.email.toLowerCase() === ADMIN_EMAIL);
+
+                if (isAdmin) {
+                    if (lockView) lockView.style.display = 'none';
+                    if (dashView) dashView.style.display = 'block';
+                    renderStats(readLocalStatsFallback(), false);
+                    startListeningStats();
+                } else {
+                    if (statsUnsubscribe) {
+                        statsUnsubscribe();
+                        statsUnsubscribe = null;
+                    }
+                    if (dashView) dashView.style.display = 'none';
+                    if (lockView) lockView.style.display = 'block';
+                    if (lockMsg) {
+                        lockMsg.innerHTML = user && user.email
+                            ? `Du är inloggad som <strong>${escapeStatHtml(user.email)}</strong>, men statistiken är låst till <strong>${ADMIN_EMAIL}</strong>.`
+                            : `Den här statistiksidan är låst och kan endast visas när du är inloggad med <strong>${ADMIN_EMAIL}</strong>.`;
+                    }
                 }
-                if (dashView) dashView.style.display = 'none';
-                if (lockView) lockView.style.display = 'block';
-                if (lockMsg) {
-                    lockMsg.innerHTML = user && user.email
-                        ? `Du är inloggad som <strong>${user.email}</strong>, men statistiken är låst till <strong>${ADMIN_EMAIL}</strong>.`
-                        : `Den här statistiksidan är låst och kan endast visas när du är inloggad med <strong>${ADMIN_EMAIL}</strong>.`;
-                }
+            });
+        } else {
+            const lockMsg = document.getElementById('adminLockMessage');
+            if (lockMsg) {
+                lockMsg.textContent = 'Ingen internetanslutning – anslut till nätet och logga in som administratör för att visa statistiken.';
             }
-        });
+        }
     </script>
 </body>
 </html>

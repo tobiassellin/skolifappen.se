@@ -621,7 +621,7 @@
     <div class="nav-right">
         <span id="navUserBadge" style="display:none; color:rgba(255,255,255,0.88); font-size:0.82rem; font-weight:600; padding:4px 10px; background:rgba(255,255,255,0.08); border-radius:8px;"></span>
         <button type="button" id="navLogoutBtn" class="nav-btn danger" style="display:none;" onclick="loggaUt()">Logga ut</button>
-        <a href="index.html" class="nav-btn">← Till skolifwebben.se</a>
+        <a href="index.html" class="nav-btn" onclick="lamnaAnmalanTillWebben(event)">← Till skolifwebben.se</a>
     </div>
 </nav>
 
@@ -1128,12 +1128,12 @@ const firebaseConfig = {
     measurementId: "G-6JP01V6CYC"
 };
 
-if (!firebase.apps.length) {
+if (typeof firebase !== 'undefined' && (!firebase.apps || !firebase.apps.length)) {
     firebase.initializeApp(firebaseConfig);
 }
 
-const auth = firebase.auth();
-const db = firebase.firestore();
+const auth = (typeof firebase !== 'undefined' && firebase.auth) ? firebase.auth() : null;
+const db = (typeof firebase !== 'undefined' && firebase.firestore) ? firebase.firestore() : null;
 
 const COLLECTION_NAME = 'utbildning_anmalan';
 const ADMIN_EMAILS = ['tobias.sellin@gmail.com', 'admin@skolifwebben.se'];
@@ -1303,6 +1303,11 @@ async function loggaInMedLosenord(e) {
         return;
     }
 
+    if (!auth || !db) {
+        visaLoginFel('Ingen internetanslutning hittades. Distriktsanmälan kräver uppkoppling för att hämta och spara hotellrum.');
+        return;
+    }
+
     const btn = document.getElementById('loginSubmitBtn');
     btn.disabled = true;
     btn.textContent = '⏳ Loggar in...';
@@ -1325,6 +1330,10 @@ async function loggaInMedLosenord(e) {
 
 async function loggaInSomAdminGoogle() {
     visaLoginFel('');
+    if (!auth || typeof firebase === 'undefined') {
+        visaLoginFel('Ingen internetanslutning hittades. Anslut till internet och försök igen.');
+        return;
+    }
     try {
         const provider = new firebase.auth.GoogleAuthProvider();
         await auth.signInWithPopup(provider);
@@ -1341,8 +1350,26 @@ async function loggaUt() {
     }
     hasUnsavedChanges = false;
     cleanupListeners();
-    await auth.signOut();
+    if (auth) await auth.signOut();
     showToast('Du har loggats ut.', 'info');
+}
+
+async function lamnaAnmalanTillWebben(e) {
+    if (hasUnsavedChanges && !confirm('Du har osparade ändringar! Vill du lämna distriktsanmälan utan att spara?')) {
+        if (e) e.preventDefault();
+        return;
+    }
+    const signedInEmail = (auth && auth.currentUser && auth.currentUser.email) ? auth.currentUser.email.trim().toLowerCase() : '';
+    const shouldSignOutDistrict = Boolean(
+        auth && auth.currentUser && (currentUserRole === 'district' || signedInEmail === 'admin@skolifwebben.se')
+    );
+    if (shouldSignOutDistrict) {
+        if (e) e.preventDefault();
+        hasUnsavedChanges = false;
+        cleanupListeners();
+        await auth.signOut().catch(() => {});
+        window.location.href = 'index.html';
+    }
 }
 
 function cleanupListeners() {
@@ -1351,56 +1378,62 @@ function cleanupListeners() {
     adminUnsubscribes = [];
 }
 
-auth.onAuthStateChanged(async (user) => {
-    cleanupListeners();
-    const loginView = document.getElementById('loginView');
-    const districtView = document.getElementById('districtView');
-    const adminView = document.getElementById('adminView');
-    const badge = document.getElementById('navUserBadge');
-    const logoutBtn = document.getElementById('navLogoutBtn');
+if (auth) {
+    auth.onAuthStateChanged(async (user) => {
+        cleanupListeners();
+        const loginView = document.getElementById('loginView');
+        const districtView = document.getElementById('districtView');
+        const adminView = document.getElementById('adminView');
+        const badge = document.getElementById('navUserBadge');
+        const logoutBtn = document.getElementById('navLogoutBtn');
 
-    if (!user) {
-        currentUserRole = null;
-        activeDistrictId = null;
+        if (!user) {
+            currentUserRole = null;
+            activeDistrictId = null;
+            isAdminEditingDistrict = false;
+            loginView.style.display = 'block';
+            districtView.style.display = 'none';
+            adminView.style.display = 'none';
+            badge.style.display = 'none';
+            logoutBtn.style.display = 'none';
+            return;
+        }
+
+        const match = detectRoleFromEmail(user.email);
+        if (!match) {
+            await auth.signOut();
+            visaLoginFel(user.email
+                ? `Kontot (${user.email}) har inte behörighet till distriktsanmälan.`
+                : 'Logga in med ditt distrikts lösenord eller som administratör.');
+            return;
+        }
+
+        currentUserRole = match.role;
+        activeDistrictId = match.districtId;
         isAdminEditingDistrict = false;
-        loginView.style.display = 'block';
-        districtView.style.display = 'none';
-        adminView.style.display = 'none';
-        badge.style.display = 'none';
-        logoutBtn.style.display = 'none';
-        return;
-    }
 
-    const match = detectRoleFromEmail(user.email);
-    if (!match) {
-        await auth.signOut();
-        visaLoginFel(`Kontot (${user.email}) har inte behörighet till distriktsanmälan.`);
-        return;
-    }
+        loginView.style.display = 'none';
+        logoutBtn.style.display = 'inline-flex';
+        badge.style.display = 'inline-block';
 
-    currentUserRole = match.role;
-    activeDistrictId = match.districtId;
-    isAdminEditingDistrict = false;
+        startConfigListener();
 
-    loginView.style.display = 'none';
-    logoutBtn.style.display = 'inline-flex';
-    badge.style.display = 'inline-block';
-
-    startConfigListener();
-
-    if (currentUserRole === 'admin') {
-        badge.textContent = `👑 Admin (${user.email})`;
-        districtView.style.display = 'none';
-        adminView.style.display = 'block';
-        startAdminListeners();
-    } else {
-        const dMeta = DISTRICTS[activeDistrictId];
-        badge.textContent = `${dMeta.icon} ${dMeta.name}`;
-        adminView.style.display = 'none';
-        districtView.style.display = 'block';
-        await laddaDistriktsAnmalan(activeDistrictId);
-    }
-});
+        if (currentUserRole === 'admin') {
+            badge.textContent = `👑 Admin (${user.email})`;
+            districtView.style.display = 'none';
+            adminView.style.display = 'block';
+            startAdminListeners();
+        } else {
+            const dMeta = DISTRICTS[activeDistrictId];
+            badge.textContent = `${dMeta.icon} ${dMeta.name}`;
+            adminView.style.display = 'none';
+            districtView.style.display = 'block';
+            await laddaDistriktsAnmalan(activeDistrictId);
+        }
+    });
+} else {
+    visaLoginFel('Ingen internetanslutning hittades. Distriktsanmälan kräver uppkoppling för att hämta och spara hotellrum.');
+}
 
 // ==========================================
 //  KONFIGURATION (_config)
@@ -2113,8 +2146,9 @@ async function sparaDistriktsAnmalan(isFinalSubmit = false) {
     renderDistrictRooms();
 
     const now = Date.now();
-    const nextIsSubmitted = Boolean(isFinalSubmit);
-    const nextSubmittedAt = nextIsSubmitted ? now : (districtState.submittedAt || 0);
+    // Viktigt: Om anmälan redan är inskickad ska "Spara & visa överblick" ALDRIG avpublicera den!
+    const nextIsSubmitted = Boolean(isFinalSubmit || districtState.isSubmitted);
+    const nextSubmittedAt = isFinalSubmit ? now : (districtState.submittedAt || (nextIsSubmitted ? now : 0));
     const payload = {
         districtId: activeDistrictId,
         districtName: meta.name,
@@ -2132,15 +2166,22 @@ async function sparaDistriktsAnmalan(isFinalSubmit = false) {
         districtState.updatedAt = now;
         districtState.isSubmitted = nextIsSubmitted;
         districtState.submittedAt = nextSubmittedAt;
-        document.getElementById('districtLastSavedText').textContent = nextIsSubmitted
+        document.getElementById('districtLastSavedText').textContent = isFinalSubmit
             ? `✅ Inskickad: ${formatTimestamp(now)}`
-            : `Utkast sparat: ${formatTimestamp(now)}`;
+            : (nextIsSubmitted ? `✅ Uppdaterad: ${formatTimestamp(now)}` : `Utkast sparat: ${formatTimestamp(now)}`);
         setDistrictDirty(false);
         renderDistrictRooms();
         if (isFinalSubmit) {
             const cardEl = document.getElementById('districtRoomsCard');
             if (cardEl) cardEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
             showToast(`✅ Anmälan för ${meta.name} är inskickad!`, 'success');
+        } else {
+            showToast(
+                nextIsSubmitted
+                    ? '💾 Ändringen är sparad i er inskickade anmälan!'
+                    : '💾 Rummet är sparat i utkastet!',
+                'success'
+            );
         }
     } catch (err) {
         console.error('Fel vid sparning:', err);

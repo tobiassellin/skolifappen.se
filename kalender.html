@@ -1449,7 +1449,7 @@
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-<script src="klasser.js?v=9"></script>
+<script src="klasser.js?v=10"></script>
 
 <script>
 const KALENDER_LOCAL_KEY = 'skolif_kalender_v1';
@@ -1682,8 +1682,8 @@ function decodeCompactPublicSnapshot(raw) {
             subtitle: parsed.s || '',
             events: parsed.e.map((arr, idx) => ({
                 id: 'pub_' + idx,
-                date: arr[0] || getTodayYmd(),
-                title: arr[1] || 'Aktivitet',
+                date: (typeof arr[0] === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(arr[0])) ? arr[0] : getTodayYmd(),
+                title: String(arr[1] || 'Aktivitet'),
                 category: arr[2] || 'rast',
                 startTime: arr[3] || '',
                 endTime: arr[4] || '',
@@ -1848,11 +1848,11 @@ function renderEventCardHtml(ev) {
                 </div>
                 ${ev.notes ? `<div class="event-notes">${escapeHtml(ev.notes)}</div>` : ''}
                 <div class="event-actions">
-                    <button type="button" class="btn btn-outline btn-sm" onclick="laddaNerIcs('${escapeHtml(ev.id)}', '${escapeHtml(ev.instanceDate)}')">📅 Spara i kalender</button>
-                    <button type="button" class="btn btn-soft-green btn-sm admin-only" onclick="oppnaLokFranAktivitet('${escapeHtml(ev.id)}', '${escapeHtml(ev.instanceDate)}')">🏟️ Logga LOK-stöd</button>
-                    <button type="button" class="btn btn-outline btn-sm admin-only" onclick="oppnaRedigeraAktivitet('${escapeHtml(ev.id)}')">✏️ Redigera</button>
-                    ${ev.isRecurringInstance ? `<button type="button" class="btn btn-outline btn-sm admin-only" onclick="hoppaOverDatum('${escapeHtml(ev.id)}', '${escapeHtml(ev.instanceDate)}')">🚫 Hoppa över dag</button>` : ''}
-                    <button type="button" class="btn btn-danger-soft btn-sm admin-only" onclick="taBortAktivitet('${escapeHtml(ev.id)}')">🗑️</button>
+                    <button type="button" class="btn btn-outline btn-sm" data-ev-id="${escapeHtml(ev.id)}" data-ev-date="${escapeHtml(ev.instanceDate)}" onclick="laddaNerIcs(this.dataset.evId, this.dataset.evDate)">📅 Spara i kalender</button>
+                    <button type="button" class="btn btn-soft-green btn-sm admin-only" data-ev-id="${escapeHtml(ev.id)}" data-ev-date="${escapeHtml(ev.instanceDate)}" onclick="oppnaLokFranAktivitet(this.dataset.evId, this.dataset.evDate)">🏟️ Logga LOK-stöd</button>
+                    <button type="button" class="btn btn-outline btn-sm admin-only" data-ev-id="${escapeHtml(ev.id)}" onclick="oppnaRedigeraAktivitet(this.dataset.evId)">✏️ Redigera</button>
+                    ${ev.isRecurringInstance ? `<button type="button" class="btn btn-outline btn-sm admin-only" data-ev-id="${escapeHtml(ev.id)}" data-ev-date="${escapeHtml(ev.instanceDate)}" onclick="hoppaOverDatum(this.dataset.evId, this.dataset.evDate)">🚫 Hoppa över dag</button>` : ''}
+                    <button type="button" class="btn btn-danger-soft btn-sm admin-only" data-ev-id="${escapeHtml(ev.id)}" onclick="taBortAktivitet(this.dataset.evId)">🗑️</button>
                 </div>
             </div>
         </article>
@@ -2783,14 +2783,18 @@ function startPublicCalendarMode(publicId) {
 
     let loadedFromHash = false;
     if (window.location.hash && window.location.hash.includes('s=')) {
-        const rawHash = window.location.hash.split('s=')[1] || '';
-        const decoded = decodeCompactPublicSnapshot(decodeURIComponent(rawHash));
-        if (decoded) {
-            calendarState.orgName = decoded.orgName;
-            calendarState.subtitle = decoded.subtitle;
-            calendarState.events = decoded.events;
-            loadedFromHash = true;
-            renderAll();
+        try {
+            const rawHash = window.location.hash.split('s=')[1] || '';
+            const decoded = decodeCompactPublicSnapshot(decodeURIComponent(rawHash));
+            if (decoded) {
+                calendarState.orgName = decoded.orgName;
+                calendarState.subtitle = decoded.subtitle;
+                calendarState.events = decoded.events;
+                loadedFromHash = true;
+                renderAll();
+            }
+        } catch (e) {
+            console.warn('Kunde inte avkoda kalender-hash:', e);
         }
     }
 

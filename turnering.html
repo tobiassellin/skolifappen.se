@@ -932,7 +932,7 @@
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-<script src="klasser.js?v=9"></script>
+<script src="klasser.js?v=10"></script>
 
 <script>
 // ==========================================
@@ -1060,17 +1060,19 @@ function decodeCompactTournament(b64Str) {
                 };
             }
             const [id, pIdx, startTime, pitchNum, hIdx, aIdx, fin, hs, as] = row;
+            const cleanHs = (hs === null || hs === undefined || hs === '') ? null : (Number(hs) || 0);
+            const cleanAs = (as === null || as === undefined || as === '') ? null : (Number(as) || 0);
             return {
-                id: id || (idx + 1),
+                id: Number(id) || (idx + 1),
                 matchPhase: COMPACT_PHASES[pIdx] || 'GROUP',
-                startTime: startTime || '',
-                pitch: pitchNum > 0 ? `Plan ${pitchNum}` : '',
-                homeTeam: hIdx === -1 ? '?' : (allTeams[hIdx] || '?'),
-                awayTeam: aIdx === -1 ? '?' : (allTeams[aIdx] || '?'),
+                startTime: String(startTime || ''),
+                pitch: Number(pitchNum) > 0 ? `Plan ${Number(pitchNum)}` : '',
+                homeTeam: hIdx === -1 ? '?' : String(allTeams[hIdx] || '?'),
+                awayTeam: aIdx === -1 ? '?' : String(allTeams[aIdx] || '?'),
                 isLunchBreak: false,
                 isFinished: fin === 1,
-                homeScore: hs,
-                awayScore: as
+                homeScore: cleanHs,
+                awayScore: cleanAs
             };
         });
         return {
@@ -1803,7 +1805,7 @@ function slutförDragetLag(winningIndex) {
         banner.style.background = 'rgba(34,197,94,0.2)';
         banner.style.borderColor = '#4ADE80';
         banner.style.color = '#F8FAFC';
-        banner.innerHTML = `🎉 <strong>${drawnTeam}</strong> lottades till <strong style="color:#FDE047;">${grpName}</strong> (Plats ${target.slotIndex + 1})!`;
+        banner.innerHTML = `🎉 <strong>${escapeHtml(drawnTeam)}</strong> lottades till <strong style="color:#FDE047;">${escapeHtml(grpName)}</strong> (Plats ${target.slotIndex + 1})!`;
     }
 
     if (liveDrawState.autoDrawing && liveDrawState.remainingTeams.length > 0) {
@@ -2664,10 +2666,11 @@ function renderaSpelschema() {
         </div>`;
 
         matches.forEach(m => {
+            const safeMatchId = Number(m.id) || 0;
             if (m.isLunchBreak) {
                 html += `<div class="match-card lunch">
                     <span>🕐 ${escapeHtml(m.startTime)} &nbsp; 🍔 LUNCHPAUS 🍔</span>
-                    ${!isPublicLiveView ? `<button type="button" class="edit-time-pill" style="margin-top:0;" onclick="oppnaEditTimeModal(${m.id})" title="Ändra tid för lunchpaus">✏️ Ändra tid</button>` : ''}
+                    ${!isPublicLiveView ? `<button type="button" class="edit-time-pill" style="margin-top:0;" onclick="oppnaEditTimeModal(${safeMatchId})" title="Ändra tid för lunchpaus">✏️ Ändra tid</button>` : ''}
                 </div>`;
             } else {
                 const isPlayed = m.isFinished && m.homeScore !== null;
@@ -2677,13 +2680,13 @@ function renderaSpelschema() {
                     <div class="match-meta">
                         <div>🕐 ${escapeHtml(m.startTime)}</div>
                         ${m.pitch ? `<div class="match-pitch">${escapeHtml(m.pitch)}</div>` : ''}
-                        ${!isPublicLiveView ? `<button type="button" class="edit-time-pill" onclick="oppnaEditTimeModal(${m.id})" title="Ändra starttid eller plan för matchen">✏️ Ändra tid</button>` : ''}
+                        ${!isPublicLiveView ? `<button type="button" class="edit-time-pill" onclick="oppnaEditTimeModal(${safeMatchId})" title="Ändra starttid eller plan för matchen">✏️ Ändra tid</button>` : ''}
                     </div>
 
                     <div class="match-teams">
                         ${isPlayed ? `
                             <span>${escapeHtml(m.homeTeam)}</span>
-                            <span class="match-score">${m.homeScore} - ${m.awayScore}</span>
+                            <span class="match-score">${Number(m.homeScore) || 0} - ${Number(m.awayScore) || 0}</span>
                             <span>${escapeHtml(m.awayTeam)}</span>
                         ` : `
                             <span>${escapeHtml(m.homeTeam)}</span>
@@ -2694,8 +2697,8 @@ function renderaSpelschema() {
 
                     <div class="match-actions">
                         ${canPlay ? `
-                            <button class="btn btn-outline btn-sm" onclick="oppnaScoreModal(${m.id})" title="Registrera siffror direkt">✍️ Reg</button>
-                            <button class="btn btn-green btn-sm" onclick="oppnaScoreboard(${m.id})" title="Kör matchklocka & livepoäng">⏱️ Spela live</button>
+                            <button class="btn btn-outline btn-sm" onclick="oppnaScoreModal(${safeMatchId})" title="Registrera siffror direkt">✍️ Reg</button>
+                            <button class="btn btn-green btn-sm" onclick="oppnaScoreboard(${safeMatchId})" title="Kör matchklocka & livepoäng">⏱️ Spela live</button>
                         ` : `
                             <span style="font-size:0.8rem; color:#aaa; font-weight:600;">(Väntar på lag)</span>
                         `}
@@ -2736,22 +2739,23 @@ function renderaBracket() {
             <div class="bracket-round-title">${phaseTitles[phase]}</div>`;
 
         matches.forEach(m => {
+            const safeMatchId = Number(m.id) || 0;
             const hasTeams = m.homeTeam !== '?' && m.awayTeam !== '?';
             const isFinished = m.isFinished && m.homeScore !== null;
-            const homeWon = isFinished && m.homeScore > m.awayScore;
-            const awayWon = isFinished && m.awayScore > m.homeScore;
+            const homeWon = isFinished && Number(m.homeScore) > Number(m.awayScore);
+            const awayWon = isFinished && Number(m.awayScore) > Number(m.homeScore);
 
-            colHtml += `<div class="bracket-match ${isFinished ? 'finished' : ''}" onclick="${hasTeams ? `oppnaScoreboard(${m.id})` : ''}">
+            colHtml += `<div class="bracket-match ${isFinished ? 'finished' : ''}" onclick="${hasTeams ? `oppnaScoreboard(${safeMatchId})` : ''}">
                 <div class="bracket-team ${homeWon ? 'winner' : ''}">
                     <span>${escapeHtml(m.homeTeam)}</span>
-                    ${isFinished ? `<span class="bracket-score">${m.homeScore}</span>` : ''}
+                    ${isFinished ? `<span class="bracket-score">${Number(m.homeScore) || 0}</span>` : ''}
                 </div>
                 <div class="bracket-team ${awayWon ? 'winner' : ''}">
                     <span>${escapeHtml(m.awayTeam)}</span>
-                    ${isFinished ? `<span class="bracket-score">${m.awayScore}</span>` : ''}
+                    ${isFinished ? `<span class="bracket-score">${Number(m.awayScore) || 0}</span>` : ''}
                 </div>
                 <div class="bracket-match-meta">
-                    <span>🕐 ${escapeHtml(m.startTime)}${!isPublicLiveView ? ` <button type="button" class="bracket-time-edit" onclick="event.stopPropagation(); oppnaEditTimeModal(${m.id});" title="Ändra starttid">✏️ Tid</button>` : ''}</span>
+                    <span>🕐 ${escapeHtml(m.startTime)}${!isPublicLiveView ? ` <button type="button" class="bracket-time-edit" onclick="event.stopPropagation(); oppnaEditTimeModal(${safeMatchId});" title="Ändra starttid">✏️ Tid</button>` : ''}</span>
                     <span>${escapeHtml(m.pitch || '')}</span>
                 </div>
             </div>`;
@@ -2765,24 +2769,25 @@ function renderaBracket() {
     if (tournamentState.settings.hasBronzeMatch) {
         const bronzeMatch = tournamentState.schedule.find(m => m.matchPhase === 'BRONZE');
         if (bronzeMatch) {
+            const safeBronzeId = Number(bronzeMatch.id) || 0;
             const hasTeams = bronzeMatch.homeTeam !== '?' && bronzeMatch.awayTeam !== '?';
             const isFinished = bronzeMatch.isFinished && bronzeMatch.homeScore !== null;
-            const homeWon = isFinished && bronzeMatch.homeScore > bronzeMatch.awayScore;
-            const awayWon = isFinished && bronzeMatch.awayScore > bronzeMatch.homeScore;
+            const homeWon = isFinished && Number(bronzeMatch.homeScore) > Number(bronzeMatch.awayScore);
+            const awayWon = isFinished && Number(bronzeMatch.awayScore) > Number(bronzeMatch.homeScore);
 
             let bronzeHtml = `<div class="bracket-round">
                 <div class="bracket-round-title" style="color:#B87333;">🥉 3:e pris</div>
-                <div class="bracket-match ${isFinished ? 'finished' : ''}" style="border-left: 4px solid #B87333;" onclick="${hasTeams ? `oppnaScoreboard(${bronzeMatch.id})` : ''}">
+                <div class="bracket-match ${isFinished ? 'finished' : ''}" style="border-left: 4px solid #B87333;" onclick="${hasTeams ? `oppnaScoreboard(${safeBronzeId})` : ''}">
                     <div class="bracket-team ${homeWon ? 'winner' : ''}">
                         <span>${escapeHtml(bronzeMatch.homeTeam)}</span>
-                        ${isFinished ? `<span class="bracket-score">${bronzeMatch.homeScore}</span>` : ''}
+                        ${isFinished ? `<span class="bracket-score">${Number(bronzeMatch.homeScore) || 0}</span>` : ''}
                     </div>
                     <div class="bracket-team ${awayWon ? 'winner' : ''}">
                         <span>${escapeHtml(bronzeMatch.awayTeam)}</span>
-                        ${isFinished ? `<span class="bracket-score">${bronzeMatch.awayScore}</span>` : ''}
+                        ${isFinished ? `<span class="bracket-score">${Number(bronzeMatch.awayScore) || 0}</span>` : ''}
                     </div>
                     <div class="bracket-match-meta">
-                        <span>🕐 ${escapeHtml(bronzeMatch.startTime)}${!isPublicLiveView ? ` <button type="button" class="bracket-time-edit" onclick="event.stopPropagation(); oppnaEditTimeModal(${bronzeMatch.id});" title="Ändra starttid">✏️ Tid</button>` : ''}</span>
+                        <span>🕐 ${escapeHtml(bronzeMatch.startTime)}${!isPublicLiveView ? ` <button type="button" class="bracket-time-edit" onclick="event.stopPropagation(); oppnaEditTimeModal(${safeBronzeId});" title="Ändra starttid">✏️ Tid</button>` : ''}</span>
                         <span>${escapeHtml(bronzeMatch.pitch || '')}</span>
                     </div>
                 </div>
@@ -3394,12 +3399,16 @@ function startLivePublicMode(liveId) {
     // 1. Läs in komprimerad backup direkt från QR-länken (#s=...) så att spelschemat visas på 0 ms helt utan inloggningskrav!
     let loadedFromHash = false;
     if (window.location.hash && window.location.hash.includes('s=')) {
-        const rawHash = window.location.hash.split('s=')[1] || '';
-        const decoded = decodeCompactTournament(decodeURIComponent(rawHash));
-        if (decoded && decoded.schedule && decoded.schedule.length > 0) {
-            tournamentState = decoded;
-            loadedFromHash = true;
-            visaAktivVy();
+        try {
+            const rawHash = window.location.hash.split('s=')[1] || '';
+            const decoded = decodeCompactTournament(decodeURIComponent(rawHash));
+            if (decoded && decoded.schedule && decoded.schedule.length > 0) {
+                tournamentState = decoded;
+                loadedFromHash = true;
+                visaAktivVy();
+            }
+        } catch (e) {
+            console.warn('Kunde inte avkoda turnerings-hash:', e);
         }
     }
 

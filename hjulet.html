@@ -679,7 +679,7 @@
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-<script src="klasser.js?v=9"></script>
+<script src="klasser.js?v=10"></script>
 
 <script>
     // ==========================================
@@ -1065,6 +1065,11 @@
     // ==========================================
     function spinWheel() {
         if (isSpinning || items.length === 0) return;
+
+        // Lås upp Web Audio synkront i användarens klick (krävs för ljud på iPhone & iPad Safari)
+        if (audioEnabled) {
+            try { getAudioContext(); } catch (e) {}
+        }
 
         isSpinning = true;
         updateCountBadge();

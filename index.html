@@ -937,7 +937,7 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     <!-- LÄGG TILL FIREBASE AUTH -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-    <script src="klasser.js?v=9"></script>
+    <script src="klasser.js?v=10"></script>
 
    <script>
         const firebaseConfig = {
@@ -950,10 +950,10 @@
             measurementId: "G-6JP01V6CYC"
         };
 
-        if (!firebase.apps.length) {
+        if (typeof firebase !== 'undefined' && (!firebase.apps || !firebase.apps.length)) {
             firebase.initializeApp(firebaseConfig);
         }
-        const db = firebase.firestore();
+        const db = (typeof firebase !== 'undefined' && firebase.firestore) ? firebase.firestore() : null;
 
         // 1. Kassa-navigation
         function gaTillKiosk() {
@@ -986,48 +986,56 @@
         }
 
         // 3. Lyssna på inloggningsstatus och uppdatera knapparna
-        firebase.auth().onAuthStateChanged((user) => {
-            const kioskBtn = document.getElementById("kioskBtn");
-            const bodBtn = document.getElementById("bodBtn");
-            const bodOfflineText = document.getElementById("bodOfflineText");
-            const kioskOfflineText = document.getElementById("kioskOfflineText");
+        if (typeof firebase !== 'undefined' && firebase.auth) {
+            firebase.auth().onAuthStateChanged((user) => {
+                const kioskBtn = document.getElementById("kioskBtn");
+                const bodBtn = document.getElementById("bodBtn");
+                const bodOfflineText = document.getElementById("bodOfflineText");
+                const kioskOfflineText = document.getElementById("kioskOfflineText");
 
-            if (user) {
-                if (kioskBtn) {
-                    kioskBtn.innerText = "Öppna Kassan";
-                    kioskBtn.dataset.inloggad = "true";
+                const isDistrictOnly = Boolean(user && user.email && /^(jamtland|medelpad|angermanland|admin)@skolifwebben\.se$/i.test(user.email.trim()));
+                const validUser = (user && !user.isAnonymous && user.email && !isDistrictOnly) ? user : null;
+                if (validUser) {
+                    if (kioskBtn) {
+                        kioskBtn.innerText = "Öppna Kassan";
+                        kioskBtn.dataset.inloggad = "true";
+                    }
+                    if (bodBtn) {
+                        bodBtn.innerText = "Öppna Redskapsboden";
+                        bodBtn.dataset.inloggad = "true";
+                    }
+                    if (bodOfflineText) {
+                        bodOfflineText.style.display = "none";
+                    }
+                    if (kioskOfflineText) {
+                        kioskOfflineText.style.display = "none";
+                    }
+                } else {
+                    if (kioskBtn) {
+                        kioskBtn.innerText = "Logga in med Google";
+                        kioskBtn.dataset.inloggad = "false";
+                    }
+                    if (bodBtn) {
+                        bodBtn.innerText = "Logga in med Google";
+                        bodBtn.dataset.inloggad = "false";
+                    }
+                    if (bodOfflineText) {
+                        bodOfflineText.style.display = "block";
+                    }
+                    if (kioskOfflineText) {
+                        kioskOfflineText.style.display = "block";
+                    }
                 }
-                if (bodBtn) {
-                    bodBtn.innerText = "Öppna Redskapsboden";
-                    bodBtn.dataset.inloggad = "true";
-                }
-                if (bodOfflineText) {
-                    bodOfflineText.style.display = "none";
-                }
-                if (kioskOfflineText) {
-                    kioskOfflineText.style.display = "none";
-                }
-            } else {
-                if (kioskBtn) {
-                    kioskBtn.innerText = "Logga in med Google";
-                    kioskBtn.dataset.inloggad = "false";
-                }
-                if (bodBtn) {
-                    bodBtn.innerText = "Logga in med Google";
-                    bodBtn.dataset.inloggad = "false";
-                }
-                if (bodOfflineText) {
-                    bodOfflineText.style.display = "block";
-                }
-                if (kioskOfflineText) {
-                    kioskOfflineText.style.display = "block";
-                }
-            }
-        });
+            });
+        }
 
         // 4. Google-inloggning med destination
         let isLoggingIn = false;
         function loggaInMedGoogle(destination = "kiosk.html") {
+            if (typeof firebase === 'undefined' || !firebase.auth) {
+                window.location.href = destination;
+                return;
+            }
             if (isLoggingIn) return;
             isLoggingIn = true;
             const provider = new firebase.auth.GoogleAuthProvider();
