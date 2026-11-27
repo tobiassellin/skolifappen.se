@@ -79,6 +79,8 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
             box-shadow: 0 4px 20px rgba(0,0,0,0.15);
             border-bottom: 1px solid rgba(255,255,255,0.08);
             position: sticky;
@@ -108,7 +110,8 @@
         .nav-actions {
             display: flex;
             align-items: center;
-            gap: 10px;
+            flex-wrap: wrap;
+            gap: 8px;
         }
         .nav-btn {
             background: rgba(255,255,255,0.12);
@@ -127,6 +130,12 @@
             font-family: 'Poppins', sans-serif;
         }
         .nav-btn:hover { background: rgba(255,255,255,0.22); transform: translateY(-1px); }
+        @media (max-width: 680px) {
+            nav { padding: 0.6rem 14px; }
+            .nav-logo { font-size: 1.1rem; }
+            .nav-actions { width: 100%; justify-content: flex-start; gap: 6px; }
+            .nav-btn { padding: 6px 10px; font-size: 0.78rem; }
+        }
 
         /* ====== CONTAINER ====== */
         .container {
@@ -598,6 +607,7 @@
         }
 
         /* Utskriftslayout */
+        @page { size: A4 landscape; margin: 8mm; }
         @media print {
             body.printing-diplomas * {
                 visibility: hidden;
@@ -626,13 +636,17 @@
                 height: 94vh;
                 box-sizing: border-box;
             }
+            body.printing-diplomas .diplom-card:last-child {
+                page-break-after: auto;
+                break-after: auto;
+            }
             body:not(.printing-diplomas) nav, 
             body:not(.printing-diplomas) .beep-actions, 
             body:not(.printing-diplomas) .nav-actions, 
             body:not(.printing-diplomas) .btn { 
                 display: none !important; 
             }
-            body:not(.printing-diplomas) body, body:not(.printing-diplomas) .container { 
+            body:not(.printing-diplomas), body:not(.printing-diplomas) .container { 
                 background: white; padding: 0; 
             }
             body:not(.printing-diplomas) .card { 
@@ -652,7 +666,7 @@
         <div class="nav-logo-icon">📢</div>
         <div>
             <div>Beep-test</div>
-            <div style="font-size: 0.72rem; color: #666; font-weight: 500;">Officiellt 20m Konditionstest</div>
+            <div style="font-size: 0.72rem; color: rgba(255,255,255,0.78); font-weight: 500;">Officiellt 20m Konditionstest</div>
         </div>
     </a>
     <div class="nav-actions">
@@ -986,7 +1000,7 @@
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-<script src="klasser.js?v=10"></script>
+<script src="klasser.js?v=12"></script>
 
 <script>
     // ==========================================
@@ -1177,6 +1191,9 @@
 
     function parsaNamn(text) {
         if (!text) return [];
+        if (window.SkolIFKlasser && typeof SkolIFKlasser.parseNames === 'function') {
+            return SkolIFKlasser.parseNames(text);
+        }
         return text.split(/[\n,;]+/)
             .map(s => s.trim())
             .filter(s => s.length > 0);
@@ -1297,7 +1314,7 @@
 
     function getElapsedSeconds() {
         const audioEl = document.getElementById('beepAudio');
-        if (isAudioPlaying && audioEl && !audioEl.paused && !audioEl.ended) {
+        if (isAudioPlaying && audioEl && !audioEl.ended && (!audioEl.paused || audioEl.currentTime > 0)) {
             return audioEl.currentTime;
         }
         const effectiveNow = (!isRunning && pauseTime > 0) ? pauseTime : Date.now();
@@ -1374,12 +1391,12 @@
             document.getElementById('dispHastighet').textContent = active.speed.toFixed(1);
             document.getElementById('dispTidKvar').textContent = timeKvarInShuttle.toFixed(1) + "s";
 
-            // Total tid sedan introt (13.25s) tog slut
+            // Total tid & avklarad sträcka sedan introt (13.25s) tog slut
             const testSecs = Math.max(0, Math.floor(elapsedSeconds - introSeconds));
             const m = Math.floor(testSecs / 60);
             const s = testSecs % 60;
             document.getElementById('dispTotalTid').textContent = `Total tid: ${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-            document.getElementById('dispTotalMeter').textContent = active.totalDistance + " m";
+            document.getElementById('dispTotalMeter').textContent = ((active.cumulativeShuttles - 1) * 20) + " m";
 
             // Förloppsindikator för aktuell vända
             const pct = (elapsedInShuttle / active.duration) * 100;
@@ -1435,15 +1452,17 @@
             return;
         }
 
+        // Räkna senast avklarade vända (vid utslagning har löparen inte hunnit klart pågående vända)
+        const completed = currentTimelineIndex > 0 ? shuttleTimeline[currentTimelineIndex - 1] : null;
         const active = shuttleTimeline[currentTimelineIndex] || shuttleTimeline[0];
 
         elev.status = 'KLAR';
         elev.autoMarkedKlar = false;
-        elev.niva = active.level;
-        elev.vanda = active.shuttle;
-        elev.meter = active.totalDistance;
-        elev.speed = active.speed;
-        elev.vo2 = beraknaVO2Max(active.speed);
+        elev.niva = completed ? completed.level : 1;
+        elev.vanda = completed ? completed.shuttle : 0;
+        elev.meter = completed ? completed.totalDistance : 0;
+        elev.speed = completed ? completed.speed : active.speed;
+        elev.vo2 = completed ? beraknaVO2Max(completed.speed) : beraknaVO2Max(active.speed);
 
         // Räkna ut placering (de som kliver av sist får bäst placering)
         const kvar = elever.filter(e => e.status === 'SPRINGER').length;
@@ -1597,16 +1616,17 @@
             msg += `\n\n⚠️ Obs: Det finns fortfarande ${kvar} elever kvar som springer!`;
         }
         if (confirm(msg)) {
-            // Ge resterande elever aktuell nivå (och minns vilka som auto-markerades om läraren trycker Fortsätt testet)
+            // Ge resterande elever senast avklarade nivå (och minns vilka som auto-markerades om läraren trycker Fortsätt testet)
+            const completed = (!isIntro && currentTimelineIndex > 0) ? shuttleTimeline[currentTimelineIndex - 1] : null;
             const active = isIntro ? null : (shuttleTimeline[currentTimelineIndex] || shuttleTimeline[0]);
             elever.filter(e => e.status === 'SPRINGER').forEach(e => {
                 e.status = 'KLAR';
                 e.autoMarkedKlar = true;
-                e.niva = active ? active.level : 0;
-                e.vanda = active ? active.shuttle : 0;
-                e.meter = active ? active.totalDistance : 0;
-                e.speed = active ? active.speed : 0;
-                e.vo2 = active ? beraknaVO2Max(active.speed) : 0;
+                e.niva = completed ? completed.level : (active ? 1 : 0);
+                e.vanda = completed ? completed.shuttle : 0;
+                e.meter = completed ? completed.totalDistance : 0;
+                e.speed = completed ? completed.speed : (active ? active.speed : 0);
+                e.vo2 = completed ? beraknaVO2Max(completed.speed) : (active ? beraknaVO2Max(active.speed) : 0);
                 e.placering = 1;
             });
             avslutaTest();
@@ -1655,6 +1675,7 @@
 
         const resumeSec = savedAudioTimeBeforeFinish > 0 ? savedAudioTimeBeforeFinish : 0;
         testStartTime = Date.now() - (resumeSec * 1000);
+        pauseTime = 0;
         totalPausedMs = 0;
         isRunning = true;
 
@@ -1730,17 +1751,22 @@
 
         let csv = "Placering;Elev;Niva;Vanda;Distans_meter;Hastighet_kmh;Uppskattat_VO2max\r\n";
         klara.forEach((e, idx) => {
-            csv += `${idx + 1};"${e.namn.replace(/"/g, '""')}";${e.niva};${e.vanda};${e.meter};${e.speed};${e.vo2}\r\n`;
+            const speedSv = e.speed ? e.speed.toFixed(1).replace('.', ',') : '0';
+            const vo2Sv = String(e.vo2 || 0).replace('.', ',');
+            const safeNamn = (window.SkolIFKlasser && SkolIFKlasser.csvSafe ? SkolIFKlasser.csvSafe(e.namn) : String(e.namn || '')).replace(/"/g, '""');
+            csv += `${idx + 1};"${safeNamn}";${e.niva};${e.vanda};${e.meter};${speedSv};${vo2Sv}\r\n`;
         });
 
+        const safeKlass = (klassNamn || 'Klass').replace(/[\\/:*?"<>|\s]+/g, '_');
         const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `BeepTest_${klassNamn.replace(/\s+/g, '_')}_${new Date().toISOString().slice(0,10)}.csv`;
+        a.download = `BeepTest_${safeKlass}_${new Date().toISOString().slice(0,10)}.csv`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
+        URL.revokeObjectURL(url);
     }
 
     function kopieraResultat() {
@@ -1780,6 +1806,7 @@
     }
 
     function stangDiplomModal() {
+        document.body.classList.remove('printing-diplomas');
         document.getElementById('diplomModal').classList.remove('open');
     }
 
@@ -1887,7 +1914,6 @@
 
         setTimeout(() => {
             window.print();
-            setTimeout(() => document.body.classList.remove('printing-diplomas'), 2000);
         }, 150);
     }
 
@@ -1904,14 +1930,47 @@
     // ==========================================
     //  FULLSKÄRM & WAKE LOCK
     // ==========================================
+    function syncFullscreenBtnLabel() {
+        const btn = document.getElementById('fsBtn');
+        if (!btn) return;
+        const isFs = Boolean(document.fullscreenElement || document.webkitFullscreenElement || document.body.classList.contains('board-pseudo-fullscreen'));
+        btn.textContent = isFs ? "✕ Avsluta fullskärm" : "⛶ Fullskärm";
+    }
+    document.addEventListener('fullscreenchange', syncFullscreenBtnLabel);
+    document.addEventListener('webkitfullscreenchange', syncFullscreenBtnLabel);
+
     function toggleFullscreen() {
-        if (!document.fullscreenElement) {
-            document.documentElement.requestFullscreen().catch(() => {});
-            document.getElementById('fsBtn').textContent = "✕ Avsluta fullskärm";
-        } else {
-            if (document.exitFullscreen) document.exitFullscreen();
-            document.getElementById('fsBtn').textContent = "⛶ Fullskärm";
+        const fsEl = document.fullscreenElement || document.webkitFullscreenElement;
+        if (fsEl) {
+            if (document.exitFullscreen) document.exitFullscreen().catch(() => {});
+            else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+            document.body.classList.remove('board-pseudo-fullscreen');
+            syncFullscreenBtnLabel();
+            return;
         }
+        if (document.body.classList.contains('board-pseudo-fullscreen')) {
+            document.body.classList.remove('board-pseudo-fullscreen');
+            syncFullscreenBtnLabel();
+            return;
+        }
+        const root = document.documentElement;
+        const req = root.requestFullscreen || root.webkitRequestFullscreen;
+        if (req) {
+            try {
+                const res = req.call(root);
+                if (res && typeof res.catch === 'function') {
+                    res.catch(() => {
+                        document.body.classList.add('board-pseudo-fullscreen');
+                        syncFullscreenBtnLabel();
+                    });
+                }
+            } catch (e) {
+                document.body.classList.add('board-pseudo-fullscreen');
+            }
+        } else {
+            document.body.classList.add('board-pseudo-fullscreen');
+        }
+        syncFullscreenBtnLabel();
     }
 
     async function requestWakeLock() {
@@ -1923,6 +1982,9 @@
     }
 
     function releaseWakeLock() {
+        if (window.SkolIFKlasser && typeof SkolIFKlasser.suppressWakeLockBriefly === 'function') {
+            SkolIFKlasser.suppressWakeLockBriefly();
+        }
         if (wakeLock) {
             wakeLock.release().catch(() => {});
             wakeLock = null;

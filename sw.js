@@ -5,7 +5,7 @@
  * idrottshall i källaren eller i skogen utan täckning.
  * ============================================================================ */
 
-const CACHE_NAME = 'skolif-offline-v5';
+const CACHE_NAME = 'skolif-offline-v7';
 
 const PRECACHE_URLS = [
     './',
@@ -22,7 +22,7 @@ const PRECACHE_URLS = [
     './integritet.html',
     './om.html',
     './seo-shared.css',
-    './klasser.js?v=10',
+    './klasser.js?v=12',
     './manifest.json',
     './icon.svg',
     './apple-touch-icon.png',
@@ -121,6 +121,13 @@ async function serveCachedRangeResponse(req) {
     });
 }
 
+function fetchWithTimeout(request, timeoutMs) {
+    if (typeof AbortController === 'undefined') return fetch(request);
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    return fetch(request, { signal: controller.signal }).finally(() => clearTimeout(timer));
+}
+
 self.addEventListener('fetch', (event) => {
     const req = event.request;
     if (req.method !== 'GET') return;
@@ -134,18 +141,41 @@ self.addEventListener('fetch', (event) => {
 
     if (url.protocol !== 'http:' && url.protocol !== 'https:') return;
 
-    // Fånga ALDRIG anrop till externa domäner (Firebase, Firestore, Google Auth, CDN, AdSense m.m.)
-    if (url.origin !== self.location.origin) return;
-
     if (BYPASS_HOSTS.some((h) => url.hostname === h || url.hostname.endsWith('.' + h))) {
         return;
     }
+
+    // Versionslåsta, oföränderliga skriptbibliotek (Firebase SDK, Chart.js, QRCode, Confetti, ExcelJS):
+    // Servera blixtsnabbt ur lokal cache om den finns (skyddar mot segt källar-WiFi & ger offline-stöd!)
+    const isImmutableCdnLib =
+        (url.hostname === 'www.gstatic.com' && url.pathname.startsWith('/firebasejs/')) ||
+        (url.hostname === 'cdn.jsdelivr.net' && url.pathname.startsWith('/npm/')) ||
+        (url.hostname === 'cdnjs.cloudflare.com' && url.pathname.startsWith('/ajax/libs/'));
+
+    if (isImmutableCdnLib) {
+        event.respondWith(
+            caches.match(req).then((cachedLib) => {
+                if (cachedLib) return cachedLib;
+                return fetchWithTimeout(req, 4000).then((netRes) => {
+                    if (netRes && (netRes.status === 200 || netRes.type === 'opaque')) {
+                        const clone = netRes.clone();
+                        caches.open(CACHE_NAME).then((c) => c.put(req, clone).catch(() => {}));
+                    }
+                    return netRes;
+                });
+            })
+        );
+        return;
+    }
+
+    // Fånga ALDRIG övriga anrop till externa domäner
+    if (url.origin !== self.location.origin) return;
 
     // Ljudströmmar med Range-headers (t.ex. Safari/Chrome <audio src="beeptest.mp3">):
     // Gå direkt mot nätet när online, men servera 206 Partial Content ur cachen när offline!
     if (req.headers && req.headers.has('range')) {
         event.respondWith(
-            fetch(req).catch(() => serveCachedRangeResponse(req))
+            fetchWithTimeout(req, 4500).catch(() => serveCachedRangeResponse(req))
         );
         // Om filen ännu inte ligger i cachen när online, spara hela filen i bakgrunden
         caches.open(CACHE_NAME).then(async (cache) => {
@@ -161,9 +191,9 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
-    // Network-First: försök alltid hämta senaste versionen från nätet först
+    // Network-First med 4s timeout mot "zombie-WiFi" i idrottshallar: hämta färsk version om nätet svarar, annars cachen direkt!
     event.respondWith(
-        fetch(req)
+        fetchWithTimeout(req, 4000)
             .then((networkRes) => {
                 if (networkRes && networkRes.status === 200 && (networkRes.type === 'basic' || networkRes.type === 'cors')) {
                     const copy = networkRes.clone();

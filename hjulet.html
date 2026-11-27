@@ -84,6 +84,8 @@
             position: sticky;
             top: 0;
             z-index: 900;
+            gap: 10px;
+            flex-wrap: wrap;
         }
         .nav-logo {
             display: flex;
@@ -106,7 +108,13 @@
         .nav-actions {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        @media (max-width: 680px) {
+            nav { padding: 0.6rem 4%; }
+            .nav-logo { font-size: 1.08rem; gap: 8px; }
+            .nav-btn { padding: 6px 10px; font-size: 0.78rem; }
         }
         .nav-btn {
             background: rgba(255, 255, 255, 0.1);
@@ -679,7 +687,7 @@
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-<script src="klasser.js?v=10"></script>
+<script src="klasser.js?v=12"></script>
 
 <script>
     // ==========================================
@@ -852,13 +860,54 @@
         document.getElementById('audioBtn').textContent = audioEnabled ? "🔊 Ljud: På" : "🔇 Ljud: Av";
     }
 
+    function parseWheelEntries(text, isStudentMode) {
+        if (!text) return [];
+        if (isStudentMode && window.SkolIFKlasser && SkolIFKlasser.parseNames) {
+            return SkolIFKlasser.parseNames(text);
+        }
+        const normalized = String(text).replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim();
+        if (!normalized) return [];
+        const lines = normalized.split(/[\n;]+/).map(s => s.trim()).filter(Boolean);
+        if (lines.length === 1 && lines[0].includes(',')) {
+            if (!/\d/.test(lines[0]) && /^[^,]+,\s*[^,]+$/.test(lines[0]) && window.SkolIFKlasser && SkolIFKlasser.parseNames) {
+                return SkolIFKlasser.parseNames(lines[0]);
+            }
+            return lines[0].split(',').map(s => s.trim()).filter(Boolean);
+        }
+        if (lines.every(l => !/\d/.test(l) && /^[^,]+,\s*[^,]+$/.test(l)) && window.SkolIFKlasser && SkolIFKlasser.parseNames) {
+            return SkolIFKlasser.parseNames(normalized);
+        }
+        return lines;
+    }
+
+    function syncWheelFsBtn() {
+        const active = Boolean(document.fullscreenElement || document.webkitFullscreenElement || document.body.classList.contains('board-pseudo-fullscreen'));
+        const btn = document.getElementById('fsBtn');
+        if (btn) btn.textContent = active ? "✕ Avsluta fullskärm" : "⛶ Fullskärm";
+    }
+    document.addEventListener('fullscreenchange', syncWheelFsBtn);
+    document.addEventListener('webkitfullscreenchange', syncWheelFsBtn);
+
     function toggleFullscreen() {
-        if (!document.fullscreenElement) {
-            document.documentElement.requestFullscreen().catch(() => {});
-            document.getElementById('fsBtn').textContent = "✕ Avsluta fullskärm";
+        const docEl = document.documentElement;
+        const isNativeFs = Boolean(document.fullscreenElement || document.webkitFullscreenElement);
+        const isPseudoFs = document.body.classList.contains('board-pseudo-fullscreen');
+        if (!isNativeFs && !isPseudoFs) {
+            const req = docEl.requestFullscreen || docEl.webkitRequestFullscreen;
+            if (req) {
+                Promise.resolve(req.call(docEl)).then(syncWheelFsBtn).catch(() => {
+                    document.body.classList.add('board-pseudo-fullscreen');
+                    syncWheelFsBtn();
+                });
+            } else {
+                document.body.classList.add('board-pseudo-fullscreen');
+                syncWheelFsBtn();
+            }
         } else {
-            if (document.exitFullscreen) document.exitFullscreen();
-            document.getElementById('fsBtn').textContent = "⛶ Fullskärm";
+            document.body.classList.remove('board-pseudo-fullscreen');
+            const exit = document.exitFullscreen || document.webkitExitFullscreen;
+            if (isNativeFs && exit) exit.call(document);
+            syncWheelFsBtn();
         }
     }
 
@@ -878,7 +927,7 @@
                 const gdprWrap = document.getElementById('hjuletGdprWrap');
                 if (gdprWrap) gdprWrap.style.display = 'block';
 
-                const rader = text.split(/[\n,;]+/).map(s => s.trim()).filter(s => s.length > 0);
+                const rader = parseWheelEntries(text, true);
                 items = rader;
                 document.getElementById('itemsInput').value = items.join('\n');
                 updateCountBadge();
@@ -931,7 +980,7 @@
             const klassNamnLista = Object.keys(sparade);
             if (klassNamnLista.length > 0) {
                 const forstaText = sparade[klassNamnLista[0]];
-                items = forstaText.split(/[\n,;]+/).map(s => s.trim()).filter(s => s.length > 0);
+                items = parseWheelEntries(forstaText, true);
                 document.getElementById('itemsInput').value = items.join('\n');
                 updateCountBadge();
                 drawWheel();
@@ -948,7 +997,15 @@
     function handleInputEdit() {
         if (isSpinning) return;
         const text = document.getElementById('itemsInput').value;
-        items = text.split(/[\n,;]+/).map(s => s.trim()).filter(s => s.length > 0);
+        const elevActive = Boolean(document.getElementById('btnPresetElever')?.classList.contains('active'));
+        items = parseWheelEntries(text, elevActive);
+        const gdprWrap = document.getElementById('hjuletGdprWrap');
+        if (gdprWrap) {
+            const looksLikePersonNames = items.length >= 2 && items.every(s => !/\d/.test(s) && !EXERCISE_DESCRIPTIONS[s]);
+            if (elevActive || looksLikePersonNames) {
+                gdprWrap.style.display = 'block';
+            }
+        }
         updateCountBadge();
         drawWheel();
     }
@@ -958,6 +1015,9 @@
         const hasItems = items.length > 0;
         document.getElementById('bigSpinBtn').disabled = !hasItems || isSpinning;
         document.getElementById('centerSpinBtn').disabled = !hasItems || isSpinning;
+        const inputEl = document.getElementById('itemsInput');
+        if (inputEl) inputEl.disabled = isSpinning;
+        document.querySelectorAll('.preset-btn, #hjuletGdprWrap button').forEach(b => { b.disabled = isSpinning; });
     }
 
     function drawWheel() {
@@ -1135,25 +1195,28 @@
     function triggerVictory(winner) {
         playFanfare();
 
-        // Konfetti-kanon!
+        // Konfetti-kanon framför vinnarmodalen!
         if (typeof confetti === 'function') {
             confetti({
                 particleCount: 80,
                 spread: 70,
-                origin: { y: 0.6 }
+                origin: { y: 0.6 },
+                zIndex: 1500
             });
             setTimeout(() => {
                 confetti({
                     particleCount: 50,
                     angle: 60,
                     spread: 55,
-                    origin: { x: 0 }
+                    origin: { x: 0 },
+                    zIndex: 1500
                 });
                 confetti({
                     particleCount: 50,
                     angle: 120,
                     spread: 55,
-                    origin: { x: 1 }
+                    origin: { x: 1 },
+                    zIndex: 1500
                 });
             }, 300);
         }

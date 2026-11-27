@@ -108,10 +108,38 @@
 
     function parseStudentNames(text) {
         if (!text || typeof text !== 'string') return [];
-        return text
-            .split(/[\n,;]+/)
-            .map(s => s.trim())
-            .filter(s => s.length > 0);
+        const normalized = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim();
+        if (!normalized) return [];
+        const rawLines = normalized.split(/[\n;]+/).map(s => s.trim()).filter(Boolean);
+        if (rawLines.length === 0) return [];
+
+        // En enda rad med kommatecken: "Kalle, Lisa, Maja" (eller ett ensamt "Andersson, Kalle")
+        if (rawLines.length === 1 && rawLines[0].includes(',')) {
+            const parts = rawLines[0].split(',').map(s => s.trim()).filter(Boolean);
+            if (parts.length === 2 && parts[0].split(/\s+/).length === 1 && parts[1].split(/\s+/).length <= 2) {
+                return [`${parts[1]} ${parts[0]}`];
+            }
+            return parts;
+        }
+
+        const result = [];
+        for (const line of rawLines) {
+            const commaCount = (line.match(/,/g) || []).length;
+            if (commaCount === 1) {
+                // Hantera SchoolSoft / Vklass-format ("Efternamn, Förnamn") utan att dela eleven i två!
+                const [left, right] = line.split(',').map(s => s.trim());
+                if (left && right && left.split(/\s+/).length <= 2 && right.split(/\s+/).length <= 3) {
+                    result.push(`${right} ${left}`);
+                    continue;
+                }
+            }
+            if (commaCount >= 1) {
+                line.split(',').map(s => s.trim()).filter(Boolean).forEach(p => result.push(p));
+            } else {
+                result.push(line);
+            }
+        }
+        return result;
     }
 
     function countStudents(text) {
@@ -438,6 +466,51 @@
             namn: shortNames[idx] || e.namn
         }));
 
+        // Uppdatera även eventuella aktiva lånenamn i Redskapsboden när namnet är entydigt
+        const nameCounts = {};
+        elever.forEach(e => {
+            const key = String(e.namn || '').trim().toLowerCase();
+            if (key) nameCounts[key] = (nameCounts[key] || 0) + 1;
+        });
+        const renameMap = {};
+        elever.forEach((e, idx) => {
+            const oldTrim = String(e.namn || '').trim();
+            const newTrim = String(shortNames[idx] || '').trim();
+            const low = oldTrim.toLowerCase();
+            if (oldTrim && newTrim && oldTrim !== newTrim && nameCounts[low] === 1) {
+                renameMap[low] = newTrim;
+                const kCode = normalizeKlassCode(e.klass);
+                if (kCode) {
+                    renameMap[`${low} (${kCode.toLowerCase()})`] = `${newTrim} (${kCode})`;
+                    renameMap[`${low} (klass ${kCode.toLowerCase()})`] = `${newTrim} (Klass ${kCode})`;
+                }
+            }
+        });
+        try {
+            const rawBod = localStorage.getItem('redskapsbod_artiklar');
+            if (rawBod && Object.keys(renameMap).length > 0) {
+                const bodArr = JSON.parse(rawBod);
+                let bodChanged = false;
+                if (Array.isArray(bodArr)) {
+                    bodArr.forEach(art => {
+                        if (Array.isArray(art.lan)) {
+                            art.lan.forEach(lan => {
+                                const cur = String(lan.namn || '').trim().toLowerCase();
+                                if (renameMap[cur]) {
+                                    lan.namn = renameMap[cur];
+                                    bodChanged = true;
+                                }
+                            });
+                        }
+                    });
+                }
+                if (bodChanged) {
+                    localStorage.setItem('redskapsbod_artiklar', JSON.stringify(bodArr));
+                    window.dispatchEvent(new CustomEvent('skolif-gdpr-cleaned', { detail: { renameMap } }));
+                }
+            }
+        } catch (e) {}
+
         await persistEleverArray(updatedElever);
         showToast(`🔒 Alla ${updatedElever.length} sparade elever har GDPR-tvättats till Förnamn + Initial!`, 'success');
     }
@@ -549,13 +622,25 @@
         const cleanMsg = String(message || '').trim();
         if (!cleanMsg) return;
 
-        // Automatisk typ-detektering om ingen typ angavs
+        // Automatisk typ-detektering om ingen typ angavs (så valideringsvarningar aldrig får grön bock!)
         let resolvedType = type;
         if (!resolvedType) {
-            if (/^(❌|⛔|fel|kunde inte|det gick inte|obs|varning)/i.test(cleanMsg) || /fyll i|saknas|tom|måste|finns redan|inga /i.test(cleanMsg)) {
-                resolvedType = /fel|kunde inte|det gick inte/i.test(cleanMsg) ? 'error' : 'warning';
-            } else {
+            if (
+                /^(❌|⛔|fel\b|ett fel|kunde inte|det gick inte)/i.test(cleanMsg)
+            ) {
+                resolvedType = 'error';
+            } else if (
+                /^(⚠️|🔒|⏳|obs\b|varning)/i.test(cleanMsg) ||
+                /fyll i|saknas|tom\b|måste|finns redan|inga |lägg till minst|minst \d|ange |vänligen|pausat|inte börjat|kan inte|låst|nekas|tyvärr|välj |kontrollera/i.test(cleanMsg)
+            ) {
+                resolvedType = 'warning';
+            } else if (
+                /^(✅|🎉|✨|🍫|🏆|🏟️|☁️|📥|\+\d)/.test(cleanMsg) ||
+                /sparad|sparades|kopierad|kopierades|uppdaterad|uppdaterats|skapad|skapades|återställt|klart|laddats ner|exporterats|inloggad/i.test(cleanMsg)
+            ) {
                 resolvedType = 'success';
+            } else {
+                resolvedType = 'info';
             }
         }
 
@@ -563,6 +648,7 @@
         const displayMsg = cleanMsg.replace(/^(✅|🎉|⚠️|❌|🗑️|📂)\s*/, '');
 
         let icon = '✓';
+        if (resolvedType === 'info') icon = 'ℹ';
         if (resolvedType === 'warning') icon = '!';
         if (resolvedType === 'error') icon = '✕';
         if (cleanMsg.startsWith('🗑️')) icon = '🗑️';
@@ -852,10 +938,18 @@
                 }
 
                 // Kolla om användaren har gjort verkliga ändringar i lokal kassa (utloggat läge) innan inloggning!
-                const lokalKassa = getLocalKassa();
+                // Ignorera demoelever (arDemo) så att testkörning aldrig förorenar en riktig molnkassa.
+                const lokalKassaRaw = getLocalKassa();
+                const demoIdsSet = new Set(
+                    (lokalKassaRaw.elever || []).filter(e => e && e.arDemo).map(e => e.id)
+                );
+                const lokalKassa = {
+                    ...lokalKassaRaw,
+                    elever: (lokalKassaRaw.elever || []).filter(e => e && !e.arDemo),
+                    transaktioner: (lokalKassaRaw.transaktioner || []).filter(t => t && !t.arDemo && !demoIdsSet.has(t.elevId))
+                };
                 const harLokalData = lokalKassa.harVerkligaOfflineAndringar && (
                     lokalKassa.elever.length > 0 ||
-                    lokalKassa.varor.length > 0 ||
                     lokalKassa.transaktioner.length > 0
                 );
 
@@ -1177,7 +1271,27 @@
         notifyAllListeners();
     }
 
-    // Hjälpfunktion för att uppdatera en klass i en elevlista utan att röra befintliga saldon (stödjer även klassnamnsbyte t.ex. 8B -> 9B)
+    function simpleEditDistance(a, b) {
+        const s = String(a || '').toLowerCase();
+        const t = String(b || '').toLowerCase();
+        if (s === t) return 0;
+        if (Math.abs(s.length - t.length) > 4) return 99;
+        const dp = Array.from({ length: s.length + 1 }, (_, i) => i);
+        for (let j = 1; j <= t.length; j++) {
+            let prev = dp[0];
+            dp[0] = j;
+            for (let i = 1; i <= s.length; i++) {
+                const tmp = dp[i];
+                dp[i] = s[i - 1] === t[j - 1]
+                    ? prev
+                    : 1 + Math.min(prev, dp[i], dp[i - 1]);
+                prev = tmp;
+            }
+        }
+        return dp[s.length];
+    }
+
+    // Hjälpfunktion för att uppdatera en klass i en elevlista utan att röra befintliga saldon (stödjer även klassnamnsbyte & stavfelsrättelse!)
     function mergeKlassIntoEleverList(nuvarandeElever, klassCode, nyaNamnLista, allowRemoveStudents, oldKlassCode = null) {
         let maxId = getNextMaxElevId(nuvarandeElever);
 
@@ -1203,32 +1317,63 @@
             return (b.tagg ? 1 : 0) - (a.tagg ? 1 : 0);
         });
 
-        const uppdateradeIKlassen = [];
+        const uppdateradeIKlassen = new Array(nyaNamnLista.length);
         const matchadeGamlaRefs = new Set();
+        const omatchadeNyaIndex = [];
 
-        nyaNamnLista.forEach(namn => {
+        // Steg 1: Exakt namnmatchning
+        nyaNamnLista.forEach((namn, idx) => {
             const low = namn.toLowerCase();
-
             const befintlig = sorteradeGamlaIKlassen.find(
                 e => !matchadeGamlaRefs.has(e) && String(e.namn || '').trim().toLowerCase() === low
             );
             if (befintlig) {
                 matchadeGamlaRefs.add(befintlig);
-                uppdateradeIKlassen.push({
+                uppdateradeIKlassen[idx] = {
                     ...befintlig,
                     id: befintlig.id,
                     namn: befintlig.namn,
                     klass: klassCode,
                     saldo: Number(befintlig.saldo) || 0
-                });
+                };
+            } else {
+                omatchadeNyaIndex.push(idx);
+            }
+        });
+
+        // Steg 2: Bevara elev-ID, saldo och RFID-tagg vid stavfelsrättelse eller namnförkortning (t.ex. "Anna Anderssn" -> "Anna Andersson" eller "Anna A")
+        omatchadeNyaIndex.forEach(idx => {
+            const nyttNamn = nyaNamnLista[idx];
+            const nyttFornamn = nyttNamn.split(/\s+/)[0].toLowerCase();
+            const kvarGamla = sorteradeGamlaIKlassen.filter(e => !matchadeGamlaRefs.has(e));
+
+            let kandidat = kvarGamla.find(e => simpleEditDistance(e.namn, nyttNamn) <= 2);
+            if (!kandidat && nyttFornamn.length >= 2) {
+                const medSammaFornamn = kvarGamla.filter(
+                    e => String(e.namn || '').trim().split(/\s+/)[0].toLowerCase() === nyttFornamn
+                );
+                if (medSammaFornamn.length === 1) {
+                    kandidat = medSammaFornamn[0];
+                }
+            }
+
+            if (kandidat) {
+                matchadeGamlaRefs.add(kandidat);
+                uppdateradeIKlassen[idx] = {
+                    ...kandidat,
+                    id: kandidat.id,
+                    namn: nyttNamn,
+                    klass: klassCode,
+                    saldo: Number(kandidat.saldo) || 0
+                };
             } else {
                 maxId++;
-                uppdateradeIKlassen.push({
+                uppdateradeIKlassen[idx] = {
                     id: maxId,
-                    namn: namn,
+                    namn: nyttNamn,
                     klass: klassCode,
                     saldo: 0
-                });
+                };
             }
         });
 
@@ -1496,6 +1641,11 @@
         return true;
     }
 
+    function sanitizeCsvText(val) {
+        const s = String(val ?? '');
+        return /^[=+\-@]/.test(s.trimStart()) ? ("'" + s) : s;
+    }
+
     // Exportera hela elevregistret med klasser och saldon till Excel / CSV
     function exportStudentsCSV() {
         const elever = getActiveEleverArray();
@@ -1516,8 +1666,8 @@
         let totaltNetto = 0;
 
         sorterade.forEach(e => {
-            const rentNamn = `"${String(e.namn || '').replace(/"/g, '""')}"`;
-            const renKlass = `"${String(e.klass || '').replace(/"/g, '""')}"`;
+            const rentNamn = `"${sanitizeCsvText(e.namn || '').replace(/"/g, '""')}"`;
+            const renKlass = `"${sanitizeCsvText(e.klass || '').replace(/"/g, '""')}"`;
             const saldo = Number(e.saldo) || 0;
             csvInnehall += `${rentNamn};${renKlass};${saldo}\r\n`;
             if (saldo > 0) totaltInnestaende += saldo;
@@ -1663,7 +1813,7 @@
 
             const appleIcon = document.createElement('link');
             appleIcon.rel = 'apple-touch-icon';
-            appleIcon.href = 'icon.svg';
+            appleIcon.href = 'apple-touch-icon.png';
             document.head.appendChild(appleIcon);
 
             const themeMeta = document.createElement('meta');
@@ -3161,7 +3311,7 @@
 
     function detectPageKey() {
         const path = (window.location.pathname || '').toLowerCase();
-        if (path.includes('statistik')) return 'statistik';
+        if (path.includes('statistik') || path.includes('anmalan')) return 'statistik';
         if (path.includes('kiosk')) return 'kiosk';
         if (path.includes('redskapsboden')) return 'redskapsboden';
         if (path.includes('turnering')) return 'turnering';
@@ -3274,19 +3424,20 @@
             const queue = JSON.parse(raw);
             if (!Array.isArray(queue) || queue.length === 0) return;
 
-            localStorage.removeItem(STATS_QUEUE_KEY);
-            for (const ev of queue) {
+            for (let i = 0; i < queue.length; i++) {
                 try {
-                    await sendStatEventToFirestore(ev);
+                    const sent = await sendStatEventToFirestore(queue[i]);
+                    if (!sent) {
+                        localStorage.setItem(STATS_QUEUE_KEY, JSON.stringify(queue.slice(i).slice(-50)));
+                        return;
+                    }
                 } catch (err) {
-                    // Om det fortfarande inte går (t.ex. ej inloggad), spara kvar i kön
-                    const currentRaw = localStorage.getItem(STATS_QUEUE_KEY);
-                    const currentQ = currentRaw ? JSON.parse(currentRaw) : [];
-                    currentQ.push(ev);
-                    localStorage.setItem(STATS_QUEUE_KEY, JSON.stringify(currentQ.slice(-50)));
-                    break;
+                    // Behåll alla återstående händelser i kön tills inloggning/uppkoppling finns
+                    localStorage.setItem(STATS_QUEUE_KEY, JSON.stringify(queue.slice(i).slice(-50)));
+                    return;
                 }
             }
+            localStorage.removeItem(STATS_QUEUE_KEY);
         } catch (e) {}
     }
 
@@ -3336,7 +3487,13 @@
 
         try {
             await flushPendingStatsQueue();
-            await sendStatEventToFirestore(eventObj);
+            const sent = await sendStatEventToFirestore(eventObj);
+            if (!sent) {
+                const raw = localStorage.getItem(STATS_QUEUE_KEY);
+                const queue = raw ? JSON.parse(raw) : [];
+                queue.push(eventObj);
+                localStorage.setItem(STATS_QUEUE_KEY, JSON.stringify(queue.slice(-50)));
+            }
         } catch (err) {
             try {
                 const raw = localStorage.getItem(STATS_QUEUE_KEY);
@@ -3405,6 +3562,8 @@
     // ==========================================
     const ELEVLAGE_PIN_KEY = 'skolif_elevlage_pin';
     const ELEVLAGE_ACTIVE_KEY = 'skolif_elevlage_active';
+    const ELEVLAGE_FAILS_KEY = 'skolif_elevlage_fails';
+    const ELEVLAGE_LOCKOUT_KEY = 'skolif_elevlage_lockout_until';
     let pinModalMode = 'UNLOCK'; // 'SET_AND_LOCK' eller 'UNLOCK'
     let pendingUnlockCallback = null;
 
@@ -3531,15 +3690,38 @@
             closePinModal();
             showToast('🔒 Elevläge är nu aktiverat! Admin-knappar är dolda.', 'success');
         } else {
+            let lockoutUntil = 0;
+            try { lockoutUntil = Number(localStorage.getItem(ELEVLAGE_LOCKOUT_KEY) || 0); } catch (e) {}
+            if (lockoutUntil > Date.now()) {
+                const secLeft = Math.ceil((lockoutUntil - Date.now()) / 1000);
+                showToast(`⏳ För många felaktiga PIN-försök. Vänta ${secLeft} s eller lås upp med Google.`, 'warning');
+                input.value = '';
+                return;
+            }
             const savedPin = getElevlagePin();
             if (!savedPin || val === savedPin) {
+                try {
+                    localStorage.removeItem(ELEVLAGE_FAILS_KEY);
+                    localStorage.removeItem(ELEVLAGE_LOCKOUT_KEY);
+                } catch (e) {}
                 const cb = pendingUnlockCallback;
                 setElevlageActive(false);
                 closePinModal();
                 showToast('🔓 Upplåst! Lärarläge är nu aktivt.', 'info');
                 if (typeof cb === 'function') cb();
             } else {
-                showToast('Fel PIN-kod! Försök igen.', 'error');
+                let fails = 0;
+                try { fails = Number(localStorage.getItem(ELEVLAGE_FAILS_KEY) || 0) + 1; } catch (e) { fails = 1; }
+                if (fails >= 5) {
+                    try {
+                        localStorage.setItem(ELEVLAGE_FAILS_KEY, '0');
+                        localStorage.setItem(ELEVLAGE_LOCKOUT_KEY, String(Date.now() + 30000));
+                    } catch (e) {}
+                    showToast('⏳ 5 felaktiga PIN-försök – upplåsning spärrad i 30 sekunder!', 'error');
+                } else {
+                    try { localStorage.setItem(ELEVLAGE_FAILS_KEY, String(fails)); } catch (e) {}
+                    showToast(`Fel PIN-kod! (${5 - fails} försök kvar innan kort spärr)`, 'error');
+                }
                 input.value = '';
                 input.focus();
             }
@@ -3614,6 +3796,10 @@
                 }
             }
 
+            try {
+                localStorage.removeItem(ELEVLAGE_FAILS_KEY);
+                localStorage.removeItem(ELEVLAGE_LOCKOUT_KEY);
+            } catch (e) {}
             const cb = pendingUnlockCallback;
             setElevlageActive(false);
             closePinModal();
@@ -3861,9 +4047,9 @@
         }
         let csv = '\uFEFFDatum;Aktivitet;Klass/Grupp;Antal deltagare;Status Arenan;Deltagare\r\n';
         list.forEach(item => {
-            const names = (item.deltagare || []).join(', ').replace(/"/g, '""');
+            const names = sanitizeCsvText((item.deltagare || []).join(', ')).replace(/"/g, '""');
             const statusTxt = item.inlagdIArenan ? 'Inlagd i Arenan' : 'Ej inlagd';
-            csv += `${item.datum};"${String(item.titel || '').replace(/"/g, '""')}";"${String(item.klass || '').replace(/"/g, '""')}";${(item.deltagare || []).length};"${statusTxt}";"${names}"\r\n`;
+            csv += `${item.datum};"${sanitizeCsvText(item.titel || '').replace(/"/g, '""')}";"${sanitizeCsvText(item.klass || '').replace(/"/g, '""')}";${(item.deltagare || []).length};"${statusTxt}";"${names}"\r\n`;
         });
         const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
         const url = URL.createObjectURL(blob);
@@ -4105,7 +4291,7 @@
         let csv = '\uFEFFDatum;Typ;Klass;Titel;Placering;Elev;Resultat;Detalj\r\n';
         list.forEach(s => {
             (s.resultat || []).forEach((r, idx) => {
-                csv += `${s.datum};${s.typ};"${s.klass}";"${String(s.titel || '').replace(/"/g, '""')}";${idx + 1};"${String(r.namn || '').replace(/"/g, '""')}";"${String(r.primarText || '')}";"${String(r.sekundarText || '')}"\r\n`;
+                csv += `${s.datum};${s.typ};"${sanitizeCsvText(s.klass || '').replace(/"/g, '""')}";"${sanitizeCsvText(s.titel || '').replace(/"/g, '""')}";${idx + 1};"${sanitizeCsvText(r.namn || '').replace(/"/g, '""')}";"${sanitizeCsvText(r.primarText || '').replace(/"/g, '""')}";"${sanitizeCsvText(r.sekundarText || '').replace(/"/g, '""')}"\r\n`;
             });
         });
         const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
@@ -4168,8 +4354,18 @@
     //  HÅLL SKÄRMEN VAKEN (SCREEN WAKE LOCK) PÅ VERKTYGSSIDOR
     // ==========================================
     let skolifWakeLockSentinel = null;
+    let suppressWakeLockUntil = 0;
+
+    function suppressWakeLockBriefly() {
+        suppressWakeLockUntil = Date.now() + 1500;
+        if (skolifWakeLockSentinel && !skolifWakeLockSentinel.released) {
+            skolifWakeLockSentinel.release().catch(() => {});
+            skolifWakeLockSentinel = null;
+        }
+    }
 
     async function requestSkolifWakeLock() {
+        if (Date.now() < suppressWakeLockUntil) return;
         if (!('wakeLock' in navigator) || document.visibilityState !== 'visible') return;
         if (skolifWakeLockSentinel && !skolifWakeLockSentinel.released) return;
         try {
@@ -4218,6 +4414,9 @@
 
     window.SkolIFKlasser = {
         getClasses: getClassesLocal,
+        parseNames: parseStudentNames,
+        csvSafe: sanitizeCsvText,
+        suppressWakeLockBriefly: suppressWakeLockBriefly,
         getActiveElever: getActiveEleverArray,
         getDefaultVaror: getDefaultKioskVaror,
         getLocalKassa: getLocalKassa,

@@ -1449,7 +1449,7 @@
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-<script src="klasser.js?v=10"></script>
+<script src="klasser.js?v=12"></script>
 
 <script>
 const KALENDER_LOCAL_KEY = 'skolif_kalender_v1';
@@ -1889,12 +1889,19 @@ function renderListView() {
     }
 
     if (expanded.length === 0) {
+        const hasActiveCatFilter = activeCategoryFilter && activeCategoryFilter !== 'all';
         container.innerHTML = `
             <div class="empty-state">
                 <div class="empty-state-icon">🔍</div>
-                <h3>Inga matchande kommande aktiviteter</h3>
-                <p>Byt kategorifilter ovan eller lägg till en ny aktivitet.</p>
-                <button type="button" class="btn btn-outline" onclick="sattKategoriFilter('all')">Visa alla kategorier</button>
+                <h3>Inga kommande aktiviteter hittades</h3>
+                <p>${hasActiveCatFilter
+                    ? 'Inga aktiviteter de närmaste månaderna matchar det valda kategorifiltret.'
+                    : (isPublicView
+                        ? 'Det finns inga inbokade aktiviteter de närmaste månaderna just nu.'
+                        : 'Det finns inga framtida aktiviteter de närmaste månaderna – lägg gärna till en ny aktivitet!')}</p>
+                ${hasActiveCatFilter
+                    ? `<button type="button" class="btn btn-outline" onclick="sattKategoriFilter('all')">Visa alla kategorier</button>`
+                    : (!isPublicView ? `<button type="button" class="btn btn-green" onclick="oppnaNyAktivitetModal()">➕ Lägg till aktivitet</button>` : '')}
             </div>
         `;
         return;
@@ -2127,7 +2134,8 @@ function renderBoardView() {
         }).join('');
     }
 
-    renderQrIntoBox(document.getElementById('boardQrBox'), getPublicCalendarUrl(false), 120);
+    const needHashFallback = cloudPublicSyncState !== 'synced';
+    renderQrIntoBox(document.getElementById('boardQrBox'), getPublicCalendarUrl(needHashFallback), 120);
     renderClockOnly();
 }
 
@@ -2135,7 +2143,8 @@ function oppnaBoardQrZoom() {
     const overlay = document.getElementById('boardQrZoomOverlay');
     const zoomBox = document.getElementById('boardQrZoomBox');
     if (!overlay || !zoomBox) return;
-    renderQrIntoBox(zoomBox, getPublicCalendarUrl(false), 252);
+    const needHashFallback = cloudPublicSyncState !== 'synced';
+    renderQrIntoBox(zoomBox, getPublicCalendarUrl(needHashFallback), 252);
     overlay.classList.add('open');
 }
 
@@ -2552,13 +2561,19 @@ function laddaNerIcs(evId, instanceDate) {
     let dtEndLine = `DTEND;VALUE=DATE:${addDaysYmd(instanceDate || ev.date, 1).replace(/-/g, '')}`;
     if (ev.startTime) {
         const sCompact = ev.startTime.replace(':', '') + '00';
-        const eTime = ev.endTime || ev.startTime;
+        let eTime = ev.endTime;
+        if (!eTime) {
+            const parts = ev.startTime.split(':');
+            const sMin = (parseInt(parts[0], 10) || 0) * 60 + (parseInt(parts[1], 10) || 0);
+            const eMin = Math.min(23 * 60 + 59, sMin + 45);
+            eTime = `${String(Math.floor(eMin / 60)).padStart(2, '0')}:${String(eMin % 60).padStart(2, '0')}`;
+        }
         const eCompact = eTime.replace(':', '') + '00';
         dtStartLine = `DTSTART:${dStr}T${sCompact}`;
         dtEndLine = `DTEND:${dStr}T${eCompact}`;
     }
 
-    const escIcs = (txt) => String(txt || '').replace(/\\/g, '\\\\').replace(/\n/g, '\\n').replace(/,/g, '\\,').replace(/;/g, '\\;');
+    const escIcs = (txt) => String(txt || '').replace(/\r/g, '').replace(/\\/g, '\\\\').replace(/\n/g, '\\n').replace(/,/g, '\\,').replace(/;/g, '\\;');
     const descParts = [ev.target ? `Målgrupp: ${ev.target}` : '', ev.leaders ? `Ledare: ${ev.leaders}` : '', ev.notes || ''].filter(Boolean).join(' | ');
 
     const dtStampUtc = new Date().toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
@@ -2609,13 +2624,28 @@ function renderQrIntoBox(boxEl, urlStr, sizePx) {
                 height: sizePx,
                 colorDark: '#0F172A',
                 colorLight: '#FFFFFF',
-                correctLevel: QRCode.CorrectLevel.M
+                correctLevel: QRCode.CorrectLevel.L
             });
             return;
-        } catch (e) {}
+        } catch (e) {
+            try {
+                const shortOnly = urlStr.split('#')[0];
+                new QRCode(boxEl, {
+                    text: shortOnly,
+                    width: sizePx,
+                    height: sizePx,
+                    colorDark: '#0F172A',
+                    colorLight: '#FFFFFF',
+                    correctLevel: QRCode.CorrectLevel.L
+                });
+                return;
+            } catch (e2) {}
+        }
     }
+    // Skicka aldrig #s=-data (med ev. namn) till extern tredjepartsserver
+    const safeShortUrl = urlStr.split('#')[0];
     const img = document.createElement('img');
-    img.src = `https://api.qrserver.com/v1/create-qr-code/?size=${sizePx}x${sizePx}&data=${encodeURIComponent(urlStr)}`;
+    img.src = `https://api.qrserver.com/v1/create-qr-code/?size=${sizePx}x${sizePx}&data=${encodeURIComponent(safeShortUrl)}`;
     img.alt = 'QR-kod för Skol-IF kalender';
     img.style.width = sizePx + 'px';
     img.style.height = sizePx + 'px';

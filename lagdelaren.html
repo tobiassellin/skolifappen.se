@@ -79,6 +79,8 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
             box-shadow: 0 4px 20px rgba(0,0,0,0.15);
             border-bottom: 1px solid rgba(255,255,255,0.08);
             position: sticky;
@@ -108,7 +110,8 @@
         .nav-actions {
             display: flex;
             align-items: center;
-            gap: 10px;
+            flex-wrap: wrap;
+            gap: 8px;
         }
         .nav-btn {
             background: rgba(255,255,255,0.12);
@@ -127,6 +130,12 @@
             font-family: 'Poppins', sans-serif;
         }
         .nav-btn:hover { background: rgba(255,255,255,0.22); transform: translateY(-1px); }
+        @media (max-width: 680px) {
+            nav { padding: 0.6rem 14px; }
+            .nav-logo { font-size: 1.1rem; }
+            .nav-actions { width: 100%; justify-content: flex-start; gap: 6px; }
+            .nav-btn { padding: 6px 10px; font-size: 0.78rem; }
+        }
 
         /* ====== CONTAINER ====== */
         .container {
@@ -516,7 +525,8 @@
 
         /* Utskriftslayout */
         @media print {
-            nav, .teams-action-bar, .nav-actions, .member-move-btn { display: none !important; }
+            nav, .teams-action-bar .btn, .nav-actions, .member-move-btn { display: none !important; }
+            .teams-action-bar { margin-bottom: 14px !important; border: none !important; box-shadow: none !important; padding: 0 0 8px 0 !important; }
             body { background: white !important; }
             .container { max-width: 100% !important; padding: 0 !important; }
             .team-card { box-shadow: none !important; border: 1px solid #999 !important; page-break-inside: avoid; }
@@ -533,7 +543,7 @@
         <div class="nav-logo-icon">🎲</div>
         <div>
             <div>Lagdelaren</div>
-            <div style="font-size: 0.72rem; color: #666; font-weight: 500;">Skol-IF • Snabb laglottning</div>
+            <div style="font-size: 0.72rem; color: rgba(255,255,255,0.78); font-weight: 500;">Skol-IF • Snabb laglottning</div>
         </div>
     </a>
     <div class="nav-actions">
@@ -569,7 +579,7 @@
                     </div>
                 </div>
 
-                <!-- Sparade klasser (Molnsynkade via klasser.js?v=9) -->
+                <!-- Sparade klasser (Molnsynkade via klasser.js) -->
                 <div data-skolif-classbar></div>
 
                 <div class="form-group" id="inputAreaGroup">
@@ -653,6 +663,7 @@
             </div>
             <div style="display: flex; gap: 8px; flex-wrap: wrap;">
                 <button class="btn btn-green" onclick="slumpaIgen()" title="Kör ny slumpning">🔄 Slumpa igen</button>
+                <button class="btn btn-outline" onclick="skickaLagTillTurnering()" title="Skapa turnering &amp; spelschema med dessa lag">🏆 Skapa turnering</button>
                 <button class="btn btn-outline" onclick="sparaLagdelarenSomLok()" title="Spara närvarande elever som LOK-stödsaktivitet">🏟️ Spara LOK-stöd</button>
                 <button class="btn btn-outline" onclick="kopieraLagText()" title="Kopiera som text">📋 Kopiera</button>
                 <button class="btn btn-outline" onclick="window.print()" title="Skriv ut laguppställning">🖨️ Skriv ut</button>
@@ -756,7 +767,7 @@
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-<script src="klasser.js?v=10"></script>
+<script src="klasser.js?v=12"></script>
 
 <!-- ========================================== -->
 <!-- JAVASCRIPT LOGIK                           -->
@@ -834,9 +845,9 @@
     // ==========================================
     function parsaInputTillElever() {
         const text = document.getElementById('eleverInput').value;
-        const rader = text.split(/[\n,;]+/)
-            .map(s => s.trim())
-            .filter(s => s.length > 0);
+        const rader = (window.SkolIFKlasser && typeof SkolIFKlasser.parseNames === 'function')
+            ? SkolIFKlasser.parseNames(text)
+            : text.split(/[\n,;]+/).map(s => s.trim()).filter(s => s.length > 0);
 
         // Bevara befintlig närvaro även om två elever har samma förnamn
         const gammalNärvaro = new Map();
@@ -1026,47 +1037,22 @@
         alert(`✅ "${namn}" sparades!`);
     }
 
-    function laddaSparadeKlasserPiller() {
-        const container = document.getElementById('savedClassesContainer');
-        let sparade = {};
-        try {
-            sparade = JSON.parse(localStorage.getItem('skolif_sparade_klasser') || '{}');
-        } catch(e) { sparade = {}; }
-
-        const namnLista = Object.keys(sparade);
-        if (namnLista.length === 0) {
-            container.innerHTML = `<span style="font-size: 0.8rem; color: #94A3B8; font-style: italic;">Inga sparade klasser än.</span>`;
+    function skickaLagTillTurnering() {
+        if (!aktivaLag || aktivaLag.length < 2) {
+            alert('Slumpa fram minst 2 lag först!');
             return;
         }
-
-        container.innerHTML = namnLista.map(k => `
-            <div class="class-pill" data-klass="${escapeHtml(k)}" onclick="valjSparadKlass(this.dataset.klass)">
-                <span>📁 ${escapeHtml(k)}</span>
-                <span class="class-pill-del" data-klass="${escapeHtml(k)}" onclick="event.stopPropagation(); raderaSparadKlass(this.dataset.klass)">✕</span>
-            </div>
-        `).join('');
-    }
-
-    function valjSparadKlass(namn) {
+        const klassNamn = (document.getElementById('sparaKlassNamn')?.value || '').trim();
+        const payload = {
+            title: klassNamn ? `${klassNamn} – Turnering` : 'Lektionsturnering',
+            teams: aktivaLag.map(l => `${l.namn} (${l.spelare.map(s => s.namn).join(', ')})`.length <= 42
+                ? `${l.namn} (${l.spelare.map(s => s.namn).join(', ')})`
+                : l.namn)
+        };
         try {
-            const sparade = JSON.parse(localStorage.getItem('skolif_sparade_klasser') || '{}');
-            if (sparade[namn]) {
-                const text = typeof sparade[namn] === 'string' ? sparade[namn] : sparade[namn].text;
-                document.getElementById('sparaKlassNamn').value = namn;
-                document.getElementById('eleverInput').value = text;
-                parsaInputTillElever();
-            }
-        } catch(e) {}
-    }
-
-    function raderaSparadKlass(namn) {
-        if (!confirm(`Vill du ta bort den sparade klassen "${namn}"?`)) return;
-        try {
-            const sparade = JSON.parse(localStorage.getItem('skolif_sparade_klasser') || '{}');
-            delete sparade[namn];
-            localStorage.setItem('skolif_sparade_klasser', JSON.stringify(sparade));
-            laddaSparadeKlasserPiller();
-        } catch(e) {}
+            sessionStorage.setItem('skolif_lagdelaren_to_turnering', JSON.stringify(payload));
+        } catch (e) {}
+        window.location.href = 'turnering.html?from=lagdelaren';
     }
 
     // ==========================================
@@ -1214,14 +1200,47 @@
         }).catch(err => alert("Kunde inte kopiera: " + err));
     }
 
+    function syncFullscreenBtnLabel() {
+        const btn = document.getElementById('fsBtn');
+        if (!btn) return;
+        const isFs = Boolean(document.fullscreenElement || document.webkitFullscreenElement || document.body.classList.contains('board-pseudo-fullscreen'));
+        btn.textContent = isFs ? "✕ Avsluta fullskärm" : "⛶ Fullskärm";
+    }
+    document.addEventListener('fullscreenchange', syncFullscreenBtnLabel);
+    document.addEventListener('webkitfullscreenchange', syncFullscreenBtnLabel);
+
     function toggleFullscreen() {
-        if (!document.fullscreenElement) {
-            document.documentElement.requestFullscreen().catch(() => {});
-            document.getElementById('fsBtn').textContent = "✕ Avsluta fullskärm";
-        } else {
-            if (document.exitFullscreen) document.exitFullscreen();
-            document.getElementById('fsBtn').textContent = "⛶ Fullskärm";
+        const fsEl = document.fullscreenElement || document.webkitFullscreenElement;
+        if (fsEl) {
+            if (document.exitFullscreen) document.exitFullscreen().catch(() => {});
+            else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+            document.body.classList.remove('board-pseudo-fullscreen');
+            syncFullscreenBtnLabel();
+            return;
         }
+        if (document.body.classList.contains('board-pseudo-fullscreen')) {
+            document.body.classList.remove('board-pseudo-fullscreen');
+            syncFullscreenBtnLabel();
+            return;
+        }
+        const root = document.documentElement;
+        const req = root.requestFullscreen || root.webkitRequestFullscreen;
+        if (req) {
+            try {
+                const res = req.call(root);
+                if (res && typeof res.catch === 'function') {
+                    res.catch(() => {
+                        document.body.classList.add('board-pseudo-fullscreen');
+                        syncFullscreenBtnLabel();
+                    });
+                }
+            } catch (e) {
+                document.body.classList.add('board-pseudo-fullscreen');
+            }
+        } else {
+            document.body.classList.add('board-pseudo-fullscreen');
+        }
+        syncFullscreenBtnLabel();
     }
 
     function escapeHtml(text) {

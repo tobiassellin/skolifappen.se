@@ -79,6 +79,8 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
             box-shadow: 0 4px 20px rgba(0,0,0,0.15);
             border-bottom: 1px solid rgba(255,255,255,0.08);
             position: sticky;
@@ -108,7 +110,8 @@
         .nav-actions {
             display: flex;
             align-items: center;
-            gap: 10px;
+            flex-wrap: wrap;
+            gap: 8px;
         }
         .nav-btn {
             background: rgba(255,255,255,0.12);
@@ -127,6 +130,12 @@
             font-family: 'Poppins', sans-serif;
         }
         .nav-btn:hover { background: rgba(255,255,255,0.22); transform: translateY(-1px); }
+        @media (max-width: 680px) {
+            nav { padding: 0.6rem 14px; }
+            .nav-logo { font-size: 1.1rem; }
+            .nav-actions { width: 100%; justify-content: flex-start; gap: 6px; }
+            .nav-btn { padding: 6px 10px; font-size: 0.78rem; }
+        }
 
         /* ====== CONTAINER ====== */
         .container {
@@ -534,6 +543,8 @@
             align-items: center;
             justify-content: center;
             font-size: 1.4rem;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
         }
         .podium-1 .podium-box { height: 110px; background: #FBC02D; }
         .podium-2 .podium-box { height: 85px; background: #90A4AE; }
@@ -708,6 +719,7 @@
         }
 
         /* Utskriftslayout */
+        @page { size: A4 landscape; margin: 8mm; }
         @media print {
             body.printing-diplomas * {
                 visibility: hidden;
@@ -736,13 +748,17 @@
                 height: 94vh;
                 box-sizing: border-box;
             }
+            body.printing-diplomas .diplom-card:last-child {
+                page-break-after: auto;
+                break-after: auto;
+            }
             body:not(.printing-diplomas) nav, 
             body:not(.printing-diplomas) .timer-controls, 
             body:not(.printing-diplomas) .nav-actions, 
             body:not(.printing-diplomas) .btn { 
                 display: none !important; 
             }
-            body:not(.printing-diplomas) body, body:not(.printing-diplomas) .container { 
+            body:not(.printing-diplomas), body:not(.printing-diplomas) .container { 
                 background: white; padding: 0; 
             }
             body:not(.printing-diplomas) .card { 
@@ -760,7 +776,7 @@
         <div class="nav-logo-icon">⏱️</div>
         <div>
             <div>Löprundan</div>
-            <div style="font-size: 0.72rem; color: #666; font-weight: 500;">Klasstidtagning & Lopp</div>
+            <div style="font-size: 0.72rem; color: rgba(255,255,255,0.78); font-weight: 500;">Klasstidtagning & Lopp</div>
         </div>
     </a>
     <div class="nav-actions">
@@ -1102,7 +1118,7 @@
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-<script src="klasser.js?v=10"></script>
+<script src="klasser.js?v=12"></script>
 
 <script>
     // ==========================================
@@ -1136,7 +1152,8 @@
         }
 
         // Kontrollera om ett pågående lopp finns sparat i localStorage
-        const sparad = localStorage.getItem(STORAGE_KEY);
+        let sparad = null;
+        try { sparad = localStorage.getItem(STORAGE_KEY); } catch (e) {}
         if (sparad) {
             try {
                 const data = JSON.parse(sparad);
@@ -1145,7 +1162,7 @@
                         atertallLopp(data);
                         return;
                     } else {
-                        localStorage.removeItem(STORAGE_KEY);
+                        try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
                     }
                 }
             } catch(e) {
@@ -1220,6 +1237,9 @@
 
     function parsaNamn(text) {
         if (!text) return [];
+        if (window.SkolIFKlasser && typeof SkolIFKlasser.parseNames === 'function') {
+            return SkolIFKlasser.parseNames(text);
+        }
         return text.split(/[\n,;]+/)
             .map(s => s.trim())
             .filter(s => s.length > 0);
@@ -1383,6 +1403,16 @@
     // ==========================================
     //  MÅLGÅNGSHANTERING (1-KLICK!)
     // ==========================================
+    function omraknaAllaPlaceringar() {
+        const allaIMal = [
+            ...deltagare.filter(e => e.status === 'MAL'),
+            ...oidentifieradeTider
+        ].sort((a, b) => a.tidMs - b.tidMs);
+        allaIMal.forEach((entry, idx) => {
+            entry.placering = idx + 1;
+        });
+    }
+
     function elevGickIMal(elevId) {
         if (loppStatus === 'FINISHED') return;
         if (loppStatus === 'PAUSED') {
@@ -1394,16 +1424,15 @@
         if (!elev || elev.status !== 'BANAN') return;
 
         const aktuellTidMs = Date.now() - startTime - totalPausedMs;
-        const iMalRedan = deltagare.filter(e => e.status === 'MAL').length;
-        const placering = iMalRedan + 1;
 
         elev.status = 'MAL';
         elev.tidMs = aktuellTidMs;
-        elev.placering = placering;
+        omraknaAllaPlaceringar();
 
         spelaPip(880, 0.12);
         vibrera();
 
+        renderaOidentifierade();
         renderaBanan();
         renderaMallista();
         sparaStateLokalt();
@@ -1426,31 +1455,33 @@
             alert('Loppet är pausat – tryck på "▶️ Återuppta" först för att registrera spurttid!');
             return;
         }
+        const kvarPaBanan = deltagare.filter(e => e.status === 'BANAN').length;
+        if (oidentifieradeTider.length >= kvarPaBanan) {
+            alert('Alla löpare som är kvar på banan har redan en väntande måltid! Koppla tiderna nedan.');
+            return;
+        }
         const aktuellTidMs = Date.now() - startTime - totalPausedMs;
-        const iMalRedan = deltagare.filter(e => e.status === 'MAL').length + oidentifieradeTider.length;
-        const placering = iMalRedan + 1;
 
         oidentifieradeTider.push({
             id: Date.now() + Math.random(),
             tidMs: aktuellTidMs,
-            placering: placering
+            placering: 0
         });
+        omraknaAllaPlaceringar();
 
         spelaPip(1050, 0.12);
         vibrera();
 
         renderaOidentifierade();
+        renderaMallista();
         sparaStateLokalt();
     }
 
     function raderaSpurtTid(spurtId) {
         oidentifieradeTider = oidentifieradeTider.filter(x => String(x.id) !== String(spurtId));
-        // Uppdatera preliminära placeringar för kvarvarande spurttider
-        const baseCount = deltagare.filter(e => e.status === 'MAL').length;
-        oidentifieradeTider.forEach((t, idx) => {
-            t.placering = baseCount + idx + 1;
-        });
+        omraknaAllaPlaceringar();
         renderaOidentifierade();
+        renderaMallista();
         sparaStateLokalt();
     }
 
@@ -1508,15 +1539,24 @@
         if (item && elev) {
             elev.status = 'MAL';
             elev.tidMs = item.tidMs;
-            elev.placering = item.placering;
 
             oidentifieradeTider = oidentifieradeTider.filter(x => String(x.id) !== String(aktivOidentifieradId));
+            omraknaAllaPlaceringar();
             closeModal('tilldelaModal');
 
             renderaOidentifierade();
             renderaBanan();
             renderaMallista();
             sparaStateLokalt();
+
+            const kvar = deltagare.filter(e => e.status === 'BANAN').length;
+            if (kvar === 0 && oidentifieradeTider.length === 0) {
+                setTimeout(() => {
+                    if (confirm("Alla deltagare är i mål! Vill du avsluta loppet och se sammanställningen?")) {
+                        avslutaLopp();
+                    }
+                }, 400);
+            }
         }
     }
 
@@ -1528,10 +1568,9 @@
         elev.tidMs = 0;
         elev.placering = 0;
 
-        // Räkna om placeringarna för resterande som är i mål
-        const iMal = deltagare.filter(e => e.status === 'MAL').sort((a,b) => a.tidMs - b.tidMs);
-        iMal.forEach((e, idx) => { e.placering = idx + 1; });
+        omraknaAllaPlaceringar();
 
+        renderaOidentifierade();
         renderaBanan();
         renderaMallista();
         sparaStateLokalt();
@@ -1587,10 +1626,14 @@
             return;
         }
 
-        const vinnarTid = iMal[0].tidMs;
+        const allaIMal = [
+            ...iMal,
+            ...oidentifieradeTider
+        ].sort((a, b) => a.tidMs - b.tidMs);
+        const vinnarTid = allaIMal.length > 0 ? allaIMal[0].tidMs : iMal[0].tidMs;
 
         container.innerHTML = iMal.map((e, index) => {
-            const pos = index + 1;
+            const pos = e.placering || (index + 1);
             let topClass = "";
             let medalj = `#${pos}`;
             if (pos === 1) { topClass = "top1"; medalj = "🥇 1"; }
@@ -1645,7 +1688,7 @@
         }
         loppStatus = 'FINISHED';
         clearInterval(timerInterval);
-        localStorage.removeItem(STORAGE_KEY);
+        try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
 
         document.getElementById('setupView').style.display = 'none';
         document.getElementById('raceView').style.display = 'none';
@@ -1676,7 +1719,7 @@
         if (confirm("Vill du starta en helt ny löprunda?")) {
             loppStatus = 'SETUP';
             clearInterval(timerInterval);
-            localStorage.removeItem(STORAGE_KEY);
+            try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
             document.getElementById('summaryView').style.display = 'none';
             document.getElementById('raceView').style.display = 'none';
             document.getElementById('setupView').style.display = 'block';
@@ -1770,22 +1813,26 @@
         const vinnarTid = iMal[0].tidMs;
         let csv = "Placering;Namn;Sluttid;Efter ledare;Km-tempo;Distans km\r\n";
 
+        const distSv = banLangdKm ? String(banLangdKm).replace('.', ',') : '';
         iMal.forEach((e, idx) => {
             const pos = idx + 1;
             const diffMs = e.tidMs - vinnarTid;
-            const diffText = pos === 1 ? "00:00.0" : formatDiff(diffMs);
+            const diffText = pos === 1 ? "00:00,0" : formatDiff(diffMs).replace('.', ',');
             const tempo = banLangdKm > 0 ? beraknaTempo(e.tidMs, banLangdKm) : "";
-            csv += `${pos};"${e.namn.replace(/"/g, '""')}";${formatTid(e.tidMs)};${diffText};${tempo};${banLangdKm || ''}\r\n`;
+            const safeElevNamn = (window.SkolIFKlasser && SkolIFKlasser.csvSafe ? SkolIFKlasser.csvSafe(e.namn) : String(e.namn || '')).replace(/"/g, '""');
+            csv += `${pos};"${safeElevNamn}";${formatTid(e.tidMs).replace('.', ',')};${diffText};${tempo};${distSv}\r\n`;
         });
 
+        const safeNamn = (loppNamn || 'Lopp').replace(/[\\/:*?"<>|\s]+/g, '_');
         const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `Resultat_${loppNamn.replace(/\s+/g, '_')}_${new Date().toISOString().slice(0,10)}.csv`;
+        a.download = `Resultat_${safeNamn}_${new Date().toISOString().slice(0,10)}.csv`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
+        URL.revokeObjectURL(url);
     }
 
     function kopieraResultat() {
@@ -1829,6 +1876,7 @@
     }
 
     function stangDiplomModal() {
+        document.body.classList.remove('printing-diplomas');
         document.getElementById('diplomModal').classList.remove('open');
     }
 
@@ -1934,7 +1982,6 @@
 
         setTimeout(() => {
             window.print();
-            setTimeout(() => document.body.classList.remove('printing-diplomas'), 2000);
         }, 150);
     }
 
@@ -1954,7 +2001,7 @@
             deltagare,
             oidentifieradeTider
         };
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch (e) {}
     }
 
     function atertallLopp(data) {
@@ -1966,6 +2013,10 @@
         totalPausedMs = data.totalPausedMs;
         deltagare = data.deltagare || [];
         oidentifieradeTider = data.oidentifieradeTider || [];
+        omraknaAllaPlaceringar();
+
+        const loppInput = document.getElementById('loppNamn');
+        if (loppInput && loppNamn) loppInput.value = loppNamn;
 
         document.getElementById('setupView').style.display = 'none';
         document.getElementById('raceView').style.display = 'block';

@@ -180,6 +180,7 @@
         }
         @media (max-width: 820px) {
             .boden-layout { grid-template-columns: 1fr; gap: 20px; }
+            .boden-sidebar { position: static; max-height: none; overflow-y: visible; }
         }
         .boden-sidebar {
             background: white;
@@ -794,7 +795,7 @@
 <!-- Toast -->
 <div id="toast"></div>
 
-<script src="klasser.js?v=10"></script>
+<script src="klasser.js?v=12"></script>
 <script>
 // ==========================================
 //  FIREBASE KONFIGURATION
@@ -973,8 +974,44 @@ function startCloudListener(docId) {
     });
 }
 
-// Krav 5: Spara / uppdatera artiklar och lån
-async function sparaTillMolnEllerLokalt() {
+// Krav 5: Spara / uppdatera artiklar och lån (transaktionssäkert mot samtidig användning på flera enheter)
+async function sparaTillMolnEllerLokalt(mutatorFn) {
+    if (isCloudMode && activeBodDocId && db && typeof mutatorFn === 'function') {
+        try {
+            const bodRef = db.collection('redskapsbodar').doc(activeBodDocId);
+            await db.runTransaction(async (tx) => {
+                const snap = await tx.get(bodRef);
+                let molnArtiklar = [];
+                if (snap.exists) {
+                    const d = snap.data() || {};
+                    if (Array.isArray(d.artiklar) && (d.artiklar.length > 0 || !d.data)) {
+                        molnArtiklar = JSON.parse(JSON.stringify(d.artiklar));
+                    } else if (d.data) {
+                        try { molnArtiklar = JSON.parse(d.data); } catch (e) {}
+                    }
+                } else {
+                    molnArtiklar = JSON.parse(JSON.stringify(artiklar));
+                }
+                const ok = mutatorFn(molnArtiklar);
+                if (ok === false) return;
+                artiklar = molnArtiklar;
+                tx.update(bodRef, {
+                    artiklar: molnArtiklar,
+                    data: JSON.stringify(molnArtiklar),
+                    senastUppdaterad: Date.now()
+                });
+            });
+            saveLocal();
+            return;
+        } catch (err) {
+            console.error('Fel vid transaktionsuppdatering av Firestore:', err);
+            showToast('⚠️ Sparat lokalt, men kunde inte nå molnet: ' + err.message);
+        }
+    }
+
+    if (typeof mutatorFn === 'function') {
+        mutatorFn(artiklar);
+    }
     saveLocal();
 
     if (isCloudMode && activeBodDocId && db) {
@@ -1384,32 +1421,56 @@ async function sparaArtikel() {
     const valdEmoji = (document.getElementById('artikelEmoji')?.value || '').trim() || matchEmojiByName(namn);
     if (!namn) { showToast('Ange ett namn på artikeln'); return; }
 
+    if (editingArtikelId !== null) {
+        const bef = artiklar.find(x => String(x.id) === String(editingArtikelId));
+        if (bef) {
+            const utlanatNu = (bef.lan || []).reduce((s, l) => s + (Number(l.antal) || 0), 0);
+            if (antal < utlanatNu) {
+                showToast(`⚠️ Kan inte sätta antal till ${antal} st när ${utlanatNu} st är utlånade!`);
+                return;
+            }
+        }
+    }
+
     isSavingBodAction = true;
     try {
-        if (editingArtikelId !== null) {
-            const a = artiklar.find(x => x.id === editingArtikelId);
-            if (a) {
-                a.namn = namn;
-                a.emoji = valdEmoji;
-                a.totaltAntal = antal;
+        const isEditing = editingArtikelId !== null;
+        const targetEditId = editingArtikelId;
+        let blockedMsg = '';
+        await sparaTillMolnEllerLokalt((lista) => {
+            if (isEditing) {
+                const a = lista.find(x => String(x.id) === String(targetEditId));
+                if (a) {
+                    const utlanatMoln = (a.lan || []).reduce((s, l) => s + (Number(l.antal) || 0), 0);
+                    if (antal < utlanatMoln) {
+                        blockedMsg = `⚠️ Kan inte sätta antal till ${antal} st när ${utlanatMoln} st är utlånade!`;
+                        return false;
+                    }
+                    a.namn = namn;
+                    a.emoji = valdEmoji;
+                    a.totaltAntal = antal;
+                }
+            } else {
+                const nextId = lista.length > 0 ? Math.max(...lista.map(x => Number(x.id) || 0)) + 1 : 1;
+                lista.push({
+                    id: nextId,
+                    namn: namn,
+                    emoji: valdEmoji,
+                    totaltAntal: antal,
+                    lan: []
+                });
             }
-            laggTillHistorik('artikel', `Ändrade artikeln "${namn}"`);
-        } else {
-            const nextId = artiklar.length > 0 ? Math.max(...artiklar.map(x => typeof x.id === 'number' ? x.id : 0)) + 1 : 1;
-            artiklar.push({
-                id: nextId,
-                namn: namn,
-                emoji: valdEmoji,
-                totaltAntal: antal,
-                lan: []
-            });
-            laggTillHistorik('artikel', `Lade till artikeln "${namn}"`);
+            return true;
+        });
+        if (blockedMsg) {
+            renderAll();
+            showToast(blockedMsg);
+            return;
         }
-
-        await sparaTillMolnEllerLokalt();
+        laggTillHistorik('artikel', isEditing ? `Ändrade artikeln "${namn}"` : `Lade till artikeln "${namn}"`);
         renderAll();
         closeModal('artikelModal');
-        showToast(editingArtikelId ? '✅ Artikel uppdaterad' : '✅ Ny artikel sparad');
+        showToast(isEditing ? '✅ Artikel uppdaterad' : '✅ Ny artikel sparad');
     } finally {
         isSavingBodAction = false;
     }
@@ -1417,16 +1478,24 @@ async function sparaArtikel() {
 
 async function raderaArtikel() {
     if (isBodElevlageLocked()) { showToast('🔒 Låst i Elevläge – lås upp med PIN först'); return; }
-    if (editingArtikelId === null) return;
-    const a = artiklar.find(x => x.id === editingArtikelId);
+    if (editingArtikelId === null || isSavingBodAction) return;
+    const targetId = editingArtikelId;
+    const a = artiklar.find(x => String(x.id) === String(targetId));
     if (!confirm(`Vill du verkligen radera artikeln "${a?.namn}"?`)) return;
 
-    artiklar = artiklar.filter(x => x.id !== editingArtikelId);
-    laggTillHistorik('artikel', `Raderade artikeln "${a?.namn || ''}"`);
-    await sparaTillMolnEllerLokalt();
-    renderAll();
-    closeModal('artikelModal');
-    showToast('🗑 Artikel raderad');
+    isSavingBodAction = true;
+    try {
+        await sparaTillMolnEllerLokalt((lista) => {
+            const idx = lista.findIndex(x => String(x.id) === String(targetId));
+            if (idx !== -1) lista.splice(idx, 1);
+        });
+        laggTillHistorik('artikel', `Raderade artikeln "${a?.namn || ''}"`);
+        renderAll();
+        closeModal('artikelModal');
+        showToast('🗑 Artikel raderad');
+    } finally {
+        isSavingBodAction = false;
+    }
 }
 
 // ==========================================
@@ -1460,7 +1529,9 @@ function renderaLanaKlassSnabbval() {
         const rawText = typeof klasser[valdLanaKlassNamn] === 'string'
             ? klasser[valdLanaKlassNamn]
             : (klasser[valdLanaKlassNamn].text || '');
-        const elever = String(rawText).split(/[\n,;]+/).map(s => s.trim()).filter(Boolean);
+        const elever = (window.SkolIFKlasser && typeof window.SkolIFKlasser.parseNames === 'function')
+            ? window.SkolIFKlasser.parseNames(rawText)
+            : String(rawText).split(/[\n,;]+/).map(s => s.trim()).filter(Boolean);
         if (elever.length > 0) {
             elevPills.style.display = 'flex';
             elevPills.innerHTML = `<button type="button" onclick="valjHelaLanaKlass()" style="border:1px solid #93C5FD; background:#EFF6FF; color:#1D4ED8; border-radius:8px; padding:3px 9px; font-size:0.75rem; font-weight:700; cursor:pointer;">Hela ${escapeHtml(valdLanaKlassNamn)}</button>` +
@@ -1498,7 +1569,9 @@ function valjLanaElevIndex(eIdx) {
     const rawText = typeof klasser[valdLanaKlassNamn] === 'string'
         ? klasser[valdLanaKlassNamn]
         : (klasser[valdLanaKlassNamn].text || '');
-    const elever = String(rawText).split(/[\n,;]+/).map(s => s.trim()).filter(Boolean);
+    const elever = (window.SkolIFKlasser && typeof window.SkolIFKlasser.parseNames === 'function')
+        ? window.SkolIFKlasser.parseNames(rawText)
+        : String(rawText).split(/[\n,;]+/).map(s => s.trim()).filter(Boolean);
     const elevNamn = elever[eIdx];
     if (elevNamn) {
         sattLanarnamnSnabb(`${elevNamn} (${valdLanaKlassNamn})`);
@@ -1603,11 +1676,38 @@ async function sparaUtlaning() {
             namn: lanarnamn,
             antal: antal
         };
+        let conflictMsg = '';
+        let artikelNamn = a.namn;
 
-        a.lan.push(nyttLan);
-        laggTillHistorik('lånad', `Lånade ut ${antal} st ${a.namn} till ${lanarnamn}`);
+        await sparaTillMolnEllerLokalt((lista) => {
+            const target = lista.find(x => String(x.id) === String(artikelIdVal));
+            if (!target) {
+                conflictMsg = 'Artikeln hittades inte längre';
+                return false;
+            }
+            if (!Array.isArray(target.lan)) target.lan = [];
+            const nuUtlanat = target.lan.reduce((s, l) => s + (l.antal || 0), 0);
+            const nuKvar = Math.max(0, (target.totaltAntal || 0) - nuUtlanat);
+            if (nuKvar <= 0) {
+                conflictMsg = 'Inga exemplar kvar i boden';
+                return false;
+            }
+            if (antal > nuKvar) {
+                conflictMsg = `Bara ${nuKvar} st tillgängliga`;
+                return false;
+            }
+            artikelNamn = target.namn || artikelNamn;
+            target.lan.push(nyttLan);
+            return true;
+        });
 
-        await sparaTillMolnEllerLokalt();
+        if (conflictMsg) {
+            renderAll();
+            showToast('⚠️ ' + conflictMsg);
+            return;
+        }
+
+        laggTillHistorik('lånad', `Lånade ut ${antal} st ${artikelNamn} till ${lanarnamn}`);
         renderAll();
         closeModal('lanaModal');
         showToast(`✅ ${antal} st utlånat till ${lanarnamn}`);
@@ -1644,20 +1744,28 @@ async function bekraftaAterlam() {
 
     isSavingBodAction = true;
     try {
-        if (antal >= l.antal) {
-            // Hela lånet återlämnat
-            a.lan = a.lan.filter(x => String(x.id) !== String(lanId));
-            laggTillHistorik('återlämnad', `${l.namn} återlämnade alla ${l.antal} st ${a.namn}`);
-        } else {
-            // Delvis återlämning
-            l.antal -= antal;
-            laggTillHistorik('återlämnad', `${l.namn} återlämnade ${antal} st ${a.namn} (${l.antal} kvar)`);
-        }
+        let historikText = '';
+        await sparaTillMolnEllerLokalt((lista) => {
+            const target = lista.find(x => String(x.id) === String(artikelId));
+            if (!target || !Array.isArray(target.lan)) return false;
+            const lanObj = target.lan.find(x => String(x.id) === String(lanId));
+            if (!lanObj) return false;
+            if (antal >= lanObj.antal) {
+                historikText = `${lanObj.namn} återlämnade alla ${lanObj.antal} st ${target.namn}`;
+                target.lan = target.lan.filter(x => String(x.id) !== String(lanId));
+            } else {
+                lanObj.antal -= antal;
+                historikText = `${lanObj.namn} återlämnade ${antal} st ${target.namn} (${lanObj.antal} kvar)`;
+            }
+            return true;
+        });
 
-        await sparaTillMolnEllerLokalt();
+        if (historikText) {
+            laggTillHistorik('återlämnad', historikText);
+            showToast('✅ Återlämning registrerad');
+        }
         renderAll();
         closeModal('aterlamnModal');
-        showToast('✅ Återlämning registrerad');
     } finally {
         isSavingBodAction = false;
     }
@@ -1673,14 +1781,29 @@ async function aterlamnaHelaLanet(artikelId, lanId) {
 
     isSavingBodAction = true;
     try {
-        const namn = l.namn;
-        const antal = l.antal;
-        a.lan = a.lan.filter(x => String(x.id) !== String(lanId));
-        laggTillHistorik('återlämnad', `${namn} återlämnade ${antal} st ${a.namn}`);
+        let namn = l.namn;
+        let antal = l.antal;
+        let artNamn = a.namn;
+        let didReturn = false;
 
-        await sparaTillMolnEllerLokalt();
+        await sparaTillMolnEllerLokalt((lista) => {
+            const target = lista.find(x => String(x.id) === String(artikelId));
+            if (!target || !Array.isArray(target.lan)) return false;
+            const lanObj = target.lan.find(x => String(x.id) === String(lanId));
+            if (!lanObj) return false;
+            namn = lanObj.namn;
+            antal = lanObj.antal;
+            artNamn = target.namn || artNamn;
+            target.lan = target.lan.filter(x => String(x.id) !== String(lanId));
+            didReturn = true;
+            return true;
+        });
+
+        if (didReturn) {
+            laggTillHistorik('återlämnad', `${namn} återlämnade ${antal} st ${artNamn}`);
+            showToast(`✅ ${antal} st återlämnade från ${namn}`);
+        }
         renderAll();
-        showToast(`✅ ${antal} st återlämnade från ${namn}`);
     } finally {
         isSavingBodAction = false;
     }
@@ -1717,6 +1840,7 @@ function renderAll() {
     renderArtiklar();
     renderUtlaningar();
     renderHistorik();
+    switchMobileSubtab(aktivMobilSubtab);
 }
 
 let aktivMobilSubtab = 'artiklar';
@@ -2008,6 +2132,27 @@ document.querySelectorAll('.modal-overlay').forEach(overlay => {
 // ==========================================
 //  START
 // ==========================================
+// Synka aktiva lånenamn om GDPR-tvätt körs i Mina Klasser
+window.addEventListener('skolif-gdpr-cleaned', (ev) => {
+    const renameMap = ev && ev.detail && ev.detail.renameMap;
+    if (!renameMap || typeof renameMap !== 'object') return;
+    sparaTillMolnEllerLokalt((lista) => {
+        let changed = false;
+        lista.forEach(art => {
+            if (Array.isArray(art.lan)) {
+                art.lan.forEach(lan => {
+                    const cur = String(lan.namn || '').trim().toLowerCase();
+                    if (renameMap[cur]) {
+                        lan.namn = renameMap[cur];
+                        changed = true;
+                    }
+                });
+            }
+        });
+        return changed;
+    }).then(() => renderAll());
+});
+
 loadLocal();
 renderAll();
 </script>

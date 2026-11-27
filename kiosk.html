@@ -784,9 +784,10 @@
                     <!-- Fylls av JS -->
                 </div>
             </div>
-        </div> <!-- Stänger statistikView -->
+        </div> <!-- Stänger stat-chart-grid -->
         
-    </div>
+    </div> <!-- Stänger statistikView -->
+</div> <!-- Stänger .container -->
 
     <section class="skolif-seo-section" aria-label="Om Skol-IF Kassa">
         <div class="skolif-seo-card">
@@ -1031,7 +1032,7 @@
         <div style="display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;">
             <input type="text" id="nyVaraEmoji" class="custom-input" placeholder="Emoji" style="flex: 1; min-width: 70px; max-width: 90px; text-align: center;">
             <input type="text" id="nyVaraNamn" class="custom-input" placeholder="Varans namn" style="flex: 3; min-width: 160px;">
-            <input type="number" id="nyVaraPris" class="custom-input" placeholder="Pris (kr)" style="flex: 1; min-width: 90px; max-width: 120px;">
+            <input type="number" id="nyVaraPris" min="1" class="custom-input" placeholder="Pris (kr)" style="flex: 1; min-width: 90px; max-width: 120px;">
             <button onclick="laggTillVara()" class="btn-insattning" style="padding: 12px 20px; flex: 1; min-width: 120px;">Lägg till</button>
         </div>
         
@@ -1118,7 +1119,7 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-    <script src="klasser.js?v=10"></script>
+    <script src="klasser.js?v=12"></script>
 
     <script>
         const firebaseConfig = {
@@ -1884,6 +1885,9 @@
         }
 
         function skapaKlassFilterChips(elever) {
+            if (aktivtKlassFilter !== "Alla" && !elever.some(e => (e.klass || "").toUpperCase() === aktivtKlassFilter.toUpperCase())) {
+                aktivtKlassFilter = "Alla";
+            }
             const klasser = ["Alla", ...new Set(elever.map(e => e.klass))].sort();
             document.getElementById("klassFilterContainer").innerHTML = klasser.map(k => 
                 `<button class="filter-chip ${aktivtKlassFilter === k ? 'active' : ''}" data-klass="${escapeHtmlKassa(k)}" onclick="bytKlass(this.dataset.klass)">${escapeHtmlKassa(k)}</button>`
@@ -1920,17 +1924,17 @@
 
             if(!endastUppd) {
                 document.getElementById("customBeloppInput").value = "";
-                document.getElementById("modalVarorGrid").innerHTML = allaVarorCache.map((v, vIdx) => {
-                    const arSlut = v.slut === true;
-                    return `
-                    <div class="modal-vara-btn ${arSlut ? 'slut' : ''}" onclick="klickaModalVaraIdx(${e.id}, ${vIdx})">
-                        ${arSlut ? '<span class="slut-badge">Slut</span>' : ''}
-                        <div class="modal-vara-emoji">${escapeHtmlKassa(v.emoji||'🍬')}</div>
-                        <div class="modal-vara-namn">${escapeHtmlKassa(v.namn)}</div>
-                        <div class="modal-vara-pris">${v.pris} kr</div>
-                    </div>`;
-                }).join('');
             }
+            document.getElementById("modalVarorGrid").innerHTML = allaVarorCache.map((v, vIdx) => {
+                const arSlut = v.slut === true;
+                return `
+                <div class="modal-vara-btn ${arSlut ? 'slut' : ''}" onclick="klickaModalVaraIdx(${e.id}, ${vIdx})">
+                    ${arSlut ? '<span class="slut-badge">Slut</span>' : ''}
+                    <div class="modal-vara-emoji">${escapeHtmlKassa(v.emoji||'🍬')}</div>
+                    <div class="modal-vara-namn">${escapeHtmlKassa(v.namn)}</div>
+                    <div class="modal-vara-pris">${v.pris} kr</div>
+                </div>`;
+            }).join('');
         }
 
         window.klickaModalVaraIdx = function(elevId, vIdx) {
@@ -1944,7 +1948,7 @@
         };
 
         window.oppnaModalElevId = function(elevId) {
-            const el = allaEleverCache.find(x => x.id === elevId);
+            const el = allaEleverCache.find(x => String(x.id) === String(elevId));
             if (el) oppnaModalObj(el);
         };
 
@@ -1953,7 +1957,7 @@
         function ritaUppHistorik() {
             const container = document.getElementById("elevHistorikBox");
             const elevensHistorik = allaTransaktionerCache
-                .filter(t => t.elevId === aktivElevId)
+                .filter(t => String(t.elevId) === String(aktivElevId))
                 .sort((a, b) => b.tidstampel - a.tidstampel);
 
             if (elevensHistorik.length === 0) {
@@ -1975,10 +1979,18 @@
                         <div class="historik-belopp ${arKop ? 'minus' : 'plus'}">
                             ${arKop ? '-' : '+'}${t.belopp} kr
                         </div>
-                        <button type="button" class="historik-angra-btn" onclick="angraTransaktion(${t.id})" title="Ångra och ta bort denna transaktion">↩ ångra</button>
+                        <button type="button" class="historik-angra-btn" data-tx-id="${escapeHtmlKassa(String(t.id))}" onclick="angraTransaktion(this.dataset.txId)" title="Ångra och ta bort denna transaktion">↩ ångra</button>
                     </div>
                 </div>`;
             }).join('');
+        }
+
+        const MAX_KIOSK_TRANSAKTIONER = 3500;
+        let lastKioskTxId = 0;
+        function nastaTransaktionsId() {
+            const now = Date.now();
+            lastKioskTxId = now > lastKioskTxId ? now : (lastKioskTxId + 1);
+            return lastKioskTxId;
         }
 
         function angraTransaktion(transaktionsId) {
@@ -1986,11 +1998,11 @@
                 window.SkolIFKlasser.requireTeacherUnlock(() => angraTransaktion(transaktionsId));
                 return;
             }
-            const index = allaTransaktionerCache.findIndex(t => t.id === transaktionsId);
+            const index = allaTransaktionerCache.findIndex(t => String(t.id) === String(transaktionsId));
             if (index === -1) return;
 
             const t = allaTransaktionerCache[index];
-            const elev = allaEleverCache.find(e => e.id === t.elevId);
+            const elev = allaEleverCache.find(e => String(e.id) === String(t.elevId));
 
             const handling = t.typ === "KÖP" ? "köpet" : "insättningen";
             const saldoEffekt = t.typ === "KÖP" ? `återbetalas ${t.belopp} kr till elevens saldo` : `dras ${t.belopp} kr från elevens saldo`;
@@ -1999,53 +2011,146 @@
                 return;
             }
 
-            // Korrigera saldot
+            const saldoDelta = t.typ === "KÖP" ? (Number(t.belopp) || 0) : -(Number(t.belopp) || 0);
             if (elev) {
-                if (t.typ === "KÖP") {
-                    elev.saldo += t.belopp;
-                } else if (t.typ === "INSÄTTNING") {
-                    elev.saldo -= t.belopp;
-                }
+                elev.saldo = (Number(elev.saldo) || 0) + saldoDelta;
             }
-
-            // Ta bort transaktionen
             allaTransaktionerCache.splice(index, 1);
+            uppdateraKassaVyDirekt();
 
-            sparaKassaData({
-                elever: JSON.stringify(allaEleverCache),
-                transaktioner: JSON.stringify(allaTransaktionerCache)
-            }).then(() => {
-                if (elev && aktivElevId === elev.id) {
-                    oppnaElevModal(elev, true);
-                    ritaUppHistorik();
-                }
-                visaSaldoVarning("Transaktionen har ångrats och saldot är återställt!");
-            }).catch(err => {
-                console.error("Fel vid ångrande av transaktion:", err);
-                alert("Kunde inte ångra transaktionen. Försök igen.");
-            });
+            if (aktivUserId && db) {
+                const kassaRef = db.collection("skolif_kassa").doc(aktivUserId);
+                db.runTransaction(async (tx) => {
+                    const snap = await tx.get(kassaRef);
+                    if (!snap.exists) return;
+                    const d = snap.data() || {};
+                    let molnElever = [];
+                    let molnTx = [];
+                    try { molnElever = JSON.parse(d.elever || "[]"); } catch (e) {}
+                    try { molnTx = JSON.parse(d.transaktioner || "[]"); } catch (e) {}
+
+                    const txIdx = molnTx.findIndex(x => String(x.id) === String(transaktionsId));
+                    if (txIdx === -1) return;
+                    const removedTx = molnTx[txIdx];
+                    molnTx.splice(txIdx, 1);
+
+                    const molnElev = molnElever.find(x => String(x.id) === String(removedTx.elevId));
+                    if (molnElev) {
+                        const dBelopp = removedTx.typ === "KÖP" ? (Number(removedTx.belopp) || 0) : -(Number(removedTx.belopp) || 0);
+                        molnElev.saldo = (Number(molnElev.saldo) || 0) + dBelopp;
+                    }
+
+                    allaEleverCache = molnElever;
+                    allaTransaktionerCache = molnTx;
+                    tx.update(kassaRef, {
+                        elever: JSON.stringify(molnElever),
+                        transaktioner: JSON.stringify(molnTx),
+                        senastUppdaterad: Date.now()
+                    });
+                }).then(() => {
+                    if (window.SkolIFKlasser && window.SkolIFKlasser.syncLocalCacheFromCloud) {
+                        window.SkolIFKlasser.syncLocalCacheFromCloud(allaEleverCache, allaVarorCache, allaTransaktionerCache);
+                    }
+                    uppdateraKassaVyDirekt();
+                    visaSaldoVarning("Transaktionen har ångrats och saldot är återställt!");
+                }).catch(err => {
+                    console.error("Fel vid ångrande av transaktion:", err);
+                    alert("Kunde inte ångra transaktionen i molnet. Kontrollera uppkopplingen och försök igen.");
+                });
+            } else {
+                sparaKassaData({
+                    elever: JSON.stringify(allaEleverCache),
+                    transaktioner: JSON.stringify(allaTransaktionerCache)
+                }).then(() => {
+                    visaSaldoVarning("Transaktionen har ångrats och saldot är återställt!");
+                });
+            }
         }
 
         function laggTillTransaktion(typ, belopp, beskrivning) {
+            const targetElevId = aktivElevId;
+            const lokalElev = allaEleverCache.find(x => String(x.id) === String(targetElevId));
             const nyTransaktion = {
-                id: Date.now(),
-                elevId: aktivElevId,
+                id: nastaTransaktionsId(),
+                elevId: targetElevId,
+                elevNamn: lokalElev ? (lokalElev.namn || "") : "",
+                elevKlass: lokalElev ? (lokalElev.klass || "") : "",
                 belopp: belopp,
                 typ: typ,
                 beskrivning: beskrivning,
                 tidstampel: Date.now()
             };
-            
+            if (lokalElev && lokalElev.arDemo) {
+                nyTransaktion.arDemo = true;
+            }
+
             allaTransaktionerCache.push(nyTransaktion);
-            
-            sparaKassaData({ 
-                elever: JSON.stringify(allaEleverCache),
-                transaktioner: JSON.stringify(allaTransaktionerCache)
-            });
+            if (allaTransaktionerCache.length > MAX_KIOSK_TRANSAKTIONER) {
+                allaTransaktionerCache = allaTransaktionerCache.slice(-MAX_KIOSK_TRANSAKTIONER);
+            }
+            uppdateraKassaVyDirekt();
+
+            if (aktivUserId && db) {
+                const kassaRef = db.collection("skolif_kassa").doc(aktivUserId);
+                db.runTransaction(async (tx) => {
+                    const snap = await tx.get(kassaRef);
+                    if (!snap.exists) return;
+                    const d = snap.data() || {};
+                    let molnElever = [];
+                    let molnTx = [];
+                    try { molnElever = JSON.parse(d.elever || "[]"); } catch (e) {}
+                    try { molnTx = JSON.parse(d.transaktioner || "[]"); } catch (e) {}
+
+                    const molnElev = molnElever.find(x => String(x.id) === String(targetElevId));
+                    if (molnElev) {
+                        const nuSaldo = Number(molnElev.saldo) || 0;
+                        if (typ === "KÖP" && (nuSaldo - belopp < 0)) {
+                            throw new Error("LAGT_SALDO_KONFLIKT");
+                        }
+                        molnElev.saldo = typ === "KÖP" ? (nuSaldo - belopp) : (nuSaldo + belopp);
+                    }
+
+                    if (!molnTx.some(x => String(x.id) === String(nyTransaktion.id))) {
+                        molnTx.push(nyTransaktion);
+                    }
+                    if (molnTx.length > MAX_KIOSK_TRANSAKTIONER) {
+                        molnTx = molnTx.slice(-MAX_KIOSK_TRANSAKTIONER);
+                    }
+
+                    allaEleverCache = molnElever;
+                    allaTransaktionerCache = molnTx;
+                    tx.update(kassaRef, {
+                        elever: JSON.stringify(molnElever),
+                        transaktioner: JSON.stringify(molnTx),
+                        senastUppdaterad: Date.now()
+                    });
+                }).then(() => {
+                    if (window.SkolIFKlasser && window.SkolIFKlasser.syncLocalCacheFromCloud) {
+                        window.SkolIFKlasser.syncLocalCacheFromCloud(allaEleverCache, allaVarorCache, allaTransaktionerCache);
+                    }
+                    uppdateraKassaVyDirekt();
+                }).catch(err => {
+                    console.error("Fel vid sparning av transaktion:", err);
+                    if (err && err.message === "LAGT_SALDO_KONFLIKT") {
+                        allaTransaktionerCache = allaTransaktionerCache.filter(x => String(x.id) !== String(nyTransaktion.id));
+                        if (lokalElev && typ === "KÖP") lokalElev.saldo = (Number(lokalElev.saldo) || 0) + belopp;
+                        uppdateraKassaVyDirekt();
+                        visaSaldoVarning("Köpet medges ej! Elevens saldo ändrades precis på en annan enhet.");
+                    } else {
+                        visaSaldoVarning("⚠️ Kunde inte spara köpet i molnet – kontrollera internetanslutningen!");
+                    }
+                });
+            } else {
+                const harRiktigaElever = allaEleverCache.some(e => !e.arDemo);
+                sparaKassaData({ 
+                    elever: JSON.stringify(allaEleverCache),
+                    transaktioner: JSON.stringify(allaTransaktionerCache)
+                }, harRiktigaElever);
+            }
         }
 
         function kopVara(id, pris, namn) {
-            const e = allaEleverCache.find(x => x.id === id);
+            const e = allaEleverCache.find(x => String(x.id) === String(id));
             if(e) { 
                 if (e.saldo - pris < 0) {
                     visaSaldoVarning("Köpet medges ej! Eleven har för lågt saldo.");
@@ -2059,7 +2164,7 @@
         function gorKopCustom() {
             const b = parseInt(document.getElementById("customBeloppInput").value);
             if(b>0) { 
-                const e = allaEleverCache.find(x => x.id === aktivElevId); 
+                const e = allaEleverCache.find(x => String(x.id) === String(aktivElevId)); 
                 if(e){ 
                     if (e.saldo - b < 0) {
                         visaSaldoVarning("Köpet medges ej! Eleven har för lågt saldo.");
@@ -2079,7 +2184,7 @@
             }
             const b = parseInt(document.getElementById("customBeloppInput").value);
             if(b>0) { 
-                const e = allaEleverCache.find(x => x.id === aktivElevId); 
+                const e = allaEleverCache.find(x => String(x.id) === String(aktivElevId)); 
                 if(e){ 
                     e.saldo += b; 
                     document.getElementById("customBeloppInput").value=""; 
@@ -2094,7 +2199,7 @@
                 window.SkolIFKlasser.requireTeacherUnlock(() => gorSnabbInsattning(belopp));
                 return;
             }
-            const e = allaEleverCache.find(x => x.id === aktivElevId);
+            const e = allaEleverCache.find(x => String(x.id) === String(aktivElevId));
             if (!e) return;
 
             e.saldo += belopp;
@@ -2155,10 +2260,10 @@
             if (arKassaElevlageLast()) return;
             const emoji = document.getElementById("nyVaraEmoji").value.trim() || "🍬";
             const namn = document.getElementById("nyVaraNamn").value.trim();
-            const pris = parseInt(document.getElementById("nyVaraPris").value);
+            const pris = parseInt(document.getElementById("nyVaraPris").value, 10);
 
-            if(!namn || isNaN(pris)) {
-                alert("Du måste fylla i ett namn och ett pris!");
+            if(!namn || isNaN(pris) || pris <= 0) {
+                alert("Ange ett namn och ett pris större än 0 kr!");
                 return;
             }
 
@@ -2182,6 +2287,11 @@
                     varor: JSON.stringify(allaVarorCache)
                 }).then(() => {
                     ritaUppVarorIHantera();
+                    visaVaror(allaVarorCache);
+                    if (aktivElevId !== null) {
+                        const e = allaEleverCache.find(x => x.id === aktivElevId);
+                        if (e) oppnaElevModal(e, true);
+                    }
                 });
             }
         }
@@ -2294,14 +2404,22 @@
                     .replace(/\s*\((swish|kontant|snabbkassa|kort)\)\s*$/i, '')
                     .trim();
 
-                const delar = rawBesk ? rawBesk.split(',').map(s => s.trim()).filter(Boolean) : ['Övrigt'];
+                // Kolla först om hela beskrivningen avser en enda känd vara (även om varans namn innehåller kommatecken!)
+                const normItemStr = (s) => String(s || '').replace(/[^\p{L}\p{N}\s,-]/gu, '').replace(/\s+/g, ' ').trim();
+                const singlePrefixMatch = rawBesk.match(/^(\d+)\s*[x×*]\s*(.+)$/i);
+                const candidateWhole = normItemStr(singlePrefixMatch ? singlePrefixMatch[2] : rawBesk);
+                const exactWholeVara = candidateWhole ? (allaVarorCache || []).find(v => normItemStr(v.namn).toLowerCase() === candidateWhole.toLowerCase()) : null;
+
+                const delar = exactWholeVara
+                    ? [rawBesk]
+                    : (rawBesk ? rawBesk.split(',').map(s => s.trim()).filter(Boolean) : ['Övrigt']);
                 const parsedItems = delar.map(del => {
                     const m = del.match(/^(\d+)\s*[x×*]\s*(.+)$/i);
                     const qty = m ? Math.max(1, parseInt(m[1], 10) || 1) : 1;
                     const rawName = m ? m[2] : del;
-                    const rentNamn = rawName.replace(/[^\p{L}\p{N}\s-]/gu, '').replace(/\s+/g, ' ').trim() || "Övrigt";
+                    const rentNamn = normItemStr(rawName) || "Övrigt";
                     const matchVara = (allaVarorCache || []).find(v =>
-                        String(v.namn || '').replace(/[^\p{L}\p{N}\s-]/gu, '').replace(/\s+/g, ' ').trim().toLowerCase() === rentNamn.toLowerCase()
+                        normItemStr(v.namn).toLowerCase() === rentNamn.toLowerCase()
                     );
                     return {
                         namn: rentNamn,
@@ -2405,6 +2523,11 @@
         }
 
         // --- EXPORT TILL EXCEL / CSV ---
+        function csvSafeKassa(val) {
+            const s = String(val ?? '');
+            return /^[=+\-@]/.test(s.trimStart()) ? ("'" + s) : s;
+        }
+
         function exporteraEleverCSV() {
             if (allaEleverCache.length === 0) {
                 alert("Det finns inga elever att exportera.");
@@ -2416,9 +2539,9 @@
 
             // Sortera efter klass och namn
             const sorterade = [...allaEleverCache].sort((a, b) => {
-                const klassDiff = a.klass.localeCompare(b.klass);
+                const klassDiff = String(a.klass || '').localeCompare(String(b.klass || ''));
                 if (klassDiff !== 0) return klassDiff;
-                return a.namn.localeCompare(b.namn);
+                return String(a.namn || '').localeCompare(String(b.namn || ''));
             });
 
             let totaltInnestaende = 0; // Positiva saldon
@@ -2426,8 +2549,8 @@
             let totaltNetto = 0;
 
             sorterade.forEach(e => {
-                const rentNamn = `"${(e.namn || '').replace(/"/g, '""')}"`;
-                const renKlass = `"${(e.klass || '').replace(/"/g, '""')}"`;
+                const rentNamn = `"${csvSafeKassa(e.namn || '').replace(/"/g, '""')}"`;
+                const renKlass = `"${csvSafeKassa(e.klass || '').replace(/"/g, '""')}"`;
                 const saldo = e.saldo || 0;
                 csvInnehall += `${rentNamn};${renKlass};${saldo}\r\n`;
 
@@ -2478,11 +2601,13 @@
                 const datumStr = d.toLocaleDateString("sv-SE");
                 const tidStr = d.toLocaleTimeString("sv-SE", { hour: "2-digit", minute: "2-digit" });
 
-                const elev = allaEleverCache.find(e => e.id === t.elevId);
-                const elevNamn = `"${(elev ? elev.namn : 'Borttagen elev').replace(/"/g, '""')}"`;
-                const elevKlass = `"${(elev ? elev.klass : '-').replace(/"/g, '""')}"`;
-                const typ = `"${(t.typ || '').replace(/"/g, '""')}"`;
-                const beskrivning = `"${(t.beskrivning || '').replace(/"/g, '""')}"`;
+                const elev = allaEleverCache.find(e => String(e.id) === String(t.elevId));
+                const rawNamn = elev ? elev.namn : (t.elevNamn || 'Borttagen elev');
+                const rawKlass = elev ? elev.klass : (t.elevKlass || '-');
+                const elevNamn = `"${csvSafeKassa(rawNamn).replace(/"/g, '""')}"`;
+                const elevKlass = `"${csvSafeKassa(rawKlass).replace(/"/g, '""')}"`;
+                const typ = `"${csvSafeKassa(t.typ || '').replace(/"/g, '""')}"`;
+                const beskrivning = `"${csvSafeKassa(t.beskrivning || '').replace(/"/g, '""')}"`;
                 const belopp = t.typ === "KÖP" ? -Math.abs(t.belopp) : Math.abs(t.belopp);
 
                 if (t.typ === "KÖP") totalaKop += Math.abs(t.belopp);
@@ -2541,7 +2666,7 @@
             filtreraOchVisa();
 
             if (aktivElevId !== null) {
-                const uppdaterad = allaEleverCache.find(e => e.id === aktivElevId);
+                const uppdaterad = allaEleverCache.find(e => String(e.id) === String(aktivElevId));
                 if (uppdaterad) {
                     oppnaElevModal(uppdaterad, true);
                     ritaUppHistorik();
@@ -2549,7 +2674,7 @@
             }
         }
 
-        function sparaKassaData(fieldsObj) {
+        function sparaKassaData(fieldsObj, markModifiedOverride) {
             uppdateraKassaVyDirekt();
 
             if (aktivUserId && db) {
@@ -2561,11 +2686,14 @@
                 return db.collection("skolif_kassa").doc(aktivUserId).update(payload);
             } else {
                 if (window.SkolIFKlasser && window.SkolIFKlasser.saveLocalKassa) {
+                    const shouldMarkModified = markModifiedOverride !== undefined
+                        ? Boolean(markModifiedOverride)
+                        : (fieldsObj.varor !== undefined || allaEleverCache.some(e => !e.arDemo));
                     window.SkolIFKlasser.saveLocalKassa({
                         elever: allaEleverCache,
                         varor: allaVarorCache,
                         transaktioner: allaTransaktionerCache
-                    }, true);
+                    }, shouldMarkModified);
                 }
                 return Promise.resolve();
             }
@@ -2770,8 +2898,8 @@
             const nyttNamn = namnInput ? namnInput.value.trim() : "";
             const nyttPris = parseInt(prisInput ? prisInput.value : "", 10);
 
-            if (!nyttNamn || isNaN(nyttPris)) {
-                alert("Ange både ett namn och ett pris för varan!");
+            if (!nyttNamn || isNaN(nyttPris) || nyttPris <= 0) {
+                alert("Ange ett namn och ett pris större än 0 kr för varan!");
                 return;
             }
 
@@ -2808,7 +2936,7 @@
                     <div style="display: flex; align-items: center; gap: 6px; padding: 8px; background: #E8F5E9; border: 1.5px solid #4CAF50; border-radius: 10px; margin: 4px 0; flex-wrap: wrap;">
                         <input type="text" id="editVaraEmoji-${index}" value="${escapeHtmlKassa(v.emoji || '🍬')}" class="custom-input" style="width: 52px; flex: 0 0 52px; padding: 6px; text-align: center; font-size: 1.1rem; background: white;" title="Välj eller skriv emoji">
                         <input type="text" id="editVaraNamn-${index}" value="${escapeHtmlKassa(v.namn)}" class="custom-input" style="flex: 2; min-width: 120px; padding: 6px 10px; font-size: 0.85rem; background: white;" placeholder="Varans namn" onkeydown="if(event.key==='Enter') sparaRedigeradVara(${index})">
-                        <input type="number" id="editVaraPris-${index}" value="${v.pris}" class="custom-input" style="width: 78px; flex: 0 0 78px; padding: 6px 8px; font-size: 0.85rem; background: white;" placeholder="Pris (kr)" onkeydown="if(event.key==='Enter') sparaRedigeradVara(${index})">
+                        <input type="number" id="editVaraPris-${index}" min="1" value="${v.pris}" class="custom-input" style="width: 78px; flex: 0 0 78px; padding: 6px 8px; font-size: 0.85rem; background: white;" placeholder="Pris (kr)" onkeydown="if(event.key==='Enter') sparaRedigeradVara(${index})">
                         <button type="button" onclick="sparaRedigeradVara(${index})" style="background: #2E7D32; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 0.76rem; font-weight: 700;">💾 Spara</button>
                         <button type="button" onclick="avbrytRedigeraVara()" style="background: white; border: 1px solid #CBD5E1; color: #555; padding: 6px 10px; border-radius: 6px; cursor: pointer; font-size: 0.76rem; font-weight: 600;">Avbryt</button>
                     </div>`;
@@ -2852,17 +2980,33 @@
         let rfidPreInputVal = null;
         let rfidTargetInput = null;
 
+        let blippAudioCtx = null;
+
         function spelaBlippLjud(typ) {
             try {
                 const AudioCtx = window.AudioContext || window.webkitAudioContext;
                 if (!AudioCtx) return;
-                const ctx = new AudioCtx();
+                if (!blippAudioCtx || blippAudioCtx.state === "closed") {
+                    blippAudioCtx = new AudioCtx();
+                }
+                if (blippAudioCtx.state === "suspended") {
+                    blippAudioCtx.resume();
+                }
+                const ctx = blippAudioCtx;
                 const osc = ctx.createOscillator();
                 const gain = ctx.createGain();
                 osc.connect(gain);
                 gain.connect(ctx.destination);
 
-                if (typ === "ny") {
+                if (typ === "fel") {
+                    osc.type = "sawtooth";
+                    osc.frequency.setValueAtTime(220, ctx.currentTime);
+                    osc.frequency.setValueAtTime(150, ctx.currentTime + 0.11);
+                    gain.gain.setValueAtTime(0.14, ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.28);
+                    osc.start();
+                    osc.stop(ctx.currentTime + 0.28);
+                } else if (typ === "ny") {
                     osc.type = "sine";
                     osc.frequency.setValueAtTime(587.33, ctx.currentTime); // D5
                     osc.frequency.setValueAtTime(880, ctx.currentTime + 0.08); // A5
@@ -2991,6 +3135,15 @@
         visaVaror = function(varor) {
             const div = document.getElementById("varorLista");
             if (!div) return;
+            if (Array.isArray(varor) && snabbkorg.length > 0) {
+                snabbkorg = snabbkorg.filter(item => {
+                    const match = varor.find(v => v.namn === item.namn && !v.slut);
+                    if (!match) return false;
+                    item.pris = match.pris;
+                    item.emoji = match.emoji || '🍬';
+                    return true;
+                });
+            }
             div.innerHTML = varor.length === 0 ? "<p style='color:gray;'>Inga varor inlagda.</p>" : 
                 varor.map((v, idx) => {
                     const arSlut = v.slut === true;
@@ -3081,7 +3234,7 @@
         };
 
         window.genomforSnabbkorgKop = function(elevObj) {
-            const e = allaEleverCache.find(x => x.id === elevObj.id);
+            const e = allaEleverCache.find(x => String(x.id) === String(elevObj.id));
             if (!e || snabbkorg.length === 0) return false;
             const totalPris = snabbkorg.reduce((sum, item) => sum + (item.pris * item.antal), 0);
             const beskrivning = snabbkorg.map(item => item.antal > 1 ? `${item.antal}x ${item.namn}` : item.namn).join(", ");
@@ -3163,21 +3316,26 @@
             });
             sparaHogstaElevId(maxId);
             seTillAttBasutbudFinns();
+            const harRiktigaElever = allaEleverCache.some(e => !e.arDemo);
             sparaKassaData({
                 elever: JSON.stringify(allaEleverCache),
                 varor: JSON.stringify(allaVarorCache)
-            }).then(() => {
+            }, harRiktigaElever).then(() => {
                 if (window.visaNotis) window.visaNotis("✨ 6 exempelelever har lagts in! Klicka på en vara och sedan på en elev för att testa.", "success");
             });
         };
 
         window.rensaDemoEleverIKassan = function() {
             if (arKassaElevlageLast()) return;
+            const demoIds = new Set(allaEleverCache.filter(e => e.arDemo).map(e => String(e.id)));
             allaEleverCache = allaEleverCache.filter(e => !e.arDemo);
+            allaTransaktionerCache = allaTransaktionerCache.filter(t => !t.arDemo && !demoIds.has(String(t.elevId)));
+            const harRiktigaElever = allaEleverCache.length > 0;
             sparaKassaData({
-                elever: JSON.stringify(allaEleverCache)
-            }).then(() => {
-                if (window.visaNotis) window.visaNotis("🗑️ Exempeleleverna är borttagna.", "info");
+                elever: JSON.stringify(allaEleverCache),
+                transaktioner: JSON.stringify(allaTransaktionerCache)
+            }, harRiktigaElever).then(() => {
+                if (window.visaNotis) window.visaNotis("🗑️ Exempeleleverna och deras testköp är borttagna.", "info");
             });
         };
 
@@ -3233,6 +3391,10 @@
         };
 
         filtreraOchVisa = function() {
+            if (aktivtKlassFilter !== "Alla" && !allaEleverCache.some(e => (e.klass || "").toUpperCase() === aktivtKlassFilter.toUpperCase())) {
+                aktivtKlassFilter = "Alla";
+                skapaKlassFilterChips(allaEleverCache);
+            }
             const q = (document.getElementById("sokElev").value || "").toLowerCase().trim();
             const res = allaEleverCache.filter(e => {
                 const klassMatch = (aktivtKlassFilter === "Alla" || (e.klass || "").toUpperCase() === aktivtKlassFilter.toUpperCase());
@@ -3364,7 +3526,10 @@
                 if (taBortBtn) taBortBtn.style.display = "none";
             }
 
-            if (modal) modal.style.display = "flex";
+            if (modal) {
+                modal.style.display = "flex";
+                if (manuellInput) setTimeout(() => manuellInput.focus(), 60);
+            }
         };
 
         window.stangVantarPaBlippModal = function() {
@@ -3467,7 +3632,10 @@
 
             renderaOkandBlippElevLista();
             const modal = document.getElementById("okandBlippModal");
-            if (modal) modal.style.display = "flex";
+            if (modal) {
+                modal.style.display = "flex";
+                if (manuellInput) setTimeout(() => manuellInput.focus(), 60);
+            }
         };
 
         window.stangOkandBlippModal = function() {
@@ -3606,8 +3774,6 @@
             // 2. Kolla om blippen redan tillhör en elev i kassan
             const befintligElev = allaEleverCache.find(e => String(e.tagg || "").trim().toLowerCase() === kod.toLowerCase());
             if (befintligElev) {
-                spelaBlippLjud("ok");
-
                 // Stäng eventuella andra öppna fönster så elevens kassa kommer fram direkt
                 ["okandBlippModal", "vantarPaBlippModal", "blippInfoModal", "varorModal", "adminModal"].forEach(id => {
                     const m = document.getElementById(id);
@@ -3620,11 +3786,14 @@
                 // Se till att vi är i kassavyn (och inte i statistikvyn)
                 bytVy("kiosk");
 
-                // Öppna elevens kassa direkt!
+                // Genomför direktköp om snabbkorg finns, annars öppna elevens kassa!
                 if (typeof snabbkorg !== "undefined" && snabbkorg.length > 0) {
-                    genomforSnabbkorgKop(befintligElev);
+                    if (genomforSnabbkorgKop(befintligElev)) {
+                        spelaBlippLjud("ok");
+                    }
                     return;
                 }
+                spelaBlippLjud("ok");
                 oppnaModalObj(befintligElev);
 
                 // Visuell grön puls på elevens kassafönster så man ser direkt att blippen registrerades
@@ -3677,16 +3846,27 @@
                 const totalTime = now - rfidStartTime;
                 const avgTime = rfidBuffer.length > 0 ? totalTime / rfidBuffer.length : 999;
 
-                // USB RFID-läsare skickar normalt 4-20 tecken i hög hastighet (< 75 ms per tecken) följt av Enter
-                if (rfidBuffer.length >= 4 && delta < 120 && avgTime < 75) {
+                // USB RFID-läsare skickar normalt 4-20 tecken i hög hastighet (< 75 ms per tecken) följt av Enter.
+                // Om fokus står i ett vanligt textfält krävs maskinhastighet (< 35 ms/tecken) och taggformat så vanlig skrivning aldrig kapas!
+                const activeEl = document.activeElement;
+                const isRegularInput = Boolean(
+                    activeEl &&
+                    (activeEl.tagName === "INPUT" || activeEl.tagName === "TEXTAREA") &&
+                    activeEl.id !== "redigeraElevTaggInput" &&
+                    activeEl.id !== "manuellBlippKodInput"
+                );
+                const looksLikeScanner = isRegularInput
+                    ? (rfidBuffer.length >= 6 && delta < 55 && avgTime < 35 && /^[0-9A-Fa-f_-]+$/.test(rfidBuffer))
+                    : (rfidBuffer.length >= 4 && delta < 120 && avgTime < 75);
+
+                if (looksLikeScanner) {
                     const skannadKod = rfidBuffer;
                     rfidBuffer = "";
                     e.preventDefault();
                     e.stopPropagation();
 
                     // Om ett textfält (t.ex. sökfältet eller beloppsfältet) råkade ha fokus när blippen lästes in, återställ dess text!
-                    const activeEl = document.activeElement;
-                    if (activeEl && (activeEl.tagName === "INPUT" || activeEl.tagName === "TEXTAREA") && activeEl.id !== "redigeraElevTaggInput" && activeEl.id !== "manuellBlippKodInput") {
+                    if (isRegularInput) {
                         if (rfidTargetInput === activeEl && rfidPreInputVal !== null) {
                             activeEl.value = rfidPreInputVal;
                         } else {

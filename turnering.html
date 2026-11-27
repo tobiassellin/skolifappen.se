@@ -370,7 +370,9 @@
         body.public-live-mode #editTitleBtn,
         body.public-live-mode #headerBackToSetupBtn,
         body.public-live-mode .edit-time-pill,
-        body.public-live-mode .bracket-time-edit {
+        body.public-live-mode .bracket-time-edit,
+        body.public-live-mode [data-skolif-auth-btn],
+        body.public-live-mode button[onclick*="SkolIFKlasser.openModal"] {
             display: none !important;
         }
     </style>
@@ -730,7 +732,8 @@
             </div>
         </div>
 
-        <div style="display:flex; gap:10px; justify-content:flex-end;">
+        <div style="display:flex; gap:10px; justify-content:flex-end; align-items:center; flex-wrap:wrap;">
+            <button type="button" id="resetScoreMatchBtn" class="btn btn-red btn-sm" style="display:none; margin-right:auto;" onclick="nollstallMatchResultat()" title="Markera matchen som ospelad igen">↺ Nollställ</button>
             <button class="btn btn-outline" onclick="closeModal('scoreModal')">Avbryt</button>
             <button class="btn btn-green" onclick="sparaResultatFranModal()">💾 Spara resultat</button>
         </div>
@@ -912,7 +915,7 @@
         <div style="display:flex; flex-direction:column; align-items:center; background:#F8FAFC; border:2px solid #E2E8F0; border-radius:16px; padding:18px; margin-bottom:16px;">
             <div id="modalQrBox" style="background:white; padding:12px; border-radius:12px; border:1px solid #CBD5E1; display:inline-flex; align-items:center; justify-content:center; min-width:190px; min-height:190px; margin-bottom:10px;"></div>
             <div id="modalQrTourTitle" style="font-weight:800; font-size:1rem; color:#1E3A24;">Skol-IF Turnering</div>
-            <div style="font-size:0.76rem; color:#15803D; font-weight:700; margin-top:2px;">🟢 Uppdateras automatiskt vid varje mål &amp; matchslut</div>
+            <div id="modalQrSyncStatus" style="font-size:0.76rem; color:#15803D; font-weight:700; margin-top:2px;">🟢 Uppdateras automatiskt vid varje mål &amp; matchslut</div>
         </div>
 
         <div style="display:flex; gap:8px; margin-bottom:14px;">
@@ -932,7 +935,7 @@
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-<script src="klasser.js?v=10"></script>
+<script src="klasser.js?v=12"></script>
 
 <script>
 // ==========================================
@@ -1005,7 +1008,8 @@ function encodeCompactTournament() {
             const pIdx = Math.max(0, COMPACT_PHASES.indexOf(m.matchPhase));
             const hIdx = m.homeTeam === '?' ? -1 : allTeams.indexOf(m.homeTeam);
             const aIdx = m.awayTeam === '?' ? -1 : allTeams.indexOf(m.awayTeam);
-            const pitchNum = m.pitch ? (parseInt(String(m.pitch).replace(/\D/g, ''), 10) || 0) : 0;
+            const stdPitch = /^Plan\s+(\d+)$/i.exec(String(m.pitch || '').trim());
+            const pitchNum = stdPitch ? (parseInt(stdPitch[1], 10) || 0) : (m.pitch ? String(m.pitch).trim() : 0);
             return [
                 m.id,
                 pIdx,
@@ -1066,7 +1070,7 @@ function decodeCompactTournament(b64Str) {
                 id: Number(id) || (idx + 1),
                 matchPhase: COMPACT_PHASES[pIdx] || 'GROUP',
                 startTime: String(startTime || ''),
-                pitch: Number(pitchNum) > 0 ? `Plan ${Number(pitchNum)}` : '',
+                pitch: typeof pitchNum === 'string' ? pitchNum : (Number(pitchNum) > 0 ? `Plan ${Number(pitchNum)}` : ''),
                 homeTeam: hIdx === -1 ? '?' : String(allTeams[hIdx] || '?'),
                 awayTeam: aIdx === -1 ? '?' : String(allTeams[aIdx] || '?'),
                 isLunchBreak: false,
@@ -1122,8 +1126,15 @@ function syncTournamentToCloud() {
                 if (!hasSyncedLiveToCloud) {
                     hasSyncedLiveToCloud = true;
                     uppdateraQrKoder();
+                } else {
+                    uppdateraQrSyncBadge();
                 }
-            }).catch(() => {});
+            }).catch(() => {
+                if (hasSyncedLiveToCloud) {
+                    hasSyncedLiveToCloud = false;
+                }
+                uppdateraQrKoder();
+            });
         } catch (e) {}
     }
 }
@@ -2021,8 +2032,26 @@ function genereraTurnering(customGroupLists) {
         currentMinutes += (matchDur + breakDur);
     }
 
-    // 4. Slutspels-platshållare med parallella planer
+    // 4. Slutspels-platshållare med parallella planer (inkl. lunchpaus om den infaller före/under slutspelet)
+    function maybeInsertPlayoffLunch(phaseForLunch) {
+        if (planLunch && !lunchInserted && currentMinutes >= lunchStartMin) {
+            tempSchedule.push({
+                id: matchId++,
+                homeTeam: 'LUNCHPAUS',
+                awayTeam: '🍔',
+                startTime: formatMinutes(currentMinutes),
+                pitch: '',
+                isLunchBreak: true,
+                isFinished: true,
+                matchPhase: phaseForLunch
+            });
+            currentMinutes += lunchDur;
+            lunchInserted = true;
+        }
+    }
+
     function addPlayoffRound(phase, count, labelPrefix) {
+        maybeInsertPlayoffLunch(phase);
         let pitchIdx = 0;
         for (let i = 1; i <= count; i++) {
             const pitchNum = (pitchIdx % pitchCount) + 1;
@@ -2043,6 +2072,7 @@ function genereraTurnering(customGroupLists) {
             pitchIdx++;
             if (pitchIdx % pitchCount === 0 || i === count) {
                 currentMinutes += (matchDur + breakDur);
+                if (i < count) maybeInsertPlayoffLunch(phase);
             }
         }
     }
@@ -2057,6 +2087,7 @@ function genereraTurnering(customGroupLists) {
         addPlayoffRound('SEMIS', 2, 'Semi');
     }
     if (hasBronzeMatch && advance >= 4) {
+        maybeInsertPlayoffLunch('BRONZE');
         tempSchedule.push({
             id: matchId++,
             homeTeam: '?',
@@ -2072,6 +2103,7 @@ function genereraTurnering(customGroupLists) {
         });
         currentMinutes += (matchDur + breakDur);
     }
+    maybeInsertPlayoffLunch('FINAL');
     tempSchedule.push({
         id: matchId++,
         homeTeam: '?',
@@ -2147,6 +2179,7 @@ function resetSetupFormToDefaults() {
 
 function nollstallTurnering() {
     if (!confirm('Vill du verkligen rensa turneringen och börja om från början?')) return;
+    hasSyncedLiveToCloud = false;
     localStorage.removeItem(STORAGE_KEY);
     tournamentState = {
         title: 'Skol-IF Turnering',
@@ -2312,8 +2345,25 @@ function beraknaGrupptabell(group) {
         s.points = (s.wins * 3) + (s.draws * 1);
     });
 
+    const finishedGroupMatches = tournamentState.schedule.filter(m => m.isFinished && !m.isLunchBreak && m.matchPhase === 'GROUP');
+
     return Object.values(stats).sort((a, b) => {
         if (b.points !== a.points) return b.points - a.points;
+        // Inbördes möten vid lika poäng
+        let h2hPtsA = 0, h2hPtsB = 0, h2hDiffA = 0;
+        finishedGroupMatches.forEach(m => {
+            if (m.homeTeam === a.name && m.awayTeam === b.name) {
+                const hs = Number(m.homeScore) || 0, as = Number(m.awayScore) || 0;
+                h2hDiffA += (hs - as);
+                if (hs > as) h2hPtsA += 3; else if (as > hs) h2hPtsB += 3; else { h2hPtsA++; h2hPtsB++; }
+            } else if (m.homeTeam === b.name && m.awayTeam === a.name) {
+                const hs = Number(m.homeScore) || 0, as = Number(m.awayScore) || 0;
+                h2hDiffA += (as - hs);
+                if (as > hs) h2hPtsA += 3; else if (hs > as) h2hPtsB += 3; else { h2hPtsA++; h2hPtsB++; }
+            }
+        });
+        if (h2hPtsB !== h2hPtsA) return h2hPtsB - h2hPtsA;
+        if (h2hDiffA !== 0) return -h2hDiffA;
         if (b.diff !== a.diff) return b.diff - a.diff;
         return b.scored - a.scored;
     });
@@ -2362,19 +2412,20 @@ function uppdateraSlutspelsmatch(phase, home, away, indexInPhase = 0) {
     }
 }
 
-function genereraNastaSlutspelsrunda(targetPhase, forceFromGroup = false) {
-    const fromGroup = forceFromGroup || tournamentState.phase === 'GROUP';
+function populatePlayoffRound(targetPhase, fromGroupSource = false) {
+    const adv = (tournamentState.settings && tournamentState.settings.teamsToAdvance) || 4;
+    const firstPlayoff = adv >= 16 ? 'ROUND_OF_16' : (adv >= 8 ? 'QUARTERS' : (adv >= 4 ? 'SEMIS' : 'FINAL'));
+    const fromGroup = fromGroupSource || targetPhase === firstPlayoff;
     const allTables = (tournamentState.groups || []).map(g => beraknaGrupptabell(g));
 
     if (targetPhase === 'ROUND_OF_16') {
         const teams = hamtaSlutspelslag(16);
         if (teams.length >= 16) {
-            // Bracket-ordning så att #1 och #2 möts först i finalen
             const pairs16 = [[0, 15], [7, 8], [3, 12], [4, 11], [1, 14], [6, 9], [2, 13], [5, 10]];
             pairs16.forEach(([h, a], idx) => uppdateraSlutspelsmatch('ROUND_OF_16', teams[h], teams[a], idx));
         }
     } else if (targetPhase === 'QUARTERS') {
-        if (!fromGroup && tournamentState.phase === 'ROUND_OF_16') {
+        if (!fromGroup) {
             const vinnare = hamtaVinnareFranFas('ROUND_OF_16');
             if (vinnare.length >= 8) {
                 uppdateraSlutspelsmatch('QUARTERS', vinnare[0], vinnare[1], 0);
@@ -2382,6 +2433,12 @@ function genereraNastaSlutspelsrunda(targetPhase, forceFromGroup = false) {
                 uppdateraSlutspelsmatch('QUARTERS', vinnare[4], vinnare[5], 2);
                 uppdateraSlutspelsmatch('QUARTERS', vinnare[6], vinnare[7], 3);
             }
+        } else if (allTables.length === 4 && allTables.every(t => t.length >= 2)) {
+            // Korsseedning vid 4 grupper: A1-B2 & C1-D2 på övre halvan, B1-A2 & D1-C2 på undre halvan (gruppkompisar kan mötas tidigast i final!)
+            uppdateraSlutspelsmatch('QUARTERS', allTables[0][0].name, allTables[1][1].name, 0);
+            uppdateraSlutspelsmatch('QUARTERS', allTables[2][0].name, allTables[3][1].name, 1);
+            uppdateraSlutspelsmatch('QUARTERS', allTables[1][0].name, allTables[0][1].name, 2);
+            uppdateraSlutspelsmatch('QUARTERS', allTables[3][0].name, allTables[2][1].name, 3);
         } else if (allTables.length === 2 && allTables[0].length >= 4 && allTables[1].length >= 4) {
             // Klassisk korsseedning vid 2 grupper (A1-B4, B2-A3 på övre halvan; B1-A4, A2-B3 på undre halvan)
             const gA = allTables[0].map(t => t.name);
@@ -2393,7 +2450,6 @@ function genereraNastaSlutspelsrunda(targetPhase, forceFromGroup = false) {
         } else {
             const teams = hamtaSlutspelslag(8);
             if (teams.length >= 8) {
-                // Bracket-ordning [1v8, 4v5, 2v7, 3v6] så att #1 och #2 hamnar på varsin halva
                 uppdateraSlutspelsmatch('QUARTERS', teams[0], teams[7], 0);
                 uppdateraSlutspelsmatch('QUARTERS', teams[3], teams[4], 1);
                 uppdateraSlutspelsmatch('QUARTERS', teams[1], teams[6], 2);
@@ -2403,7 +2459,6 @@ function genereraNastaSlutspelsrunda(targetPhase, forceFromGroup = false) {
     } else if (targetPhase === 'SEMIS') {
         if (fromGroup) {
             if (allTables.length === 2 && allTables[0].length >= 2 && allTables[1].length >= 2) {
-                // Klassisk korsseedning vid 2 grupper: A1 mot B2 och B1 mot A2 (aldrig gruppkompisar i semi!)
                 uppdateraSlutspelsmatch('SEMIS', allTables[0][0].name, allTables[1][1].name, 0);
                 uppdateraSlutspelsmatch('SEMIS', allTables[1][0].name, allTables[0][1].name, 1);
             } else {
@@ -2422,7 +2477,6 @@ function genereraNastaSlutspelsrunda(targetPhase, forceFromGroup = false) {
         }
     } else if (targetPhase === 'FINAL') {
         if (fromGroup) {
-            // Direkt final från gruppspel (2 lag till slutspel)
             if (allTables.length === 2 && allTables[0].length >= 1 && allTables[1].length >= 1) {
                 uppdateraSlutspelsmatch('FINAL', allTables[0][0].name, allTables[1][0].name, 0);
             } else {
@@ -2436,8 +2490,6 @@ function genereraNastaSlutspelsrunda(targetPhase, forceFromGroup = false) {
             if (vinnare.length >= 2) {
                 uppdateraSlutspelsmatch('FINAL', vinnare[0], vinnare[1], 0);
             }
-
-            // Om bronsmatch är vald
             if (tournamentState.settings.hasBronzeMatch) {
                 const forlorare = hamtaForlorareFranFas('SEMIS');
                 if (forlorare.length >= 2) {
@@ -2446,9 +2498,60 @@ function genereraNastaSlutspelsrunda(targetPhase, forceFromGroup = false) {
             }
         }
     }
+}
 
-    tournamentState.phase = targetPhase;
+function getNextPlayoffPhaseAfter(phase) {
+    const adv = (tournamentState.settings && tournamentState.settings.teamsToAdvance) || 4;
+    if (phase === 'GROUP') {
+        return adv >= 16 ? 'ROUND_OF_16' : (adv >= 8 ? 'QUARTERS' : (adv >= 4 ? 'SEMIS' : 'FINAL'));
+    }
+    if (phase === 'ROUND_OF_16') return 'QUARTERS';
+    if (phase === 'QUARTERS') return 'SEMIS';
+    if (phase === 'SEMIS') return 'FINAL';
+    return null;
+}
+
+function synkaSlutspelEfterResultatAndring(changedPhase) {
+    const nextPhase = getNextPlayoffPhaseAfter(changedPhase);
+    if (!nextPhase) return;
+
+    const phaseRank = { 'GROUP': 0, 'ROUND_OF_16': 1, 'QUARTERS': 2, 'SEMIS': 3, 'BRONZE': 4, 'FINAL': 4 };
+    const currentRank = phaseRank[tournamentState.phase] ?? 0;
+    const changedRank = phaseRank[changedPhase] ?? 0;
+    if (currentRank <= changedRank) return;
+
+    const changedMatches = tournamentState.schedule.filter(m => m.matchPhase === changedPhase && !m.isLunchBreak && m.homeTeam !== '?');
+    const allChangedDone = changedMatches.length > 0 && changedMatches.every(m => m.isFinished);
+
+    const targetPhases = nextPhase === 'FINAL' ? ['BRONZE', 'FINAL'] : [nextPhase];
+    const downstreamMatches = tournamentState.schedule.filter(m => !m.isLunchBreak && (phaseRank[m.matchPhase] ?? 0) > changedRank);
+    const anyDownstreamPlayed = downstreamMatches.some(m => m.isFinished);
+
+    if (allChangedDone) {
+        const nextRoundMatches = tournamentState.schedule.filter(m => targetPhases.includes(m.matchPhase) && !m.isLunchBreak);
+        if (nextRoundMatches.some(m => !m.isFinished)) {
+            populatePlayoffRound(nextPhase, changedPhase === 'GROUP');
+        }
+    } else if (!anyDownstreamPlayed) {
+        downstreamMatches.forEach(m => {
+            m.homeTeam = '?';
+            m.awayTeam = '?';
+            m.homeScore = null;
+            m.awayScore = null;
+            m.isFinished = false;
+        });
+        tournamentState.phase = changedPhase;
+    }
+}
+
+function genereraNastaSlutspelsrunda(targetPhase, forceFromGroup = false) {
+    const phaseRank = { 'GROUP': 0, 'ROUND_OF_16': 1, 'QUARTERS': 2, 'SEMIS': 3, 'FINAL': 4 };
+    populatePlayoffRound(targetPhase, forceFromGroup);
+    if ((phaseRank[targetPhase] ?? 0) > (phaseRank[tournamentState.phase] ?? 0)) {
+        tournamentState.phase = targetPhase;
+    }
     saveLocalTournament();
+    syncTournamentToCloud();
     renderaAktivVy();
 }
 
@@ -2636,27 +2739,31 @@ function renderaSpelschema() {
         const validMatches = matches.filter(m => !m.isLunchBreak && m.homeTeam !== '?');
         const isFinished = validMatches.length > 0 && validMatches.every(m => m.isFinished);
 
-        // Skapa knapp för nästa slutspelssteg om fasen är klar
+        // Skapa eller uppdatera knapp för nästa slutspelssteg om fasen är klar
         let nextBtnHtml = '';
         if (isFinished && !isPublicLiveView) {
-            if (phase === 'GROUP' && tournamentState.phase === 'GROUP') {
-                const adv = tournamentState.settings.teamsToAdvance;
-                const nextPhase = adv >= 16 ? 'ROUND_OF_16' : (adv >= 8 ? 'QUARTERS' : (adv >= 4 ? 'SEMIS' : 'FINAL'));
-                const label = adv >= 16 ? 'Skapa Åttondelar 🏆' : (adv >= 8 ? 'Skapa Kvartsfinaler 🏆' : (adv >= 4 ? 'Skapa Semifinaler 🏆' : 'Skapa Final 🏆'));
-                nextBtnHtml = `<button class="btn btn-gold btn-sm" onclick="genereraNastaSlutspelsrunda('${nextPhase}')">${label}</button>`;
-            } else if (phase === 'GROUP' && tournamentState.phase !== 'GROUP') {
-                const adv = tournamentState.settings.teamsToAdvance;
-                const firstPlayoff = adv >= 16 ? 'ROUND_OF_16' : (adv >= 8 ? 'QUARTERS' : (adv >= 4 ? 'SEMIS' : 'FINAL'));
-                const anyPlayoffFinished = tournamentState.schedule.some(m => m.matchPhase !== 'GROUP' && !m.isLunchBreak && m.isFinished);
-                if (!anyPlayoffFinished && tournamentState.phase === firstPlayoff) {
-                    nextBtnHtml = `<button class="btn btn-outline btn-sm" onclick="genereraNastaSlutspelsrunda('${firstPlayoff}', true)" title="Uppdatera slutspelsmöten om du har ändrat ett gruppresultat">🔄 Uppdatera slutspelslag</button>`;
+            const nextPhase = getNextPlayoffPhaseAfter(phase);
+            if (nextPhase) {
+                const createLabels = {
+                    'ROUND_OF_16': 'Skapa Åttondelar 🏆',
+                    'QUARTERS': 'Skapa Kvartsfinaler 🏆',
+                    'SEMIS': 'Skapa Semifinaler 🏆',
+                    'FINAL': 'Skapa Final 🏆'
+                };
+                const updateLabels = {
+                    'ROUND_OF_16': '🔄 Uppdatera Åttondelar',
+                    'QUARTERS': '🔄 Uppdatera Kvartsfinaler',
+                    'SEMIS': '🔄 Uppdatera Semifinaler',
+                    'FINAL': '🔄 Uppdatera Final'
+                };
+                const nextMatches = tournamentState.schedule.filter(m => m.matchPhase === nextPhase && !m.isLunchBreak);
+                const needsInitialCreate = tournamentState.phase === phase || nextMatches.every(m => m.homeTeam === '?');
+                const hasUnplayedInNext = nextMatches.some(m => !m.isFinished);
+                if (needsInitialCreate) {
+                    nextBtnHtml = `<button class="btn btn-gold btn-sm" onclick="genereraNastaSlutspelsrunda('${nextPhase}', ${phase === 'GROUP'})">${createLabels[nextPhase] || 'Nästa runda 🏆'}</button>`;
+                } else if (hasUnplayedInNext) {
+                    nextBtnHtml = `<button class="btn btn-outline btn-sm" onclick="genereraNastaSlutspelsrunda('${nextPhase}', ${phase === 'GROUP'})" title="Uppdatera ospelade matcher i nästa runda utifrån ändrade resultat">${updateLabels[nextPhase] || '🔄 Uppdatera slutspelslag'}</button>`;
                 }
-            } else if (phase === 'ROUND_OF_16' && tournamentState.phase === 'ROUND_OF_16') {
-                nextBtnHtml = `<button class="btn btn-gold btn-sm" onclick="genereraNastaSlutspelsrunda('QUARTERS')">Skapa Kvartsfinaler 🏆</button>`;
-            } else if (phase === 'QUARTERS' && tournamentState.phase === 'QUARTERS') {
-                nextBtnHtml = `<button class="btn btn-gold btn-sm" onclick="genereraNastaSlutspelsrunda('SEMIS')">Skapa Semifinaler 🏆</button>`;
-            } else if (phase === 'SEMIS' && tournamentState.phase === 'SEMIS') {
-                nextBtnHtml = `<button class="btn btn-gold btn-sm" onclick="genereraNastaSlutspelsrunda('FINAL')">Skapa Final 🏆</button>`;
             }
         }
 
@@ -2823,8 +2930,23 @@ function oppnaScoreModal(matchId) {
     document.getElementById('scoreModalAwayLabel').textContent = match.awayTeam;
     document.getElementById('homeScoreInput').value = match.homeScore !== null ? match.homeScore : 0;
     document.getElementById('awayScoreInput').value = match.awayScore !== null ? match.awayScore : 0;
+    const resetBtn = document.getElementById('resetScoreMatchBtn');
+    if (resetBtn) resetBtn.style.display = match.isFinished ? 'inline-flex' : 'none';
 
     openModal('scoreModal');
+}
+
+function nollstallMatchResultat() {
+    if (!activeScoreMatch) return;
+    activeScoreMatch.homeScore = null;
+    activeScoreMatch.awayScore = null;
+    activeScoreMatch.isFinished = false;
+    synkaSlutspelEfterResultatAndring(activeScoreMatch.matchPhase);
+
+    saveLocalTournament();
+    syncTournamentToCloud();
+    closeModal('scoreModal');
+    renderaAktivVy();
 }
 
 function sparaResultatFranModal() {
@@ -2840,8 +2962,10 @@ function sparaResultatFranModal() {
     activeScoreMatch.homeScore = h;
     activeScoreMatch.awayScore = a;
     activeScoreMatch.isFinished = true;
+    synkaSlutspelEfterResultatAndring(activeScoreMatch.matchPhase);
 
     saveLocalTournament();
+    syncTournamentToCloud();
     closeModal('scoreModal');
     renderaAktivVy();
 }
@@ -2880,7 +3004,18 @@ function hamtaEfterfoljandeMatcher(targetMatch) {
     const ordered = getVisualScheduleOrder();
     const idx = ordered.findIndex(m => String(m.id) === String(targetMatch.id));
     if (idx === -1) return [];
-    return ordered.slice(idx + 1).filter(m => m.isLunchBreak || !m.isFinished);
+    const targetMin = parseTimeToMinutes(targetMatch.startTime || '');
+    return ordered.slice(idx + 1).filter(m => {
+        if (!m.isLunchBreak && m.isFinished) return false;
+        // Flytta inte en parallell match som spelas samtidigt på en annan plan!
+        if (!m.isLunchBreak && !targetMatch.isLunchBreak && targetMin !== null) {
+            const mMin = parseTimeToMinutes(m.startTime || '');
+            if (mMin !== null && mMin <= targetMin && m.pitch && targetMatch.pitch && m.pitch !== targetMatch.pitch) {
+                return false;
+            }
+        }
+        return true;
+    });
 }
 
 function uppdateraEditTidUI() {
@@ -3064,6 +3199,10 @@ function oppnaScoreboard(matchId) {
     const match = tournamentState.schedule.find(m => m.id === matchId);
     if (!match || match.homeTeam === '?' || match.awayTeam === '?') return;
 
+    if (liveTimerInterval) {
+        clearInterval(liveTimerInterval);
+        liveTimerInterval = null;
+    }
     activeScoreMatch = match;
     liveHomeScore = match.homeScore !== null ? match.homeScore : 0;
     liveAwayScore = match.awayScore !== null ? match.awayScore : 0;
@@ -3237,8 +3376,10 @@ function sparaOchAvslutaMatch() {
     activeScoreMatch.homeScore = liveHomeScore;
     activeScoreMatch.awayScore = liveAwayScore;
     activeScoreMatch.isFinished = true;
+    synkaSlutspelEfterResultatAndring(activeScoreMatch.matchPhase);
 
     saveLocalTournament();
+    syncTournamentToCloud();
     stangScoreboard();
     renderaAktivVy();
 }
@@ -3268,6 +3409,7 @@ function spelaVissla() {
 function renderQrIntoBox(boxEl, urlStr, sizePx) {
     if (!boxEl) return;
     boxEl.innerHTML = '';
+    const shortUrl = String(urlStr || '').split('#')[0];
     if (typeof QRCode !== 'undefined') {
         try {
             new QRCode(boxEl, {
@@ -3279,14 +3421,42 @@ function renderQrIntoBox(boxEl, urlStr, sizePx) {
                 correctLevel: QRCode.CorrectLevel.L
             });
             return;
-        } catch (e) {}
+        } catch (e) {
+            if (shortUrl && shortUrl !== urlStr) {
+                try {
+                    boxEl.innerHTML = '';
+                    new QRCode(boxEl, {
+                        text: shortUrl,
+                        width: sizePx,
+                        height: sizePx,
+                        colorDark: '#0F172A',
+                        colorLight: '#FFFFFF',
+                        correctLevel: QRCode.CorrectLevel.L
+                    });
+                    return;
+                } catch (e2) {}
+            }
+        }
     }
+    // Skicka aldrig #s=-data (med lag-/elevnamn) till extern QR-server
     const img = document.createElement('img');
-    img.src = `https://api.qrserver.com/v1/create-qr-code/?size=${sizePx}x${sizePx}&data=${encodeURIComponent(urlStr)}`;
+    img.src = `https://api.qrserver.com/v1/create-qr-code/?size=${sizePx}x${sizePx}&data=${encodeURIComponent(shortUrl)}`;
     img.alt = 'QR-kod för live-turnering';
     img.style.width = sizePx + 'px';
     img.style.height = sizePx + 'px';
     boxEl.appendChild(img);
+}
+
+function uppdateraQrSyncBadge() {
+    const syncEl = document.getElementById('modalQrSyncStatus');
+    if (!syncEl) return;
+    if (hasSyncedLiveToCloud) {
+        syncEl.textContent = '🟢 Live-synkad i realtid – uppdateras vid varje mål & matchslut';
+        syncEl.style.color = '#15803D';
+    } else {
+        syncEl.textContent = '📋 Ögonblicksbild i QR-koden – logga in med Google för automatisk live-synk';
+        syncEl.style.color = '#B45309';
+    }
 }
 
 function uppdateraQrKoder() {
@@ -3294,6 +3464,7 @@ function uppdateraQrKoder() {
     const urlStr = getLivePublicUrl();
     const urlInput = document.getElementById('livePublicUrlInput');
     if (urlInput) urlInput.value = urlStr;
+    uppdateraQrSyncBadge();
 
     renderQrIntoBox(document.getElementById('printQrBox'), urlStr, 80);
     renderQrIntoBox(document.getElementById('modalQrBox'), urlStr, 175);
@@ -3331,14 +3502,24 @@ function skrivUtSpelschema() {
     }, 120);
 }
 
+function csvSafeTour(val) {
+    const s = String(val ?? '');
+    const guarded = /^[=+\-@]/.test(s.trimStart()) ? ("'" + s) : s;
+    return guarded.replace(/"/g, '""');
+}
+
 function exporteraCSV() {
     if (!tournamentState.schedule || tournamentState.schedule.length === 0) return;
 
     let csv = "ID,Fas,Starttid,Plan,Hemmalag,Bortalag,Resultat,Status\n";
     tournamentState.schedule.forEach(m => {
-        const res = m.isFinished ? `${m.homeScore}-${m.awayScore}` : "Ej spelad";
+        if (m.isLunchBreak) {
+            csv += `"${m.id}","${csvSafeTour(m.matchPhase)}","${csvSafeTour(m.startTime)}","","LUNCHPAUS","","-","Lunchpaus"\n`;
+            return;
+        }
+        const res = m.isFinished ? `${Number(m.homeScore) || 0}-${Number(m.awayScore) || 0}` : "Ej spelad";
         const status = m.isFinished ? "Klar" : "Kommande";
-        csv += `"${m.id}","${m.matchPhase}","${m.startTime}","${m.pitch}","${m.homeTeam}","${m.awayTeam}","${res}","${status}"\n`;
+        csv += `"${m.id}","${csvSafeTour(m.matchPhase)}","${csvSafeTour(m.startTime)}","${csvSafeTour(m.pitch || '')}","${csvSafeTour(m.homeTeam)}","${csvSafeTour(m.awayTeam)}","${res}","${status}"\n`;
     });
 
     const safeTitle = (tournamentState.title || 'SkolIF_Turnering').replace(/[^a-zA-Z0-9åäöÅÄÖ_-]+/g, '_');
@@ -3367,7 +3548,11 @@ function closeModal(id) { document.getElementById(id).classList.remove('open'); 
 
 document.querySelectorAll('.modal-overlay').forEach(overlay => {
     overlay.addEventListener('click', e => {
-        if (e.target === overlay) overlay.classList.remove('open');
+        if (e.target === overlay) {
+            if (overlay.id === 'scoreboardModal') stangScoreboard();
+            else if (overlay.id === 'liveDrawModal') stangLiveLottning();
+            else overlay.classList.remove('open');
+        }
     });
 });
 
@@ -3469,10 +3654,37 @@ if (liveParamId) {
     startLivePublicMode(liveParamId.trim());
 } else {
     loadLocalTournament();
-    if (tournamentState.schedule && tournamentState.schedule.length > 0) {
-        visaAktivVy();
-    } else {
-        visaStartVy();
+    let importedFromLagdelaren = false;
+    if (urlParams.get('from') === 'lagdelaren') {
+        try {
+            const rawImport = sessionStorage.getItem('skolif_lagdelaren_to_turnering');
+            if (rawImport) {
+                sessionStorage.removeItem('skolif_lagdelaren_to_turnering');
+                const parsed = JSON.parse(rawImport);
+                if (parsed && Array.isArray(parsed.teams) && parsed.teams.length >= 2) {
+                    visaStartVy();
+                    const titleIn = document.getElementById('tournamentTitleInput');
+                    const teamsIn = document.getElementById('teamsInput');
+                    if (titleIn && parsed.title) titleIn.value = parsed.title;
+                    if (teamsIn) teamsIn.value = parsed.teams.join('\n');
+                    uppdateraLagAntal();
+                    importedFromLagdelaren = true;
+                    if (window.history && window.history.replaceState) {
+                        window.history.replaceState({}, document.title, window.location.pathname);
+                    }
+                    setTimeout(() => {
+                        alert(`🏆 ${parsed.teams.length} slumpade lag från Lagdelaren har lagts in! Välj inställningar och skapa spelschema.`);
+                    }, 120);
+                }
+            }
+        } catch (e) {}
+    }
+    if (!importedFromLagdelaren) {
+        if (tournamentState.schedule && tournamentState.schedule.length > 0) {
+            visaAktivVy();
+        } else {
+            visaStartVy();
+        }
     }
 }
 </script>

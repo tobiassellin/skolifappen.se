@@ -93,6 +93,8 @@
             position: sticky;
             top: 0;
             z-index: 900;
+            gap: 10px;
+            flex-wrap: wrap;
         }
         .nav-logo {
             display: flex;
@@ -117,7 +119,13 @@
         .nav-actions {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        @media (max-width: 640px) {
+            nav { padding: 0.6rem 4%; }
+            .nav-logo { font-size: 1.08rem; }
+            .nav-btn { padding: 6px 10px; font-size: 0.78rem; }
         }
         .nav-btn {
             background: rgba(255,255,255,0.12);
@@ -405,19 +413,37 @@
             color: #FFD54F;
         }
 
-        /* Fullskärmsläge (behåller fasfärgerna på body!) */
-        :fullscreen nav, :-webkit-full-screen nav { display: none; }
+        /* Fullskärmsläge (behåller fasfärgerna OCH ljud/avsluta-knapparna för iPad/iPhone!) */
+        :fullscreen nav, :-webkit-full-screen nav, body.board-pseudo-fullscreen nav {
+            background: transparent;
+            border-bottom: none;
+            box-shadow: none;
+            backdrop-filter: none;
+            -webkit-backdrop-filter: none;
+            position: fixed;
+            top: 8px;
+            right: 12px;
+            left: auto;
+            padding: 0;
+            z-index: 1200;
+        }
+        :fullscreen .nav-logo, :-webkit-full-screen .nav-logo, body.board-pseudo-fullscreen .nav-logo,
+        :fullscreen nav a.nav-btn, :-webkit-full-screen nav a.nav-btn, body.board-pseudo-fullscreen nav a.nav-btn {
+            display: none !important;
+        }
         :fullscreen .settings-card, :fullscreen .presets-section,
-        :-webkit-full-screen .settings-card, :-webkit-full-screen .presets-section { display: none; }
+        :-webkit-full-screen .settings-card, :-webkit-full-screen .presets-section,
+        body.board-pseudo-fullscreen .settings-card, body.board-pseudo-fullscreen .presets-section,
+        body.board-pseudo-fullscreen .timer-page-h1 { display: none !important; }
         :fullscreen .seo-guide, :fullscreen footer,
         :-webkit-full-screen .seo-guide, :-webkit-full-screen footer { display: none !important; }
-        :fullscreen .container, :-webkit-full-screen .container { height: 100vh; padding: 0; align-items: center; justify-content: center; }
-        :fullscreen .timer-display-card, :-webkit-full-screen .timer-display-card { max-width: 90vw; margin: auto; }
-        :fullscreen .timer-circle-wrap, :-webkit-full-screen .timer-circle-wrap { width: min(62vw, 62vh); height: min(62vw, 62vh); }
-        :fullscreen .timer-digits, :-webkit-full-screen .timer-digits { font-size: min(18vw, 18vh); }
-        :fullscreen .phase-badge, :-webkit-full-screen .phase-badge { font-size: min(5vw, 5vh); padding: 10px 40px; }
-        :fullscreen .timer-subtext, :-webkit-full-screen .timer-subtext { font-size: min(4vw, 4vh); }
-        :fullscreen .btn-play, :-webkit-full-screen .btn-play { width: 110px; height: 110px; font-size: 3rem; }
+        :fullscreen .container, :-webkit-full-screen .container, body.board-pseudo-fullscreen .container { min-height: 100vh; min-height: 100dvh; padding: 0; align-items: center; justify-content: center; }
+        :fullscreen .timer-display-card, :-webkit-full-screen .timer-display-card, body.board-pseudo-fullscreen .timer-display-card { max-width: 90vw; margin: auto; }
+        :fullscreen .timer-circle-wrap, :-webkit-full-screen .timer-circle-wrap, body.board-pseudo-fullscreen .timer-circle-wrap { width: min(62vw, 62vh); height: min(62vw, 62vh); }
+        :fullscreen .timer-digits, :-webkit-full-screen .timer-digits, body.board-pseudo-fullscreen .timer-digits { font-size: min(18vw, 18vh); }
+        :fullscreen .phase-badge, :-webkit-full-screen .phase-badge, body.board-pseudo-fullscreen .phase-badge { font-size: min(5vw, 5vh); padding: 10px 40px; }
+        :fullscreen .timer-subtext, :-webkit-full-screen .timer-subtext, body.board-pseudo-fullscreen .timer-subtext { font-size: min(4vw, 4vh); }
+        :fullscreen .btn-play, :-webkit-full-screen .btn-play, body.board-pseudo-fullscreen .btn-play { width: 110px; height: 110px; font-size: 3rem; }
     </style>
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3461073406787574"
      crossorigin="anonymous"></script>
@@ -429,7 +455,7 @@
         <div class="nav-logo-icon">🔔</div>
         <div>
             <div>Tabatatimer</div>
-            <div style="font-size: 0.72rem; color: rgba(255,255,255,0.6); font-weight: 500;">Intervall- & Cirkelklocka</div>
+            <div style="font-size: 0.72rem; color: rgba(255,255,255,0.78); font-weight: 500;">Intervall- & Cirkelklocka</div>
         </div>
     </a>
     <div class="nav-actions">
@@ -481,7 +507,7 @@
             <div class="preset-card" onclick="applyPreset('cirkel')">
                 <div class="preset-icon">🏋️</div>
                 <div class="preset-name">Cirkelträning</div>
-                <div class="preset-detail">45s / 15s • 8 stationer</div>
+                <div class="preset-detail">45s / 15s • 8 stationer × 2 set</div>
             </div>
             <div class="preset-card" onclick="applyPreset('emom')">
                 <div class="preset-icon">⏱️</div>
@@ -496,7 +522,7 @@
             <div class="preset-card" onclick="applyPreset('boxning')">
                 <div class="preset-icon">🥊</div>
                 <div class="preset-name">Boxningsrond</div>
-                <div class="preset-detail">3 min / 1 min • 5 set</div>
+                <div class="preset-detail">3 min / 1 min • 5 ronder</div>
             </div>
         </div>
     </div>
@@ -712,7 +738,7 @@
     //  INITIERING
     // ==========================================
     window.addEventListener('DOMContentLoaded', () => {
-        applyPreset('tabata');
+        applyPreset('tabata', true);
         updateUI();
     });
 
@@ -992,7 +1018,12 @@
     // ==========================================
     //  PRESETS & INSTÄLLNINGAR
     // ==========================================
-    function applyPreset(preset) {
+    function applyPreset(preset, skipConfirm = false) {
+        if (!skipConfirm && (isRunning || (currentState !== TimerState.IDLE && currentState !== TimerState.FINISHED))) {
+            if (!confirm('Ett träningspass pågår! Vill du avbryta det pågående passet och byta snabbläge?')) {
+                return;
+            }
+        }
         document.querySelectorAll('.preset-card').forEach(c => c.classList.remove('active'));
 
         if (preset === 'tabata') {
@@ -1026,7 +1057,7 @@
 
         let min = 5;
         if (key === 'stations' || key === 'sets') min = 1;
-        if (key === 'prepare' || key === 'setRest') min = 0;
+        if (key === 'prepare' || key === 'rest' || key === 'setRest') min = 0;
 
         settings[key] = Math.max(min, settings[key] + delta);
         document.getElementById('presetStatusText').textContent = "Eget anpassat upplägg";
@@ -1051,18 +1082,25 @@
     // ==========================================
     function toggleFullscreen() {
         const docEl = document.documentElement;
-        const isFs = document.fullscreenElement || document.webkitFullscreenElement;
-        if (!isFs) {
+        const isNativeFs = Boolean(document.fullscreenElement || document.webkitFullscreenElement);
+        const isPseudoFs = document.body.classList.contains('board-pseudo-fullscreen');
+        if (!isNativeFs && !isPseudoFs) {
             const req = docEl.requestFullscreen || docEl.webkitRequestFullscreen;
             if (req) {
-                Promise.resolve(req.call(docEl)).catch(err => {
-                    console.warn("Kunde inte gå till fullskärm", err);
+                Promise.resolve(req.call(docEl)).then(() => {
+                    document.getElementById('fsBtn').textContent = "✕ Avsluta fullskärm";
+                }).catch(() => {
+                    document.body.classList.add('board-pseudo-fullscreen');
+                    document.getElementById('fsBtn').textContent = "✕ Avsluta fullskärm";
                 });
+            } else {
+                document.body.classList.add('board-pseudo-fullscreen');
                 document.getElementById('fsBtn').textContent = "✕ Avsluta fullskärm";
             }
         } else {
+            document.body.classList.remove('board-pseudo-fullscreen');
             const exit = document.exitFullscreen || document.webkitExitFullscreen;
-            if (exit) exit.call(document);
+            if (isNativeFs && exit) exit.call(document);
             document.getElementById('fsBtn').textContent = "⛶ Fullskärm";
         }
     }
@@ -1084,6 +1122,9 @@
     }
 
     function releaseWakeLock() {
+        if (window.SkolIFKlasser && typeof SkolIFKlasser.suppressWakeLockBriefly === 'function') {
+            SkolIFKlasser.suppressWakeLockBriefly();
+        }
         if (wakeLock) {
             wakeLock.release().catch(() => {});
             wakeLock = null;
@@ -1169,7 +1210,7 @@
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-<script src="klasser.js?v=10"></script>
+<script src="klasser.js?v=12"></script>
 </body>
 </html>
 
