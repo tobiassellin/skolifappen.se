@@ -1194,6 +1194,9 @@ let currentUserRole = null; // 'admin' | 'district'
 let activeDistrictId = null;
 let isAdminEditingDistrict = false;
 let hasUnsavedChanges = false;
+// Skydd för redan anmälda rum: spärrar redigering om inläsningen misslyckats, och håller reda på avsiktligt borttagna rum
+let districtLoadFailed = false;
+const deletedRoomIds = new Set();
 
 let districtState = {
     districtId: '',
@@ -1608,6 +1611,8 @@ setInterval(() => {
 //  DISTRIKTSVY – LOGIK & FORMULÄR
 // ==========================================
 function isDistrictReadOnly() {
+    // Spärrad om anmälan inte kunde läsas in (så redan anmälda rum aldrig kan skrivas över av en tom lista)
+    if (districtLoadFailed) return true;
     // Admin kan ALLTID redigera även i låst läge!
     return isEffectiveLocked() && currentUserRole !== 'admin';
 }
@@ -1650,8 +1655,10 @@ async function laddaDistriktsAnmalan(distId) {
         document.getElementById('adminEditingDistrictName').textContent = meta.name;
     }
 
+    deletedRoomIds.clear();
     try {
         const doc = await db.collection(COLLECTION_NAME).doc(distId).get();
+        districtLoadFailed = false;
         if (doc.exists) {
             const d = doc.data() || {};
             districtState = {
@@ -1681,7 +1688,8 @@ async function laddaDistriktsAnmalan(distId) {
         }
     } catch (err) {
         console.error('Kunde inte hämta distriktsanmälan:', err);
-        showToast('Kunde inte läsa in anmälan från molnet. Kontrollera Firestore Rules.', 'error');
+        showToast('Kunde inte läsa in anmälan från molnet. Redigering är spärrad så att inget skrivs över – försök igen.', 'error');
+        districtLoadFailed = true;
         districtState = {
             districtId: distId,
             districtName: meta.name,
@@ -1717,7 +1725,8 @@ async function laddaDistriktsAnmalan(distId) {
             const anyEditing = districtState.rooms.some(r => r.isEditing);
             if (hasUnsavedChanges || anyEditing) return;
             const d = snap.data() || {};
-            if ((d.updatedAt || 0) <= (districtState.updatedAt || 0)) return;
+            if (!districtLoadFailed && (d.updatedAt || 0) <= (districtState.updatedAt || 0)) return;
+            districtLoadFailed = false;
 
             districtState = {
                 districtId: distId,
@@ -1810,6 +1819,32 @@ function togglaAllaRumRedigering() {
     renderDistrictRooms();
 }
 
+// Sparar distriktets anmälan i en transaktion så att rum som lagts till på servern (t.ex. av admin) sedan senaste
+// inläsningen BEHÅLLS. Endast rum som användaren själv tagit bort (deletedRoomIds) försvinner.
+async function skrivDistriktsRumSakert(distId, payload) {
+    const docRef = db.collection(COLLECTION_NAME).doc(distId);
+    const localIds = new Set(payload.rooms.map(r => r.roomId));
+    const deleteSnapshot = new Set(deletedRoomIds);
+    let extras = [];
+    await db.runTransaction(async (tx) => {
+        extras = [];
+        const snap = await tx.get(docRef);
+        const cur = snap.exists ? (snap.data() || {}) : {};
+        const curRooms = Array.isArray(cur.rooms) ? cur.rooms : [];
+        extras = curRooms.filter(r => r && r.roomId && !localIds.has(r.roomId) && !deleteSnapshot.has(r.roomId));
+        tx.set(docRef, { ...payload, rooms: [...payload.rooms, ...extras] }, { merge: true });
+    });
+    deleteSnapshot.forEach(id => deletedRoomIds.delete(id));
+    return extras;
+}
+
+function laggTillBehallnaRum(extras) {
+    if (!Array.isArray(extras) || extras.length === 0) return false;
+    extras.forEach(r => districtState.rooms.push(normalizeRoomForEdit({ ...r, isEditing: false }, false)));
+    showToast(`ℹ️ ${extras.length} rum som lagts till på servern sedan senaste inläsningen har behållits i anmälan.`, 'info');
+    return true;
+}
+
 async function sparaUtkastTystTillFirestore() {
     if (isDistrictReadOnly()) return;
     const meta = DISTRICTS[activeDistrictId];
@@ -1846,8 +1881,10 @@ async function sparaUtkastTystTillFirestore() {
     };
 
     try {
-        await db.collection(COLLECTION_NAME).doc(activeDistrictId).set(payload, { merge: true });
+        const extrasKvar = await skrivDistriktsRumSakert(activeDistrictId, payload);
+        const harBehallna = laggTillBehallnaRum(extrasKvar);
         districtState.updatedAt = now;
+        if (harBehallna) renderDistrictRooms();
         const lastEl = document.getElementById('districtLastSavedText');
         if (lastEl) lastEl.textContent = keepSubmitted ? `✅ Uppdaterad: ${formatTimestamp(now)}` : `Utkast sparat: ${formatTimestamp(now)}`;
         // Om inga rum ligger öppna i redigeringsläge längre kan osparad-varningen släckas
@@ -1875,6 +1912,7 @@ async function taBortRum(index) {
     if (hasNames && !confirm(`Vill du ta bort Rum ${index + 1} (${ROOM_TYPES[room.type].shortLabel}) och deltagarna i rummet?`)) {
         return;
     }
+    if (room.roomId) deletedRoomIds.add(room.roomId);
     districtState.rooms.splice(index, 1);
     setDistrictDirty(true);
     renderDistrictRooms();
@@ -2014,6 +2052,18 @@ function renderDistrictRooms() {
     document.getElementById('addRoomBtnBottom').disabled = readOnly;
     document.getElementById('saveDistrictBtn').disabled = readOnly;
 
+    if (districtLoadFailed) {
+        container.innerHTML = `
+            <div style="text-align:center; padding:28px 18px; background:#FEF2F2; border:1.5px solid #FCA5A5; border-radius:14px; color:#991B1B;">
+                <strong style="display:block; margin-bottom:6px;">⚠️ Kunde inte läsa in er sparade anmälan</strong>
+                <p style="font-size:0.85rem; margin-bottom:12px;">För att inga redan anmälda rum ska kunna skrivas över är redigering spärrad tills anmälan har lästs in. Kontrollera uppkopplingen och försök igen.</p>
+                <button type="button" class="btn btn-green btn-sm" onclick="laddaDistriktsAnmalan(activeDistrictId)">🔄 Försök igen</button>
+            </div>
+        `;
+        updateDistrictKpis();
+        return;
+    }
+
     if (districtState.rooms.length === 0) {
         container.innerHTML = `
             <div style="text-align:center; padding:32px 18px; background:#F8FAFC; border:1.5px dashed #CBD5E1; border-radius:14px; color:#64748B;">
@@ -2152,7 +2202,9 @@ function renderDistrictRooms() {
 
 async function sparaDistriktsAnmalan(isFinalSubmit = false) {
     if (isDistrictReadOnly()) {
-        showToast('Anmälan är låst och kan inte längre ändras.', 'warning');
+        showToast(districtLoadFailed
+            ? 'Anmälan kunde inte läsas in – redigering är spärrad. Tryck på "Försök igen".'
+            : 'Anmälan är låst och kan inte längre ändras.', 'warning');
         return;
     }
 
@@ -2214,7 +2266,8 @@ async function sparaDistriktsAnmalan(isFinalSubmit = false) {
     };
 
     try {
-        await db.collection(COLLECTION_NAME).doc(activeDistrictId).set(payload, { merge: true });
+        const extrasKvar = await skrivDistriktsRumSakert(activeDistrictId, payload);
+        laggTillBehallnaRum(extrasKvar);
         districtState.updatedAt = now;
         districtState.isSubmitted = nextIsSubmitted;
         districtState.submittedAt = nextSubmittedAt;

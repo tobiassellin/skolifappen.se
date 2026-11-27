@@ -795,7 +795,7 @@
 <!-- Toast -->
 <div id="toast"></div>
 
-<script src="klasser.js?v=12"></script>
+<script src="klasser.js?v=13"></script>
 <script>
 // ==========================================
 //  FIREBASE KONFIGURATION
@@ -978,8 +978,10 @@ function startCloudListener(docId) {
 async function sparaTillMolnEllerLokalt(mutatorFn) {
     if (isCloudMode && activeBodDocId && db && typeof mutatorFn === 'function') {
         try {
+            let pendingArtiklar = null;
             const bodRef = db.collection('redskapsbodar').doc(activeBodDocId);
             await db.runTransaction(async (tx) => {
+                pendingArtiklar = null; // nollställs vid varje retry så inget halvfärdigt läcker ut
                 const snap = await tx.get(bodRef);
                 let molnArtiklar = [];
                 if (snap.exists) {
@@ -994,39 +996,43 @@ async function sparaTillMolnEllerLokalt(mutatorFn) {
                 }
                 const ok = mutatorFn(molnArtiklar);
                 if (ok === false) return;
-                artiklar = molnArtiklar;
                 tx.update(bodRef, {
                     artiklar: molnArtiklar,
                     data: JSON.stringify(molnArtiklar),
                     senastUppdaterad: Date.now()
                 });
+                pendingArtiklar = molnArtiklar;
             });
+            // Först NÄR transaktionen är bekräftad uppdateras den lokala listan
+            if (pendingArtiklar) artiklar = pendingArtiklar;
             saveLocal();
             return;
         } catch (err) {
             console.error('Fel vid transaktionsuppdatering av Firestore:', err);
-            showToast('⚠️ Sparat lokalt, men kunde inte nå molnet: ' + err.message);
+            showToast('⚠️ Kunde inte nå molnet – ändringen sparas lokalt och synkas när nätet är tillbaka: ' + err.message);
         }
+
+        // Reserv (t.ex. tappat nät): utför ändringen EN gång på en kopia – aldrig dubbelt – och blockera aldrig gränssnittet
+        const kopia = JSON.parse(JSON.stringify(artiklar));
+        if (mutatorFn(kopia) === false) return;
+        artiklar = kopia;
+        saveLocal();
+        try {
+            db.collection('redskapsbodar').doc(activeBodDocId).update({
+                artiklar: artiklar,
+                data: JSON.stringify(artiklar),
+                senastUppdaterad: Date.now()
+            }).catch(err => console.warn('Köad molnskrivning misslyckades:', err));
+        } catch (err) {
+            console.warn('Kunde inte köa molnskrivning:', err);
+        }
+        return;
     }
 
     if (typeof mutatorFn === 'function') {
         mutatorFn(artiklar);
     }
     saveLocal();
-
-    if (isCloudMode && activeBodDocId && db) {
-        try {
-            const bodRef = db.collection('redskapsbodar').doc(activeBodDocId);
-            await bodRef.update({
-                artiklar: artiklar,
-                data: JSON.stringify(artiklar),
-                senastUppdaterad: Date.now()
-            });
-        } catch(err) {
-            console.error('Fel vid uppdatering av Firestore:', err);
-            showToast('⚠️ Sparat lokalt, men kunde inte nå molnet: ' + err.message);
-        }
-    }
 }
 
 // ==========================================
@@ -1187,6 +1193,7 @@ function closeDela() {
 
 let isLoggingIn = false;
 function loginGoogle() {
+    if (isBodElevlageLocked()) { showToast('🔒 Låst i Elevläge – lås upp med PIN innan du loggar in eller byter konto'); return; }
     if (!auth || typeof firebase === 'undefined') {
         showToast('⚠️ Ingen internetanslutning för Google-inloggning just nu');
         return;

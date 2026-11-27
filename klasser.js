@@ -1347,7 +1347,13 @@
             const nyttFornamn = nyttNamn.split(/\s+/)[0].toLowerCase();
             const kvarGamla = sorteradeGamlaIKlassen.filter(e => !matchadeGamlaRefs.has(e));
 
-            let kandidat = kvarGamla.find(e => simpleEditDistance(e.namn, nyttNamn) <= 2);
+            // Endast riktiga stavfel: kräver längre namn (så "Eva"/"Ida" eller "Nr 3"/"Nr 26" aldrig förväxlas)
+            let kandidat = kvarGamla.find(e => {
+                const gammaltNamn = String(e.namn || '').trim();
+                return Math.min(gammaltNamn.length, nyttNamn.length) >= 6 &&
+                    !/\d/.test(gammaltNamn) && !/\d/.test(nyttNamn) &&
+                    simpleEditDistance(gammaltNamn, nyttNamn) <= 2;
+            });
             if (!kandidat && nyttFornamn.length >= 2) {
                 const medSammaFornamn = kvarGamla.filter(
                     e => String(e.namn || '').trim().split(/\s+/)[0].toLowerCase() === nyttFornamn
@@ -1355,6 +1361,15 @@
                 if (medSammaFornamn.length === 1) {
                     kandidat = medSammaFornamn[0];
                 }
+            }
+
+            // Pengar och blipp får ALDRIG tyst flyttas till en annan elev – fråga alltid först
+            if (kandidat && ((Number(kandidat.saldo) || 0) !== 0 || kandidat.tagg)) {
+                const gammaltSaldo = Number(kandidat.saldo) || 0;
+                const sammaElev = confirm(
+                    `⚠️ Är "${kandidat.namn}" och "${nyttNamn}" samma elev?\n\n"${kandidat.namn}" har ${gammaltSaldo} kr${kandidat.tagg ? ' och en kopplad blipp' : ''} i kiosken.\n\nOK = Ja, samma elev (saldo, blipp och historik följer med)\nAvbryt = Nej, "${nyttNamn}" blir en ny elev med 0 kr`
+                );
+                if (!sammaElev) kandidat = null;
             }
 
             if (kandidat) {
@@ -1710,6 +1725,10 @@
     // ==========================================
     let isSigningIn = false;
     function loginWithGoogle() {
+        if (isElevlageActive()) {
+            showToast('🔒 Låst i Elevläge – lås upp med PIN innan du loggar in eller byter konto.', 'warning');
+            return;
+        }
         if (!auth || typeof firebase === 'undefined') {
             showToast('Ingen internetanslutning just nu – alla verktyg fungerar direkt i lokalt offline-läge!', 'warning');
             return;
@@ -3661,7 +3680,8 @@
             if (icon) icon.textContent = '🔒';
             if (desc) desc.innerHTML = 'Ange din <strong>4-siffriga PIN-kod</strong> för att återgå till lärarläge och låsa upp alla inställningar.';
             if (submitBtn) submitBtn.textContent = 'Lås upp';
-            if (googleFallback) googleFallback.style.display = 'inline-block';
+            // Google-upplåsning erbjuds bara när läraren som låste är inloggad (ingen kan "ta över" med eget konto)
+            if (googleFallback) googleFallback.style.display = (currentUser && currentUser.email) ? 'inline-block' : 'none';
         }
 
         modal.classList.add('open');
@@ -3766,34 +3786,22 @@
 
     async function unlockWithGoogle() {
         if (!auth || typeof firebase === 'undefined') return;
+        // SÄKERHET: Endast läraren som är inloggad får låsa upp. Vi BYTER ALDRIG inloggning här (annars skulle en
+        // elev kunna ta över sessionen med sitt eget konto) – i stället omautentiseras det BEFINTLIGA kontot.
+        const teacherUser = auth.currentUser;
         const expectedEmail = (currentUser && currentUser.email) ? currentUser.email.trim().toLowerCase() : '';
-        const lockedDocId = activeKassaDocId;
+        if (!teacherUser || teacherUser.isAnonymous || !expectedEmail) {
+            showToast('🔒 Upplåsning med Google kräver att läraren är inloggad. Använd PIN-koden.', 'warning');
+            return;
+        }
         try {
             const provider = new firebase.auth.GoogleAuthProvider();
-            provider.setCustomParameters({ prompt: 'select_account' });
-            const res = await auth.signInWithPopup(provider);
+            provider.setCustomParameters({ prompt: 'select_account', login_hint: expectedEmail });
+            const res = await teacherUser.reauthenticateWithPopup(provider);
             const signedInEmail = (res && res.user && res.user.email) ? res.user.email.trim().toLowerCase() : '';
-
-            // Om en lärare var inloggad när Elevläge låstes får INTE ett godtyckligt elevkonto låsa upp!
-            if (expectedEmail && signedInEmail !== expectedEmail) {
-                let authorizedColleague = false;
-                if (db && lockedDocId && signedInEmail) {
-                    try {
-                        const snap = await db.collection('skolif_kassa').doc(lockedDocId).get();
-                        if (snap.exists) {
-                            const d = snap.data() || {};
-                            const beh = Array.isArray(d.behoriga_anvandare) ? d.behoriga_anvandare.map(x => String(x || '').toLowerCase()) : [];
-                            const skap = String(d.skapare || '').toLowerCase();
-                            if (beh.includes(signedInEmail) || skap === signedInEmail) {
-                                authorizedColleague = true;
-                            }
-                        }
-                    } catch (e) {}
-                }
-                if (!authorizedColleague) {
-                    showToast(`⛔ Endast behörig lärare (${expectedEmail}) kan låsa upp Elevläge!`, 'error');
-                    return;
-                }
+            if (signedInEmail !== expectedEmail) {
+                showToast(`⛔ Endast behörig lärare (${expectedEmail}) kan låsa upp Elevläge!`, 'error');
+                return;
             }
 
             try {
@@ -3806,7 +3814,11 @@
             showToast('🔓 Upplåst via Google-inloggning!', 'success');
             if (typeof cb === 'function') cb();
         } catch (err) {
-            showToast('Verifieringen avbröts.', 'warning');
+            if (err && (err.code === 'auth/user-mismatch' || err.code === 'auth/wrong-password')) {
+                showToast(`⛔ Endast behörig lärare (${expectedEmail}) kan låsa upp Elevläge!`, 'error');
+            } else {
+                showToast('Verifieringen avbröts.', 'warning');
+            }
         }
     }
 
