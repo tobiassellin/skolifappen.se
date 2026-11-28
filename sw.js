@@ -5,7 +5,7 @@
  * idrottshall i källaren eller i skogen utan täckning.
  * ============================================================================ */
 
-const CACHE_NAME = 'skolif-offline-v8';
+const CACHE_NAME = 'skolif-offline-v9';
 
 const PRECACHE_URLS = [
     './',
@@ -22,7 +22,7 @@ const PRECACHE_URLS = [
     './integritet.html',
     './om.html',
     './seo-shared.css',
-    './klasser.js?v=13',
+    './klasser.js?v=14',
     './manifest.json',
     './icon.svg',
     './apple-touch-icon.png',
