@@ -792,15 +792,15 @@
             <div class="form-grid-3">
                 <div class="form-group">
                     <label for="distContactName">Ansvarig ledare (Namn)</label>
-                    <input type="text" id="distContactName" placeholder="Förnamn Efternamn" oninput="markDistrictDirty()">
+                    <input type="text" id="distContactName" placeholder="Förnamn Efternamn" oninput="markDistrictDirty('contactName')">
                 </div>
                 <div class="form-group">
                     <label for="distContactPhone">Mobilnummer</label>
-                    <input type="tel" id="distContactPhone" placeholder="070-123 45 67" oninput="markDistrictDirty()">
+                    <input type="tel" id="distContactPhone" placeholder="070-123 45 67" oninput="markDistrictDirty('contactPhone')">
                 </div>
                 <div class="form-group">
                     <label for="distComment">Övrig notering / Ankomsttid (valfritt)</label>
-                    <input type="text" id="distComment" placeholder="T.ex. Anländer med tåg fredag kl 17:30" oninput="markDistrictDirty()">
+                    <input type="text" id="distComment" placeholder="T.ex. Anländer med tåg fredag kl 17:30" oninput="markDistrictDirty('comment')">
                 </div>
             </div>
         </div>
@@ -1000,27 +1000,29 @@
             </p>
             <pre style="background:#0F172A; color:#E2E8F0; padding:14px; border-radius:12px; font-size:0.78rem; overflow-x:auto; line-height:1.5;">// UTBILDNINGSANMÄLAN &amp; HOTELLBOKNING (3 DISTRIKT + ADMIN + AUTOMATISKT LÅS)
 match /utbildning_anmalan/{docId} {
+  function userEmail() {
+    return (request.auth != null &amp;&amp; 'email' in request.auth.token &amp;&amp; request.auth.token.email != null)
+      ? request.auth.token.email.lower()
+      : '';
+  }
   function isAdmin() {
-    return request.auth != null &amp;&amp; (
-      request.auth.token.email.lower() == 'tobias.sellin@gmail.com' ||
-      request.auth.token.email.lower() == 'admin@skolifwebben.se'
-    );
+    let em = userEmail();
+    return em == 'tobias.sellin@gmail.com' || em == 'admin@skolifwebben.se';
   }
   function isOwnDistrict() {
-    return request.auth != null &amp;&amp; (
-      (docId == 'jamtland' &amp;&amp; request.auth.token.email.lower() == 'jamtland@skolifwebben.se') ||
-      (docId == 'medelpad' &amp;&amp; request.auth.token.email.lower() == 'medelpad@skolifwebben.se') ||
-      (docId == 'angermanland' &amp;&amp; request.auth.token.email.lower() == 'angermanland@skolifwebben.se')
-    );
+    let em = userEmail();
+    return (docId == 'jamtland' &amp;&amp; em == 'jamtland@skolifwebben.se') ||
+           (docId == 'medelpad' &amp;&amp; em == 'medelpad@skolifwebben.se') ||
+           (docId == 'angermanland' &amp;&amp; em == 'angermanland@skolifwebben.se');
   }
   function isLocked() {
     let cfgPath = /databases/$(database)/documents/utbildning_anmalan/_config;
     return exists(cfgPath) &amp;&amp; (
-      get(cfgPath).data.isLocked == true ||
+      get(cfgPath).data.get('isLocked', false) == true ||
       (
-        get(cfgPath).data.overrideOpenAfterDeadline != true &amp;&amp;
-        get(cfgPath).data.deadlineTs != null &amp;&amp;
-        request.time &gt;= get(cfgPath).data.deadlineTs
+        get(cfgPath).data.get('overrideOpenAfterDeadline', false) != true &amp;&amp;
+        get(cfgPath).data.get('deadlineTs', null) is timestamp &amp;&amp;
+        request.time &gt;= get(cfgPath).data.get('deadlineTs', null)
       )
     );
   }
@@ -1184,6 +1186,7 @@ let eventConfig = {
     titel: 'Gemensam Utbildning – Skol-IF Distrikten',
     subtitle: 'Hotell- & deltagaranmälan för Jämtland/Härjedalen, Medelpad och Ångermanland',
     deadlineIso: '',
+    deadlineMs: 0,
     deadlineText: '',
     isLocked: false,
     overrideOpenAfterDeadline: false,
@@ -1194,9 +1197,16 @@ let currentUserRole = null; // 'admin' | 'district'
 let activeDistrictId = null;
 let isAdminEditingDistrict = false;
 let hasUnsavedChanges = false;
-// Skydd för redan anmälda rum: spärrar redigering om inläsningen misslyckats, och håller reda på avsiktligt borttagna rum
+// Skydd för redan anmälda rum: spärrar redigering om inläsningen misslyckats, och håller reda på avsiktligt borttagna/ändrade rum
 let districtLoadFailed = false;
+let isSavingDistrict = false;
 const deletedRoomIds = new Set();
+let knownServerRoomIds = new Set();
+let contactDirtyFields = { contactName: false, contactPhone: false, comment: false };
+let lastRenderedReadOnly = null;
+let lastRenderedNightsSig = '';
+let exactDeadlineTimer = null;
+let configBackfilledOnce = false;
 
 let districtState = {
     districtId: '',
@@ -1379,8 +1389,11 @@ async function lamnaAnmalanTillWebben(e) {
 function cleanupListeners() {
     if (configUnsubscribe) { configUnsubscribe(); configUnsubscribe = null; }
     if (districtUnsubscribe) { districtUnsubscribe(); districtUnsubscribe = null; }
+    if (exactDeadlineTimer) { clearTimeout(exactDeadlineTimer); exactDeadlineTimer = null; }
     adminUnsubscribes.forEach(unsub => { try { unsub(); } catch (e) {} });
     adminUnsubscribes = [];
+    lastRenderedReadOnly = null;
+    lastRenderedNightsSig = '';
 }
 
 if (auth) {
@@ -1453,11 +1466,17 @@ function formatDeadlineFromIso(isoStr) {
     return `${capDate} kl. ${timePart}`;
 }
 
+function getEffectiveDeadlineMs() {
+    if (eventConfig.deadlineMs && eventConfig.deadlineMs > 0) return eventConfig.deadlineMs;
+    if (!eventConfig.deadlineIso) return NaN;
+    return new Date(eventConfig.deadlineIso).getTime();
+}
+
 function getDeadlineCountdownText(isoStr) {
-    if (!isoStr) return '';
-    const target = new Date(isoStr).getTime();
-    if (isNaN(target)) return '';
-    const diffMs = target - Date.now();
+    const target = getEffectiveDeadlineMs();
+    const fallbackTarget = (!isNaN(target) ? target : (isoStr ? new Date(isoStr).getTime() : NaN));
+    if (isNaN(fallbackTarget)) return '';
+    const diffMs = fallbackTarget - Date.now();
     if (diffMs <= 0) {
         return '⚠️ Sista anmälningsdag har passerat';
     }
@@ -1475,8 +1494,7 @@ function getDeadlineCountdownText(isoStr) {
 }
 
 function isDeadlineExpired() {
-    if (!eventConfig.deadlineIso) return false;
-    const target = new Date(eventConfig.deadlineIso).getTime();
+    const target = getEffectiveDeadlineMs();
     return !isNaN(target) && Date.now() >= target;
 }
 
@@ -1495,6 +1513,9 @@ function startConfigListener() {
             eventConfig.titel = d.titel || 'Gemensam Utbildning – Skol-IF Distrikten';
             eventConfig.subtitle = d.subtitle || 'Hotell- & deltagaranmälan för Jämtland/Härjedalen, Medelpad och Ångermanland';
             eventConfig.deadlineIso = d.deadlineIso || '';
+            eventConfig.deadlineMs = (d.deadlineTs && typeof d.deadlineTs.toMillis === 'function')
+                ? d.deadlineTs.toMillis()
+                : (d.deadlineIso ? (new Date(d.deadlineIso).getTime() || 0) : 0);
             eventConfig.deadlineText = d.deadlineText || '';
             eventConfig.isLocked = Boolean(d.isLocked);
             eventConfig.overrideOpenAfterDeadline = Boolean(d.overrideOpenAfterDeadline);
@@ -1506,6 +1527,23 @@ function startConfigListener() {
             } else {
                 eventConfig.nightOptions = [...DEFAULT_NIGHT_OPTIONS];
             }
+
+            // Säkerställ att _config alltid har alla låsfält definierade så äldre Firestore Rules aldrig saknar fält
+            if (currentUserRole === 'admin' && !configBackfilledOnce) {
+                const missingFields = (d.isLocked === undefined || d.overrideOpenAfterDeadline === undefined || d.deadlineTs === undefined);
+                if (missingFields) {
+                    configBackfilledOnce = true;
+                    const parsedDl = eventConfig.deadlineIso ? new Date(eventConfig.deadlineIso) : null;
+                    const dlTs = (parsedDl && !isNaN(parsedDl.getTime()))
+                        ? firebase.firestore.Timestamp.fromDate(parsedDl)
+                        : null;
+                    db.collection(COLLECTION_NAME).doc('_config').set({
+                        isLocked: Boolean(d.isLocked),
+                        overrideOpenAfterDeadline: Boolean(d.overrideOpenAfterDeadline),
+                        deadlineTs: d.deadlineTs !== undefined ? d.deadlineTs : dlTs
+                    }, { merge: true }).catch(() => {});
+                }
+            }
         }
         uppdateraConfigUI();
     }, () => {
@@ -1513,7 +1551,47 @@ function startConfigListener() {
     });
 }
 
+function uppdateraDeadlineCountdownText() {
+    const distCountdown = document.getElementById('districtDeadlineCountdown');
+    if (!distCountdown) return;
+    const displayDeadline = (eventConfig.deadlineText || '').trim() || formatDeadlineFromIso(eventConfig.deadlineIso);
+    if (!displayDeadline) {
+        distCountdown.style.display = 'none';
+        return;
+    }
+    const cd = getDeadlineCountdownText(eventConfig.deadlineIso);
+    if (cd) {
+        distCountdown.style.display = 'inline-block';
+        distCountdown.textContent = (isDeadlineExpired() && eventConfig.overrideOpenAfterDeadline)
+            ? '🔓 Tillfälligt upplåst av admin'
+            : cd;
+    } else {
+        distCountdown.style.display = 'none';
+    }
+}
+
+function scheduleExactDeadlineCheck() {
+    if (exactDeadlineTimer) {
+        clearTimeout(exactDeadlineTimer);
+        exactDeadlineTimer = null;
+    }
+    if ( eventConfig.overrideOpenAfterDeadline) return;
+    const targetMs = getEffectiveDeadlineMs();
+    if (isNaN(targetMs)) return;
+    const msUntilDeadline = targetMs - Date.now();
+    if (msUntilDeadline > 0) {
+        // Trigga exakt när sista anmälningsdag/tid passerar så distriktsvyn låses på sekunden!
+        const delay = Math.min(msUntilDeadline + 80, 2147483647);
+        exactDeadlineTimer = setTimeout(() => {
+            exactDeadlineTimer = null;
+            if (currentUserRole) uppdateraConfigUI();
+        }, delay);
+    }
+}
+
 function uppdateraConfigUI() {
+    scheduleExactDeadlineCheck();
+
     document.getElementById('districtEventTitle').textContent = eventConfig.titel;
     document.getElementById('districtEventSub').textContent = eventConfig.subtitle;
     document.getElementById('adminEventTitle').textContent = eventConfig.titel + ' – Adminöversikt';
@@ -1525,7 +1603,6 @@ function uppdateraConfigUI() {
     const distHeroText = document.getElementById('districtHeroDeadlineText');
     const distBanner = document.getElementById('districtDeadlineBanner');
     const distMainText = document.getElementById('districtDeadlineMainText');
-    const distCountdown = document.getElementById('districtDeadlineCountdown');
     const saveBarPill = document.getElementById('saveBarDeadlinePill');
     const saveBarText = document.getElementById('saveBarDeadlineText');
     const admHeroText = document.getElementById('adminHeroDeadlineText');
@@ -1543,17 +1620,7 @@ function uppdateraConfigUI() {
             saveBarPill.style.display = 'inline-flex';
             saveBarText.textContent = displayDeadline;
         }
-        if (distCountdown) {
-            const cd = getDeadlineCountdownText(eventConfig.deadlineIso);
-            if (cd) {
-                distCountdown.style.display = 'inline-block';
-                distCountdown.textContent = (isDeadlineExpired() && eventConfig.overrideOpenAfterDeadline)
-                    ? '🔓 Tillfälligt upplåst av admin'
-                    : cd;
-            } else {
-                distCountdown.style.display = 'none';
-            }
-        }
+        uppdateraDeadlineCountdownText();
         if (admHeroText) {
             admHeroText.textContent = displayDeadline;
         }
@@ -1592,18 +1659,40 @@ function uppdateraConfigUI() {
         if (lockBtn) lockBtn.textContent = '🔒 Lås anmälan';
     }
 
+    const nowReadOnly = isDistrictReadOnly();
+    const nightsSig = eventConfig.nightOptions.join('||');
+    const lockOrNightsChanged = (lastRenderedReadOnly !== nowReadOnly) || (lastRenderedNightsSig !== nightsSig);
+    const justLockedForDistrict = (lastRenderedReadOnly === false && nowReadOnly === true && currentUserRole === 'district');
+
+    lastRenderedReadOnly = nowReadOnly;
+    lastRenderedNightsSig = nightsSig;
+
     if (activeDistrictId) {
-        renderDistrictRooms();
+        const roomsContainer = document.getElementById('districtRoomsContainer');
+        const focusInsideRooms = Boolean(roomsContainer && document.activeElement && roomsContainer.contains(document.activeElement));
+        const anyRoomEditing = districtState.rooms.some(r => r.isEditing);
+
+        if (justLockedForDistrict) {
+            districtState.rooms.forEach(r => { r.isEditing = false; });
+            renderDistrictRooms();
+            showToast('🔒 Sista anmälningsdag/tid har passerat – anmälan är nu låst.', 'warning');
+        } else if (lockOrNightsChanged || (!focusInsideRooms && !anyRoomEditing)) {
+            renderDistrictRooms();
+        }
     }
-    if (currentUserRole === 'admin') {
+    if (currentUserRole === 'admin' && !isAdminEditingDistrict) {
         renderAdminAll();
     }
 }
 
-// Kontrollera automatiskt var 30:e sekund om sista anmälningsdag/tid har passerat
+// Uppdatera nedräkningstexten var 30:e sekund UTAN att rita om formuläret (rita bara om ifall låsstatusen faktiskt slår om!)
 setInterval(() => {
-    if (currentUserRole && eventConfig.deadlineIso) {
+    if (!currentUserRole || !eventConfig.deadlineIso) return;
+    const nowReadOnly = isDistrictReadOnly();
+    if (nowReadOnly !== lastRenderedReadOnly) {
         uppdateraConfigUI();
+    } else {
+        uppdateraDeadlineCountdownText();
     }
 }, 30000);
 
@@ -1641,7 +1730,8 @@ function normalizeRoomForEdit(rawRoom, defaultEditing = false) {
         capacity: cap,
         stay: rawStay || eventConfig.nightOptions[0] || DEFAULT_NIGHT_OPTIONS[0],
         guestsDraft: guestsDraft,
-        isEditing: typeof rawRoom.isEditing === 'boolean' ? rawRoom.isEditing : (defaultEditing || !hasAnySavedName)
+        isEditing: typeof rawRoom.isEditing === 'boolean' ? rawRoom.isEditing : (defaultEditing || !hasAnySavedName),
+        isDirty: Boolean(rawRoom.isDirty)
     };
 }
 
@@ -1656,11 +1746,17 @@ async function laddaDistriktsAnmalan(distId) {
     }
 
     deletedRoomIds.clear();
+    knownServerRoomIds = new Set();
+    contactDirtyFields = { contactName: false, contactPhone: false, comment: false };
     try {
         const doc = await db.collection(COLLECTION_NAME).doc(distId).get();
         districtLoadFailed = false;
         if (doc.exists) {
             const d = doc.data() || {};
+            const loadedRooms = Array.isArray(d.rooms)
+                ? d.rooms.map(r => normalizeRoomForEdit({ ...r, isEditing: false, isDirty: false }, false))
+                : [];
+            knownServerRoomIds = new Set(loadedRooms.map(r => r.roomId));
             districtState = {
                 districtId: distId,
                 districtName: meta.name,
@@ -1671,7 +1767,7 @@ async function laddaDistriktsAnmalan(distId) {
                 isSubmitted: Boolean(d.isSubmitted),
                 submittedAt: d.submittedAt || 0,
                 // När en sparad anmälan laddas visas rummen direkt i tydligt överblicksläge (isEditing: false)
-                rooms: Array.isArray(d.rooms) ? d.rooms.map(r => normalizeRoomForEdit({ ...r, isEditing: false }, false)) : []
+                rooms: loadedRooms
             };
         } else {
             districtState = {
@@ -1683,7 +1779,7 @@ async function laddaDistriktsAnmalan(distId) {
                 updatedAt: 0,
                 isSubmitted: false,
                 submittedAt: 0,
-                rooms: [normalizeRoomForEdit({ type: 'double', isEditing: true }, true)]
+                rooms: [normalizeRoomForEdit({ type: 'double', isEditing: true, isDirty: false }, true)]
             };
         }
     } catch (err) {
@@ -1728,6 +1824,11 @@ async function laddaDistriktsAnmalan(distId) {
             if (!districtLoadFailed && (d.updatedAt || 0) <= (districtState.updatedAt || 0)) return;
             districtLoadFailed = false;
 
+            const syncedRooms = Array.isArray(d.rooms)
+                ? d.rooms.map(r => normalizeRoomForEdit({ ...r, isEditing: false, isDirty: false }, false))
+                : [];
+            knownServerRoomIds = new Set(syncedRooms.map(r => r.roomId));
+            contactDirtyFields = { contactName: false, contactPhone: false, comment: false };
             districtState = {
                 districtId: distId,
                 districtName: meta.name,
@@ -1737,7 +1838,7 @@ async function laddaDistriktsAnmalan(distId) {
                 updatedAt: d.updatedAt || 0,
                 isSubmitted: Boolean(d.isSubmitted),
                 submittedAt: d.submittedAt || 0,
-                rooms: Array.isArray(d.rooms) ? d.rooms.map(r => normalizeRoomForEdit({ ...r, isEditing: false }, false)) : []
+                rooms: syncedRooms
             };
             document.getElementById('distContactName').value = districtState.contactName;
             document.getElementById('distContactPhone').value = districtState.contactPhone;
@@ -1750,10 +1851,18 @@ async function laddaDistriktsAnmalan(distId) {
     }
 }
 
-function markDistrictDirty() {
+function markDistrictDirty(field) {
+    if (isDistrictReadOnly()) return;
     districtState.contactName = document.getElementById('distContactName').value;
     districtState.contactPhone = document.getElementById('distContactPhone').value;
     districtState.comment = document.getElementById('distComment').value;
+    if (field && Object.prototype.hasOwnProperty.call(contactDirtyFields, field)) {
+        contactDirtyFields[field] = true;
+    } else {
+        contactDirtyFields.contactName = true;
+        contactDirtyFields.contactPhone = true;
+        contactDirtyFields.comment = true;
+    }
     setDistrictDirty(true);
     updateDistrictKpis();
 }
@@ -1783,7 +1892,8 @@ function laggTillRum() {
     districtState.rooms.push(normalizeRoomForEdit({
         type: 'double',
         stay: eventConfig.nightOptions[0] || DEFAULT_NIGHT_OPTIONS[0],
-        isEditing: true
+        isEditing: true,
+        isDirty: true
     }, true));
     const newIdx = districtState.rooms.length - 1;
     setDistrictDirty(true);
@@ -1819,52 +1929,170 @@ function togglaAllaRumRedigering() {
     renderDistrictRooms();
 }
 
-// Sparar distriktets anmälan i en transaktion så att rum som lagts till på servern (t.ex. av admin) sedan senaste
-// inläsningen BEHÅLLS. Endast rum som användaren själv tagit bort (deletedRoomIds) försvinner.
-async function skrivDistriktsRumSakert(distId, payload) {
+// Sparar distriktets anmälan i en transaktion på rums- och fältnivå:
+// - Rum som användaren INTE har rört lokalt behåller serverns senaste version (så Admin/kollegas ändringar på Rum 1 aldrig skrivs över när man sparar Rum 2!).
+// - Rum som lagts till på servern sedan senaste inläsningen behålls också.
+// - Endast rum som användaren aktivt ändrat (isDirty) uppdateras, och endast avsiktligt borttagna rum (deletedRoomIds) tas bort.
+function serializeCleanRoom(r) {
+    const cap = ROOM_TYPES[r.type] ? ROOM_TYPES[r.type].capacity : 2;
+    const activeGuests = r.guestsDraft.slice(0, cap).map(g => ({
+        name: String(g.name || '').trim(),
+        allergy: String(g.allergy || '').trim()
+    }));
+    return {
+        roomId: r.roomId,
+        type: r.type,
+        typeLabel: ROOM_TYPES[r.type] ? ROOM_TYPES[r.type].shortLabel : 'Dubbelrum',
+        capacity: cap,
+        stay: String(r.stay || '').trim(),
+        guests: activeGuests
+    };
+}
+
+async function skrivDistriktsRumSakert(distId, payload, opts = {}) {
     const docRef = db.collection(COLLECTION_NAME).doc(distId);
-    const localIds = new Set(payload.rooms.map(r => r.roomId));
+    const localMeta = payload.roomsWithMeta || [];
     const deleteSnapshot = new Set(deletedRoomIds);
-    let extras = [];
+    const knownSnapshot = new Set(knownServerRoomIds);
+    const contactSnap = { ...contactDirtyFields };
+    const isFinalSubmit = Boolean(opts.isFinalSubmit);
+
+    let committedData = null;
+    let addedFromServerCount = 0;
+
     await db.runTransaction(async (tx) => {
-        extras = [];
+        committedData = null;
+        addedFromServerCount = 0;
+
         const snap = await tx.get(docRef);
         const cur = snap.exists ? (snap.data() || {}) : {};
         const curRooms = Array.isArray(cur.rooms) ? cur.rooms : [];
-        extras = curRooms.filter(r => r && r.roomId && !localIds.has(r.roomId) && !deleteSnapshot.has(r.roomId));
-        tx.set(docRef, { ...payload, rooms: [...payload.rooms, ...extras] }, { merge: true });
+
+        const serverRoomMap = new Map();
+        const legacyWithoutId = [];
+        curRooms.forEach((sr, idx) => {
+            if (!sr) return;
+            if (sr.roomId) {
+                serverRoomMap.set(sr.roomId, sr);
+            } else {
+                legacyWithoutId.push({
+                    ...sr,
+                    roomId: `r_legacy_${idx}_${Date.now()}`
+                });
+            }
+        });
+
+        const mergedRooms = [];
+        const handledIds = new Set();
+
+        localMeta.forEach(({ cleanRoom, isDirty }) => {
+            const rid = cleanRoom.roomId;
+            if (isDirty) {
+                // Användaren har aktivt lagt till eller ändrat detta rum -> spara användarens version
+                mergedRooms.push(cleanRoom);
+                handledIds.add(rid);
+            } else if (serverRoomMap.has(rid)) {
+                // Användaren har INTE rört detta rum -> behåll serverns färskaste version (skyddar mot överskrivning!)
+                mergedRooms.push(serverRoomMap.get(rid));
+                handledIds.add(rid);
+            } else if (!knownSnapshot.has(rid)) {
+                // Lokalt startrum på ett helt nytt distrikt: ta bara med om servern inte redan fått in riktiga rum under tiden
+                if (curRooms.length === 0) {
+                    mergedRooms.push(cleanRoom);
+                    handledIds.add(rid);
+                }
+            }
+            // Om rummet fanns vid laddning (knownSnapshot), inte rörts lokalt (!isDirty) och tagits bort på servern respekteras borttagningen.
+        });
+
+        // Behåll alla rum som Admin eller en kollega lagt till på servern sedan vår inläsning
+        curRooms.forEach(sr => {
+            if (sr && sr.roomId && !handledIds.has(sr.roomId) && !deleteSnapshot.has(sr.roomId)) {
+                mergedRooms.push(sr);
+                handledIds.add(sr.roomId);
+                addedFromServerCount++;
+            }
+        });
+        legacyWithoutId.forEach(lr => {
+            mergedRooms.push(lr);
+            addedFromServerCount++;
+        });
+
+        const finalContactName = contactSnap.contactName
+            ? payload.contactName
+            : (cur.contactName !== undefined ? cur.contactName : payload.contactName);
+        const finalContactPhone = contactSnap.contactPhone
+            ? payload.contactPhone
+            : (cur.contactPhone !== undefined ? cur.contactPhone : payload.contactPhone);
+        const finalComment = contactSnap.comment
+            ? payload.comment
+            : (cur.comment !== undefined ? cur.comment : payload.comment);
+
+        const finalIsSubmitted = Boolean(payload.isSubmitted || cur.isSubmitted);
+        const finalSubmittedAt = isFinalSubmit
+            ? payload.updatedAt
+            : (cur.submittedAt || payload.submittedAt || (finalIsSubmitted ? payload.updatedAt : 0));
+
+        committedData = {
+            districtId: payload.districtId,
+            districtName: payload.districtName,
+            contactName: finalContactName,
+            contactPhone: finalContactPhone,
+            comment: finalComment,
+            updatedAt: payload.updatedAt,
+            isSubmitted: finalIsSubmitted,
+            submittedAt: finalSubmittedAt,
+            rooms: mergedRooms
+        };
+
+        tx.set(docRef, committedData, { merge: true });
     });
+
     deleteSnapshot.forEach(id => deletedRoomIds.delete(id));
-    return extras;
+    if (contactSnap.contactName) contactDirtyFields.contactName = false;
+    if (contactSnap.contactPhone) contactDirtyFields.contactPhone = false;
+    if (contactSnap.comment) contactDirtyFields.comment = false;
+
+    return { committedData, addedFromServerCount };
 }
 
-function laggTillBehallnaRum(extras) {
-    if (!Array.isArray(extras) || extras.length === 0) return false;
-    extras.forEach(r => districtState.rooms.push(normalizeRoomForEdit({ ...r, isEditing: false }, false)));
-    showToast(`ℹ️ ${extras.length} rum som lagts till på servern sedan senaste inläsningen har behållits i anmälan.`, 'info');
-    return true;
+function synkaLokalStateFranCommit(committedData, preserveEditingIds = null) {
+    if (!committedData) return;
+    knownServerRoomIds = new Set((committedData.rooms || []).map(r => r.roomId));
+    districtState.contactName = committedData.contactName || '';
+    districtState.contactPhone = committedData.contactPhone || '';
+    districtState.comment = committedData.comment || '';
+    districtState.updatedAt = committedData.updatedAt || Date.now();
+    districtState.isSubmitted = Boolean(committedData.isSubmitted);
+    districtState.submittedAt = committedData.submittedAt || 0;
+    districtState.rooms = (committedData.rooms || []).map(r => normalizeRoomForEdit({
+        ...r,
+        isEditing: preserveEditingIds ? preserveEditingIds.has(r.roomId) : false,
+        isDirty: false
+    }, false));
+
+    const cNameEl = document.getElementById('distContactName');
+    const cPhoneEl = document.getElementById('distContactPhone');
+    const cCommEl = document.getElementById('distComment');
+    if (cNameEl && !contactDirtyFields.contactName) cNameEl.value = districtState.contactName;
+    if (cPhoneEl && !contactDirtyFields.contactPhone) cPhoneEl.value = districtState.contactPhone;
+    if (cCommEl && !contactDirtyFields.comment) cCommEl.value = districtState.comment;
 }
 
 async function sparaUtkastTystTillFirestore() {
-    if (isDistrictReadOnly()) return;
+    if (isDistrictReadOnly() || isSavingDistrict) return false;
     const meta = DISTRICTS[activeDistrictId];
-    if (!meta) return;
+    if (!meta) return false;
 
-    const cleanRooms = districtState.rooms.map(r => {
-        const cap = ROOM_TYPES[r.type] ? ROOM_TYPES[r.type].capacity : 2;
-        const activeGuests = r.guestsDraft.slice(0, cap).map(g => ({
-            name: String(g.name || '').trim(),
-            allergy: String(g.allergy || '').trim()
-        }));
-        return {
-            roomId: r.roomId,
-            type: r.type,
-            typeLabel: ROOM_TYPES[r.type].shortLabel,
-            capacity: cap,
-            stay: String(r.stay || '').trim(),
-            guests: activeGuests
-        };
-    });
+    const editingIds = new Set(districtState.rooms.filter(r => r.isEditing).map(r => r.roomId));
+    const dirtyDraftRoomsById = new Map(
+        districtState.rooms.filter(r => r.isEditing && r.isDirty).map(r => [r.roomId, r])
+    );
+    // Vid tyst sparning av rumsborttagning skickar vi bara redan klara/sparade rum som dirty, så ett halvfärdigt öppet rum behåller sitt utkast i UI
+    const roomsWithMeta = districtState.rooms.map(r => ({
+        cleanRoom: serializeCleanRoom(r),
+        isDirty: Boolean(r.isDirty && !r.isEditing)
+    }));
 
     const now = Date.now();
     const keepSubmitted = Boolean(districtState.isSubmitted);
@@ -1877,21 +2105,33 @@ async function sparaUtkastTystTillFirestore() {
         updatedAt: now,
         isSubmitted: keepSubmitted,
         submittedAt: districtState.submittedAt || 0,
-        rooms: cleanRooms
+        roomsWithMeta: roomsWithMeta
     };
 
+    isSavingDistrict = true;
     try {
-        const extrasKvar = await skrivDistriktsRumSakert(activeDistrictId, payload);
-        const harBehallna = laggTillBehallnaRum(extrasKvar);
-        districtState.updatedAt = now;
-        if (harBehallna) renderDistrictRooms();
+        const { committedData, addedFromServerCount } = await skrivDistriktsRumSakert(activeDistrictId, payload, { isFinalSubmit: false });
+        synkaLokalStateFranCommit(committedData, editingIds);
+        // Återställ eventuellt pågående utkast i rum som fortfarande är öppna för redigering
+        dirtyDraftRoomsById.forEach((draftRoom, rid) => {
+            const idx = districtState.rooms.findIndex(x => x.roomId === rid);
+            if (idx !== -1) {
+                districtState.rooms[idx] = draftRoom;
+            } else {
+                districtState.rooms.push(draftRoom);
+            }
+        });
+        renderDistrictRooms();
+        if (addedFromServerCount > 0) {
+            showToast(`ℹ️ ${addedFromServerCount} rum som lagts till på servern sedan senaste inläsningen har synkats in.`, 'info');
+        }
         const lastEl = document.getElementById('districtLastSavedText');
-        if (lastEl) lastEl.textContent = keepSubmitted ? `✅ Uppdaterad: ${formatTimestamp(now)}` : `Utkast sparat: ${formatTimestamp(now)}`;
-        // Om inga rum ligger öppna i redigeringsläge längre kan osparad-varningen släckas
+        if (lastEl) lastEl.textContent = districtState.isSubmitted ? `✅ Uppdaterad: ${formatTimestamp(now)}` : `Utkast sparat: ${formatTimestamp(now)}`;
         const anyEditing = districtState.rooms.some(r => r.isEditing);
         if (!anyEditing) {
             setDistrictDirty(false);
         }
+        return true;
     } catch (err) {
         console.error('Kunde inte spara borttagningen till Firestore:', err);
         const isPerm = err && (err.code === 'permission-denied' || String(err.message || '').includes('insufficient permissions'));
@@ -1901,22 +2141,32 @@ async function sparaUtkastTystTillFirestore() {
                 : 'Kunde inte synka borttagningen till molnet. Kontrollera din uppkoppling.',
             'error'
         );
+        return false;
+    } finally {
+        isSavingDistrict = false;
     }
 }
 
 async function taBortRum(index) {
-    if (isDistrictReadOnly()) return;
+    if (isDistrictReadOnly() || isSavingDistrict) return;
     const room = districtState.rooms[index];
     if (!room) return;
     const hasNames = room.guestsDraft.slice(0, room.capacity).some(g => g.name.trim() !== '');
     if (hasNames && !confirm(`Vill du ta bort Rum ${index + 1} (${ROOM_TYPES[room.type].shortLabel}) och deltagarna i rummet?`)) {
         return;
     }
+    const removedRoom = room;
     if (room.roomId) deletedRoomIds.add(room.roomId);
     districtState.rooms.splice(index, 1);
     setDistrictDirty(true);
     renderDistrictRooms();
-    await sparaUtkastTystTillFirestore();
+    const ok = await sparaUtkastTystTillFirestore();
+    if (!ok) {
+        // Återställ rummet i vyn om Firestore nekade ändringen (t.ex. om tiden precis gick ut)
+        if (removedRoom.roomId) deletedRoomIds.delete(removedRoom.roomId);
+        districtState.rooms.splice(Math.min(index, districtState.rooms.length), 0, removedRoom);
+        renderDistrictRooms();
+    }
 }
 
 function onRoomTypeChange(index, newType) {
@@ -1933,6 +2183,7 @@ function onRoomTypeChange(index, newType) {
     }
     room.type = newType;
     room.capacity = newCap;
+    room.isDirty = true;
     setDistrictDirty(true);
     renderDistrictRooms();
 }
@@ -1942,14 +2193,17 @@ function onRoomStayChange(index, newStay) {
     const room = districtState.rooms[index];
     if (!room) return;
     room.stay = newStay;
+    room.isDirty = true;
     setDistrictDirty(true);
     updateDistrictKpis();
 }
 
 function onGuestFieldInput(roomIdx, guestIdx, field, val) {
+    if (isDistrictReadOnly()) return;
     const room = districtState.rooms[roomIdx];
     if (!room || !room.guestsDraft[guestIdx]) return;
     room.guestsDraft[guestIdx][field] = val;
+    room.isDirty = true;
     setDistrictDirty(true);
     updateDistrictKpis();
 }
@@ -2207,25 +2461,16 @@ async function sparaDistriktsAnmalan(isFinalSubmit = false) {
             : 'Anmälan är låst och kan inte längre ändras.', 'warning');
         return;
     }
+    if (isSavingDistrict) return;
 
     const meta = DISTRICTS[activeDistrictId];
     if (!meta) return;
 
-    const cleanRooms = districtState.rooms.map(r => {
-        const cap = ROOM_TYPES[r.type] ? ROOM_TYPES[r.type].capacity : 2;
-        const activeGuests = r.guestsDraft.slice(0, cap).map(g => ({
-            name: String(g.name || '').trim(),
-            allergy: String(g.allergy || '').trim()
-        }));
-        return {
-            roomId: r.roomId,
-            type: r.type,
-            typeLabel: ROOM_TYPES[r.type].shortLabel,
-            capacity: cap,
-            stay: String(r.stay || '').trim(),
-            guests: activeGuests
-        };
-    });
+    const roomsWithMeta = districtState.rooms.map(r => ({
+        cleanRoom: serializeCleanRoom(r),
+        isDirty: Boolean(r.isDirty)
+    }));
+    const cleanRooms = roomsWithMeta.map(x => x.cleanRoom);
 
     if (isFinalSubmit) {
         if (cleanRooms.length === 0) {
@@ -2239,15 +2484,12 @@ async function sparaDistriktsAnmalan(isFinalSubmit = false) {
         }
     }
 
+    isSavingDistrict = true;
     const btn = document.getElementById('saveDistrictBtn');
-    if (isFinalSubmit) {
+    if (btn) {
         btn.disabled = true;
-        btn.textContent = '⏳ Skickar in...';
+        if (isFinalSubmit) btn.textContent = '⏳ Skickar in...';
     }
-
-    // Fäll ihop rummen till överblicksläge direkt
-    districtState.rooms.forEach(r => { r.isEditing = false; });
-    renderDistrictRooms();
 
     const now = Date.now();
     // Viktigt: Om anmälan redan är inskickad ska "Spara & visa överblick" ALDRIG avpublicera den!
@@ -2262,27 +2504,27 @@ async function sparaDistriktsAnmalan(isFinalSubmit = false) {
         updatedAt: now,
         isSubmitted: nextIsSubmitted,
         submittedAt: nextSubmittedAt,
-        rooms: cleanRooms
+        roomsWithMeta: roomsWithMeta
     };
 
     try {
-        const extrasKvar = await skrivDistriktsRumSakert(activeDistrictId, payload);
-        laggTillBehallnaRum(extrasKvar);
-        districtState.updatedAt = now;
-        districtState.isSubmitted = nextIsSubmitted;
-        districtState.submittedAt = nextSubmittedAt;
+        const { committedData, addedFromServerCount } = await skrivDistriktsRumSakert(activeDistrictId, payload, { isFinalSubmit });
+        synkaLokalStateFranCommit(committedData, null);
         document.getElementById('districtLastSavedText').textContent = isFinalSubmit
             ? `✅ Inskickad: ${formatTimestamp(now)}`
-            : (nextIsSubmitted ? `✅ Uppdaterad: ${formatTimestamp(now)}` : `Utkast sparat: ${formatTimestamp(now)}`);
+            : (districtState.isSubmitted ? `✅ Uppdaterad: ${formatTimestamp(now)}` : `Utkast sparat: ${formatTimestamp(now)}`);
         setDistrictDirty(false);
         renderDistrictRooms();
+        if (addedFromServerCount > 0) {
+            showToast(`ℹ️ ${addedFromServerCount} rum som lagts till på servern sedan senaste inläsningen behölls i anmälan.`, 'info');
+        }
         if (isFinalSubmit) {
             const cardEl = document.getElementById('districtRoomsCard');
             if (cardEl) cardEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
             showToast(`✅ Anmälan för ${meta.name} är inskickad!`, 'success');
         } else {
             showToast(
-                nextIsSubmitted
+                districtState.isSubmitted
                     ? '💾 Ändringen är sparad i er inskickade anmälan!'
                     : '💾 Rummet är sparat i utkastet!',
                 'success'
@@ -2297,9 +2539,16 @@ async function sparaDistriktsAnmalan(isFinalSubmit = false) {
                 : 'Kunde inte spara till molnet. Kontrollera din uppkoppling.',
             'error'
         );
+        // Om tiden precis gick ut medan användaren försökte spara: uppdatera låsstatusen direkt
+        if (isEffectiveLocked()) {
+            uppdateraConfigUI();
+        }
     } finally {
-        btn.disabled = isDistrictReadOnly();
-        btn.textContent = districtState.isSubmitted ? '📨 Uppdatera anmälan' : '📨 Skicka in anmälan';
+        isSavingDistrict = false;
+        if (btn) {
+            btn.disabled = isDistrictReadOnly();
+            btn.textContent = districtState.isSubmitted ? '📨 Uppdatera anmälan' : '📨 Skicka in anmälan';
+        }
     }
 }
 
@@ -2680,6 +2929,11 @@ function tillbakaTillAdminVy() {
     if (hasUnsavedChanges && !confirm('Du har osparade ändringar för distriktet. Vill du lämna utan att spara?')) {
         return;
     }
+    if (districtUnsubscribe) {
+        districtUnsubscribe();
+        districtUnsubscribe = null;
+    }
+    deletedRoomIds.clear();
     hasUnsavedChanges = false;
     isAdminEditingDistrict = false;
     activeDistrictId = null;
@@ -2940,9 +3194,9 @@ async function sparaAdminRumModal() {
             tx.set(docRef, {
                 districtId: distId,
                 districtName: meta.name,
-                contactName: currData.contactName || d.contactName || '',
-                contactPhone: currData.contactPhone || d.contactPhone || '',
-                comment: currData.comment || d.comment || '',
+                contactName: currData.contactName !== undefined ? currData.contactName : (d.contactName || ''),
+                contactPhone: currData.contactPhone !== undefined ? currData.contactPhone : (d.contactPhone || ''),
+                comment: currData.comment !== undefined ? currData.comment : (d.comment || ''),
                 updatedAt: Date.now(),
                 rooms: currRooms
             }, { merge: true });
